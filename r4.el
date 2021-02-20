@@ -5,7 +5,7 @@
 
 ;; Author: H. Ugrp  <h.u.g.u.r.p+emacs@pm.me>
 ;; Version: 0.1
-;; Package-Requires: ((request "0.3.3"))
+;; Package-Requires: (request tabulated-list)
 ;; Keywords: radio4000
 ;; URL: https://gitlab.com/hugurp/r4.el
 
@@ -14,6 +14,7 @@
 ;; This package provides a major mode for browsing the data on
 ;; radio400.com
 
+(require 'tabulated-list)
 (require 'request nil 'noerror)
 
 (define-derived-mode r4-mode tabulated-list-mode "r4"
@@ -21,11 +22,15 @@
   (kill-all-local-variables)
   (setq major-mode 'r4-mode)
   (setq mode-name "R4")
-  (setq tabulated-list-format [("slug" 30 t)
-			       ("title" 50 t)
-			       ("body" 100 t)])
+  (setq tabulated-list-format [("slug" 25 t)
+			       ("title" 30 t)
+			       ("tracks" 10 t)
+			       ("body" 50 t)])
+  (setq tabulated-list-sort-key (cons "slug" (cons "title" (cons "tracks" nil))))
+  (set-keymap-parent (make-sparse-keymap) tabulated-list-mode-map)
   (tabulated-list-init-header)
   (tabulated-list-print))
+
 
 (defvar-local r4-api-channels-url "https://radio4000.firebaseio.com/channels.json"
   "The url pointing to the r4 api channels listing.")
@@ -49,6 +54,8 @@
 	 (r4-buffer-name "**r4-status**")
 	 (r4-buffer (generate-new-buffer r4-buffer-name)))
     (with-current-buffer r4-buffer
+      ;; Since some channels include non-ASCII characters
+      (setq buffer-file-coding-system 'utf-8)
       (setq tabulated-list-entries nil)
       (dolist (channel (request-response-data channels-res))
 	(let* ((channel-id (car channel))
@@ -56,6 +63,7 @@
 	  (push (list channel-id (vector
 				  (cdr (assoc 'slug channel-data))
 				  (cdr (assoc 'title channel-data))
+				  (or (format "%d" (length (cdr (assoc 'tracks channel-data)))) "")
 				  (or (cdr (assoc 'body channel-data)) "")))
 		tabulated-list-entries)))
       (switch-to-buffer r4-buffer)
@@ -63,3 +71,5 @@
 
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
+
+;;; r4.el ends here
