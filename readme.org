@@ -1,13 +1,13 @@
 * r4-mode
 
-An Emacs mode to browse radio4000.com
+An Emacs mode to browse [[https://radio4000.com][radio4000.com]].
 
-Inspiration from `list-buffers`, `magit`, `ibuffer`, `tabulated-list-mode`
+Inspiration from =list-buffers=, =magit=, =ibuffer=, =tabulated-list-mode=
 
 ** Dependencies
 
-- emacs `request` https://github.com/tkf/emacs-request
+- emacs =request= https://github.com/tkf/emacs-request
 
 ** Usage
 
-`M-x r4-status`
+=M-x r4-status=
