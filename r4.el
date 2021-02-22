@@ -47,6 +47,7 @@
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
 
+(defun r4-describe-channel() (message "DESSSSSCCC"))
 
 (defun r4-status ()
   "Create a new r4 buffer with the status of the site."
@@ -62,13 +63,24 @@
 	(let* ((channel-id (car channel))
 	       (channel-data (cdr channel)))
 	  (push (list channel-id (vector
-				  (list (cdr (assoc 'slug channel-data)))
+				  (list (cdr (assoc 'slug channel-data)) :type 'r4-xref 'action-data channel)
 				  (cdr (assoc 'title channel-data))
 				  (or (format "%d" (length (cdr (assoc 'tracks channel-data)))) "")
 				  (or (cdr (assoc 'body channel-data)) "")))
 		tabulated-list-entries)))
       (switch-to-buffer r4-buffer)
       (r4-mode))))
+
+(define-button-type 'r4-xref
+  'action 'button-r4-channel-action)
+
+(defun button-r4-channel-action (button)
+  (let* ((channel-data (button-get button 'action-data))
+	(r4-channel-buffer-name "**r4-channel**")
+	(r4-channel-buffer (generate-new-buffer r4-channel-buffer-name)))
+    (with-current-buffer r4-channel-buffer
+      (message "%s" channel-data)
+      (switch-to-buffer r4-channel-buffer))))
 
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
