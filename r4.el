@@ -47,6 +47,7 @@
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
 
+
 (defun r4-status ()
   "Create a new r4 buffer with the status of the site."
   (interactive)
@@ -61,7 +62,7 @@
 	(let* ((channel-id (car channel))
 	       (channel-data (cdr channel)))
 	  (push (list channel-id (vector
-				  (cdr (assoc 'slug channel-data))
+				  (list (cdr (assoc 'slug channel-data)))
 				  (cdr (assoc 'title channel-data))
 				  (or (format "%d" (length (cdr (assoc 'tracks channel-data)))) "")
 				  (or (cdr (assoc 'body channel-data)) "")))
