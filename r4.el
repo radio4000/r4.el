@@ -95,16 +95,18 @@ show the channels"
   "Defines an action for a 'button' used in
 tabulated-list-mode. It opens a new Help buffer, with the
 'clicked' channel data in it."
-  (let* ((channel-data (button-get button 'action-data))
-	 (r4-channel-buffer-name "**r4-channel**")
-	 (r4-channel-buffer (generate-new-buffer r4-channel-buffer-name)))
-    (with-current-buffer r4-channel-buffer
-      (message "%s" channel-data)
-      (switch-to-buffer r4-channel-buffer))))
+  (let ((channel-data (if button (button-get button 'action-data)
+			(tabulated-list-get-id))))
+    (if channel-data
+        (r4-describe-channel channel-data)
+      (user-error "No channel here"))))
 
-(defun r4-describe-channel()
-  "Shows a r4 channel's informations in a new buffer."
-  (message "DESSSSSCCC"))
+(defun r4-describe-channel (channel)
+  "Display the full information about a r4 channel."
+  (with-help-window (help-buffer)
+    (with-current-buffer standard-output
+      (insert (propertize (capitalize (cdr (assoc 'title channel)))
+			  'font-lock-face 'package-status-built-in)))))
 
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
