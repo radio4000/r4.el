@@ -35,52 +35,71 @@
 (defvar-local r4-api-channels-url "https://radio4000.firebaseio.com/channels.json"
   "The url pointing to the r4 api channels listing.")
 
+(defun serialize-channels (res)
+  "Serializes a request json response containing all r4 channels"
+  (let* ((serialized-channels)
+	 (channels res))
+    (dolist (channel channels)
+      (let* ((channel-id (car channel))
+	     (channel-data (cdr channel))
+	     (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
+	     (new-channel (copy-alist channel-data)))
+	(push (cons 'id channel-id) new-channel)
+	(push (cons 'tracksLength channel-tracks-length) new-channel)
+	(push new-channel serialized-channels)))
+    serialized-channels))
+
 (defun r4-api-get-channels ()
+  "Make a request to the api.r4 endpoint, to get all
+channels.json"
   (request r4-api-channels-url
     :sync t
     :type "GET"
     :parser 'json-read
-    :success (cl-function
-	      (lambda (&key data &allow-other-keys)
-		(message "r4 fetched all channels")
-		data))
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
 
-(defun r4-describe-channel() (message "DESSSSSCCC"))
-
 (defun r4-status ()
-  "Create a new r4 buffer with the status of the site."
+  "Create a new r4 buffer with the status of the site. It will
+show the channels"
   (interactive)
-  (let* ((channels-res (r4-api-get-channels))
+  (let* ((channels-res (request-response-data (r4-api-get-channels)))
+	 (channels (serialize-channels channels-res))
 	 (r4-buffer-name "**r4-status**")
 	 (r4-buffer (generate-new-buffer r4-buffer-name)))
     (with-current-buffer r4-buffer
       ;; Since some channels include non-ASCII characters
       (setq buffer-file-coding-system 'utf-8)
       (setq tabulated-list-entries nil)
-      (dolist (channel (request-response-data channels-res))
-	(let* ((channel-id (car channel))
-	       (channel-data (cdr channel)))
-	  (push (list channel-id (vector
-				  (list (cdr (assoc 'slug channel-data)) :type 'r4-xref 'action-data channel)
-				  (cdr (assoc 'title channel-data))
-				  (or (format "%d" (length (cdr (assoc 'tracks channel-data)))) "")
-				  (or (cdr (assoc 'body channel-data)) "")))
-		tabulated-list-entries)))
+      (dolist (channel channels)
+	(push (list (cdr (assoc 'id channel)) (vector
+					       (list (cdr (assoc 'slug channel)) :type 'r4-xref 'action-data channel)
+					       (cdr (assoc 'title channel))
+					       (format "%s" (cdr (assoc 'tracksLength channel)))
+					       (format "%s" (or (cdr (assoc 'body channel)) ""))))
+	      tabulated-list-entries))
       (switch-to-buffer r4-buffer)
       (r4-mode))))
 
+;; defines a new button type, to be used by the r4 tabulutaed list
+;; mode; when selecting a channel
 (define-button-type 'r4-xref
   'action 'button-r4-channel-action)
 
 (defun button-r4-channel-action (button)
+  "Defines an action for a 'button' used in
+tabulated-list-mode. It opens a new Help buffer, with the
+'clicked' channel data in it."
   (let* ((channel-data (button-get button 'action-data))
-	(r4-channel-buffer-name "**r4-channel**")
-	(r4-channel-buffer (generate-new-buffer r4-channel-buffer-name)))
+	 (r4-channel-buffer-name "**r4-channel**")
+	 (r4-channel-buffer (generate-new-buffer r4-channel-buffer-name)))
     (with-current-buffer r4-channel-buffer
       (message "%s" channel-data)
       (switch-to-buffer r4-channel-buffer))))
+
+(defun r4-describe-channel()
+  "Shows a r4 channel's informations in a new buffer."
+  (message "DESSSSSCCC"))
 
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
