@@ -17,6 +17,11 @@
 (require 'tabulated-list)
 (require 'request nil 'noerror)
 
+(defun sort-tracks-predicate (tabulated-item-a tabulated-item-b)
+  (>
+   (string-to-number (elt (car (cdr tabulated-item-a)) 2))
+   (string-to-number (elt (car (cdr tabulated-item-b)) 2))))
+
 (define-derived-mode r4-mode tabulated-list-mode "r4"
   "Major mode for handling r4."
   (kill-all-local-variables)
@@ -24,7 +29,7 @@
   (setq mode-name "R4")
   (setq tabulated-list-format [("slug" 25 t)
 			       ("title" 30 t)
-			       ("tracks" 10 t)
+			       ("tracks" 10 sort-tracks-predicate)
 			       ("body" 50 t)])
   (setq tabulated-list-sort-key (cons "slug" (cons "title" (cons "tracks" nil))))
   (set-keymap-parent (make-sparse-keymap) tabulated-list-mode-map)
