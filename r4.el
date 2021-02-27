@@ -36,10 +36,14 @@
   (tabulated-list-init-header)
   (tabulated-list-print))
 
-
+;; enpoints urls
 (defvar-local r4-api-channels-url "https://radio4000.firebaseio.com/channels.json"
   "The url pointing to the r4 api channels listing.")
 
+(defun get-track-api-url (track-id)
+  (format "https://radio4000.firebaseio.com/tracks/%s.json" track-id))
+
+;; api.r4 json endpoints serializers
 (defun serialize-channels (res)
   "Serializes a request json response containing all r4 channels"
   (let* ((serialized-channels)
@@ -54,6 +58,13 @@
 	(push new-channel serialized-channels)))
     serialized-channels))
 
+(defun serialize-track (track-id track)
+  "Serializes a request json response containing all r4 channels"
+  (let* ((serialized-track (copy-alist (cdr track))))
+    (push (cons 'id track-id) serialized-track)
+    serialized-track))
+
+;; api.r4 get json endpoints/models methods
 (defun r4-api-get-channels ()
   "Make a request to the api.r4 endpoint, to get all
 channels.json"
@@ -63,6 +74,20 @@ channels.json"
     :parser 'json-read
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
+
+(defun r4-api-get-track (track-id)
+  "Make a request to the api.r4 endpoint, to get all
+channels.json"
+  (request (get-track-api-url track-id)
+    :sync t
+    :type "GET"
+    :parser 'json-read
+    :error (cl-function
+	    (lambda (&key response &allow-other-keys)))))
+
+;; r4 mode interactive methods
+;;;###autoload
+(defalias 'list-r4-channels 'r4-status)
 
 (defun r4-status ()
   "Create a new r4 buffer with the status of the site. It will
@@ -86,6 +111,7 @@ show the channels"
       (switch-to-buffer r4-buffer)
       (r4-mode))))
 
+;; r4 mode, buttons and their actions
 ;; defines a new button type, to be used by the r4 tabulutaed list
 ;; mode; when selecting a channel
 (define-button-type 'r4-xref
@@ -101,6 +127,7 @@ tabulated-list-mode. It opens a new Help buffer, with the
         (r4-describe-channel channel-data)
       (user-error "No channel here"))))
 
+;; could be an interactive function, if we suggest channels?
 (defun r4-describe-channel (channel)
   "Display the full information about a r4 channel."
   (with-help-window (help-buffer)
@@ -123,18 +150,25 @@ tabulated-list-mode. It opens a new Help buffer, with the
       (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
       (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
       (insert (format ".tracks:\n"))
-      (dolist (track (cdr (assoc 'tracks channel)))
-	(insert (format "%s\n" track))))))
+      (dolist (track-pair (cdr (assoc 'tracks channel)))
+	(let* ((track-id (car track-pair))
+	       (track-res (request-response-data (r4-api-get-track track-id)))
+	       (track (serialize-track track-id track-res)))
+	  (when track-res (insert (format "%s\n" (cdr (assoc 'title track))))))))))
 
 
+;; experimentations with how to play medias
 ;; (shell-command "mpv https://youtu.be/JbCnoym-pC0")
-
 ;; (start-process "r4-player" "**r4-player**" "mpv" "https://youtu.be/JbCnoym-pC0")
 
-;; tracks
-;; channels favorite
 
-;;;###autoload
-(defalias 'list-r4-channels 'r4-status)
+;; (let ((res (request (get-track-api-url "-JXHtg67zOdtWfEn3RYW")
+;; 	     :type "GET"
+;; 	     :parser 'json-read
+;; 	     :error (cl-function
+;; 		     (lambda (&key response &allow-other-keys))))))
+;;   (when res (message "res! %s" res)))
+
+
 
 ;;; r4.el ends here
