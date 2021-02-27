@@ -197,7 +197,17 @@ tabulated-list-mode. It opens a new Help buffer, with the
 	     (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
 	     (tracks (serialize-channel-tracks tracks-res)))
 	(dolist (track tracks)
-	  (insert (format "%s\n" (cdr (assoc 'title track)))))))))
+	  (insert (format "%s" (cdr (assoc 'title track))))
+	  (insert (make-text-button "play" nil 'action-data track 'action
+                                    (lambda (button)
+				      (let ((track-data (if button (button-get button 'action-data)
+							    (tabulated-list-get-id))))
+					(if track-data
+					    ((lambda ()
+						   (message (format "Playing: %s" (cdr (assoc 'title track-data))))
+						   (start-process "r4-player" "**r4-player**" "mpv" (cdr (assoc 'url track-data)))))
+					  (user-error "No track here"))))))
+	  (insert (format "\n")))))))
 
 ;; (defun handle-track-res (response track-id)
 ;;   (let* ((track-res (request-response-data response))
