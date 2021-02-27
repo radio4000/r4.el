@@ -105,8 +105,34 @@ tabulated-list-mode. It opens a new Help buffer, with the
   "Display the full information about a r4 channel."
   (with-help-window (help-buffer)
     (with-current-buffer standard-output
-      (insert (propertize (capitalize (cdr (assoc 'title channel)))
-			  'font-lock-face 'package-status-built-in)))))
+      (insert (format ".title: %s\n"
+		      (propertize (cdr (assoc 'title channel))
+				  'font-lock-face
+				  'package-status-built-in)))
+      (insert (format ".slug: @%s\n"
+		      (cdr (assoc 'slug channel))))
+      (insert (format ".body: %s\n" (cdr (assoc 'body channel))))
+      (insert (format ".created: %s\n" (cdr (assoc 'created channel))))
+      (insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
+      (insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
+      (insert (format ".link: %s\n" (cdr (assoc 'link channel))))
+      (insert (format ".id: %s\n" (cdr (assoc 'id channel))))
+      (insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
+      (insert (format ".image: %s\n" (cdr (assoc 'image channel))))
+      (insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
+      (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
+      (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
+      (insert (format ".tracks:\n"))
+      (dolist (track (cdr (assoc 'tracks channel)))
+	(insert (format "%s\n" track))))))
+
+
+;; (shell-command "mpv https://youtu.be/JbCnoym-pC0")
+
+;; (start-process "r4-player" "**r4-player**" "mpv" "https://youtu.be/JbCnoym-pC0")
+
+;; tracks
+;; channels favorite
 
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
