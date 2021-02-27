@@ -17,6 +17,62 @@
 (require 'tabulated-list)
 (require 'request nil 'noerror)
 
+
+
+;; r4 player
+(defun r4-kill-player ()
+  (interactive)
+  (let ((proc (get-process "r4-player")))
+    (when proc (kill-process proc))))
+
+(defun msg-me (process event)
+  (message (format "Process: %s had the event '%s'" process event)))
+
+(define-derived-mode r4-player-mode tabulated-list-mode "r4-plyer"
+  "Major mode for handling r4."
+  (kill-all-local-variables)
+  (setq major-mode 'r4-mode)
+  (setq mode-name "R4 Player")
+  (setq tabulated-list-format [("id" 10 t)
+			       ("title" 30 t)])
+  (setq tabulated-list-sort-key (cons "id" nil))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
+
+(define-button-type 'r4-play-track
+  'action 'button-r4-player-play-track-action)
+
+(defun button-r4-player-play-track-action (button)
+  "Defines an action for a 'button' used in
+tabulated-list-mode. It plays a track"
+  (let ((track-data (if button (button-get button 'action-data)
+			(tabulated-list-get-id))))
+    (if track-data
+        (r4-player-play-track track-data)
+      (user-error "No track here"))))
+
+(defun r4-player-play-track (track-data)
+  (r4-kill-player)
+  (message (format "Playing: %s" (cdr (assoc 'title track-data))))
+  (start-process "r4-player" "**r4-player**" "mpv" (cdr (assoc 'url track-data))))
+
+(defun r4-player-play-tracks (tracks-data)
+  "Create a new r4-player buffer with a list of tracks to be played"
+  (let* ((r4-buffer-name "**r4-player-status**")
+	 (r4-buffer (generate-new-buffer r4-buffer-name)))
+    (with-current-buffer r4-buffer
+      ;; Since some channels include non-ASCII characters
+      (setq buffer-file-coding-system 'utf-8)
+      (setq tabulated-list-entries nil)
+      (dolist (track tracks-data)
+	(push (list (format "%s" (cdr (assoc 'id track))) (vector
+							   (format "%s" (cdr (assoc 'id track)))
+							   (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)))
+	      tabulated-list-entries))
+      (switch-to-buffer r4-buffer)
+      (r4-player-mode))))
+
+;; r4 explorer
 (defun sort-tracks-predicate (tabulated-item-a tabulated-item-b)
   (>
    (string-to-number (elt (car (cdr tabulated-item-a)) 2))
@@ -196,16 +252,22 @@ tabulated-list-mode. It opens a new Help buffer, with the
       (let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
 	     (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
 	     (tracks (serialize-channel-tracks tracks-res)))
+
+	(insert " " (make-text-button "Play channel" nil 'action-data tracks 'action
+                                      (lambda (button)
+					(let ((tracks-data (if button (button-get button 'action-data)
+							      (tabulated-list-get-id))))
+					  (if tracks-data
+					      (r4-player-play-tracks tracks-data)
+					    (user-error "No channel.tracks here"))))) "/n")
 	(dolist (track tracks)
 	  (insert (format "%s" (cdr (assoc 'title track))))
-	  (insert (make-text-button "play" nil 'action-data track 'action
+	  (insert " " (make-text-button "play" nil 'action-data track 'action
                                     (lambda (button)
 				      (let ((track-data (if button (button-get button 'action-data)
 							    (tabulated-list-get-id))))
 					(if track-data
-					    ((lambda ()
-						   (message (format "Playing: %s" (cdr (assoc 'title track-data))))
-						   (start-process "r4-player" "**r4-player**" "mpv" (cdr (assoc 'url track-data)))))
+					    (r4-player-play-track track-data)
 					  (user-error "No track here"))))))
 	  (insert (format "\n")))))))
 
@@ -229,7 +291,5 @@ tabulated-list-mode. It opens a new Help buffer, with the
 ;;   :complete (cl-function
 ;;              (lambda (&key response &allow-other-keys)
 ;;                (message "Done: %s" (request-response-status-code response)))))
-
-
 
 ;;; r4.el ends here
