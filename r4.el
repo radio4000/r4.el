@@ -43,6 +43,9 @@
 (defun get-track-api-url (track-id)
   (format "https://radio4000.firebaseio.com/tracks/%s.json" track-id))
 
+(defun get-channel-tracks-api-url (channel-id)
+  (format "https://radio4000.firebaseio.com/tracks.json?orderBy=\"channel\"&startAt=\"%s\"&endAt=\"%s\"" channel-id channel-id))
+
 ;; api.r4 json endpoints serializers
 (defun serialize-channels (res)
   "Serializes a request json response containing all r4 channels"
@@ -58,9 +61,22 @@
 	(push new-channel serialized-channels)))
     serialized-channels))
 
-(defun serialize-track (track-id track)
+(defun serialize-channel-tracks (res)
   "Serializes a request json response containing all r4 channels"
-  (let* ((serialized-track (copy-alist (cdr track))))
+  (let* ((serialized-tracks)
+	 (tracks (request-response-data res)))
+    (dolist (track tracks)
+      (let* ((track-id (car track))
+	     (track-data (cdr track))
+	     (track-tracks-length (length (cdr (assoc 'tracks track-data))))
+	     (new-track (copy-alist track-data)))
+	(push (cons 'id track-id) new-track)
+	(push new-track serialized-tracks)))
+    serialized-tracks))
+
+(defun serialize-track (track-id track-response)
+  "Serializes a request json response containing all r4 channels"
+  (let* ((serialized-track (copy-alist (cdr track-response))))
     (push (cons 'id track-id) serialized-track)
     serialized-track))
 
@@ -75,15 +91,41 @@ channels.json"
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
 
-(defun r4-api-get-track (track-id)
+(defun r4-api-get-channel-tracks (channel-tracks-url)
   "Make a request to the api.r4 endpoint, to get all
 channels.json"
-  (request (get-track-api-url track-id)
+  (request channel-tracks-url
     :sync t
     :type "GET"
     :parser 'json-read
     :error (cl-function
 	    (lambda (&key response &allow-other-keys)))))
+
+(defun r4-api-get-track (track-id)
+  "Make a request to the api.r4 endpoint, to get all
+channels.json"
+  (let ((request-backend 'url-retrieve))
+    (request (get-track-api-url track-id)
+      :sync t
+      :type "GET"
+      :parser 'json-read
+      :error (cl-function
+	      (lambda (&key response &allow-other-keys))))))
+
+(defun r4-api-get-track-async (track-id got-track-fn)
+  "Make a request to the api.r4 endpoint, to get all
+channels.json"
+  (let ((request-backend 'url-retrieve))
+    (request (get-track-api-url track-id)
+      :type "GET"
+      :data '((cons 'id track-id))
+      :parser 'json-read
+      :success (cl-function
+		(lambda (&response response &allow-other-keys)
+		  (debug)
+		  (funcall 'got-track-fn response track-id)))
+      :error (cl-function
+	      (lambda (&key response &allow-other-keys))))))
 
 ;; r4 mode interactive methods
 ;;;###autoload
@@ -150,11 +192,20 @@ tabulated-list-mode. It opens a new Help buffer, with the
       (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
       (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
       (insert (format ".tracks:\n"))
-      (dolist (track-pair (cdr (assoc 'tracks channel)))
-	(let* ((track-id (car track-pair))
-	       (track-res (request-response-data (r4-api-get-track track-id)))
-	       (track (serialize-track track-id track-res)))
-	  (when track-res (insert (format "%s\n" (cdr (assoc 'title track))))))))))
+
+      (let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
+	     (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
+	     (tracks (serialize-channel-tracks tracks-res)))
+	(dolist (track tracks)
+	  (insert (format "%s\n" (cdr (assoc 'title track)))))))))
+
+;; (defun handle-track-res (response track-id)
+;;   (let* ((track-res (request-response-data response))
+;; 	 (track (serialize-track track-id track-res)))))
+
+;; (dolist (track-pair (cdr (assoc 'tracks channel)))
+;;   (let ((track-id (car track-pair)))
+;;     (r4-api-get-track-async track-id 'handle-track-res)))
 
 
 ;; experimentations with how to play medias
@@ -162,12 +213,12 @@ tabulated-list-mode. It opens a new Help buffer, with the
 ;; (start-process "r4-player" "**r4-player**" "mpv" "https://youtu.be/JbCnoym-pC0")
 
 
-;; (let ((res (request (get-track-api-url "-JXHtg67zOdtWfEn3RYW")
-;; 	     :type "GET"
-;; 	     :parser 'json-read
-;; 	     :error (cl-function
-;; 		     (lambda (&key response &allow-other-keys))))))
-;;   (when res (message "res! %s" res)))
+;; authenticated request
+;; (request "http://httpbin.org/get"
+;;   :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
+;;   :complete (cl-function
+;;              (lambda (&key response &allow-other-keys)
+;;                (message "Done: %s" (request-response-status-code response)))))
 
 
 
