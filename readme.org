@@ -3,20 +3,32 @@ An Emacs major mode to browse [[https://radio4000.com][radio4000.com]].
 
 Inspiration from =list-buffers=, =magit=, =ibuffer=, =list-packages=, =tabulated-list-mode=, =docker=, =info=.
 
+> Only tested on linux (arch) for now
+
 ** Installation
 *** Development
-1. install the dependency package `emacs-request`, https://github.com/tkf/emacs-request
+1. install =mpv= https://mpv.io/installation; a free media player for the command line
+1. install the dependency package =emacs-request=, https://github.com/tkf/emacs-request; used to make http network requests (to api.r4.com)
 1. clone this repository
 1. open the file =./r4.el= in an emacs buffer (=M-x find-file RET ./r4.el=)
 1. =M-x evaluate-buffer=
 
+
+Alternatively it is possible to use =M-x package-install-file r4.el=.
+This way the package is available under `M-x list-packages`.
+
 *** TODO Production
-- right now we could =M-x package-install-file r4.el=, then it is available under `M-x list-packages`.
-- later, make it ready to by distributated as a standalone pkg 
+
+Later, make it ready to by distributated as a standalone pkg;
+so it could be available with:
+- package-archives, such as =elpa= & =melpa=
+- =M-x install package RET r4-client=
+- =(use-package r4-client)=
 
 ** Usage
 - =M-x r4-status=
 
 ** Dependencies
+- =mpv=, https://mpv.io
 - emacs [built-in] =tabulated-list= https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html
 - emacs =request= https://github.com/tkf/emacs-request
