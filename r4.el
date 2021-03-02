@@ -17,8 +17,6 @@
 (require 'tabulated-list)
 (require 'request nil 'noerror)
 
-
-
 ;; r4 player
 (defun r4-kill-player ()
   (interactive)
@@ -30,7 +28,6 @@
   ;; code 2: media not available
   ;; code 4: C-c to exit the program || kill process from other term
   ;; finished: track finished
-  (debug)
   (cond ((string= event "finished\n") (handle-track-finished))
 	((string= event "exited abnormally with code 2\n") (handle-track-finished))
 	((string= event "exited abnormally with code 4\n") (r4-kill-player))
@@ -40,12 +37,34 @@
   (message "r4-player: track finished")
   (r4-player-play-next-track))
 
+;; (define-key map "u" 'package-menu-mark-unmark)
+;; (define-key map "\177" 'package-menu-backup-unmark)
+;; (define-key map "d" 'package-menu-mark-delete)
+;; (define-key map "i" 'package-menu-mark-install)
+;; (define-key map "U" 'package-menu-mark-upgrades)
+;; (define-key map "r" 'revert-buffer)
+;; (define-key map (kbd "/ k") 'package-menu-filter-by-keyword)
+;; (define-key map (kbd "/ n") 'package-menu-filter-by-name)
+;; (define-key map (kbd "/ /") 'package-menu-clear-filter)
+;; (define-key map "~" 'package-menu-mark-obsolete-for-deletion)
+;; (define-key map "x" 'package-menu-execute)
+;; (define-key map "h" 'package-menu-quick-help)
+;; (define-key map "H" #'package-menu-hide-package)
+;; (define-key map "?" 'package-menu-describe-package)
+;; (define-key map "(" #'package-menu-toggle-hiding)
+
+(defvar r4-player-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map "\C-m" 'package-menu-describe-package)
+    map)
+  "Local keymap for `r4-player-mode' buffers.")
+
 (define-derived-mode r4-player-mode tabulated-list-mode "r4-player"
   "Major mode for handling r4."
-  (kill-all-local-variables)
   (setq major-mode 'r4-mode)
   (setq mode-name "R4 Player")
-  (setq tabulated-list-format [("id" 10 t)
+  (setq tabulated-list-format [("id" 22 t)
 			       ("title" 30 t)])
   (setq tabulated-list-sort-key (cons "id" nil))
   (tabulated-list-init-header)
@@ -74,10 +93,12 @@ tabulated-list-mode. It plays a track"
 
 (defun r4-player-play-next-track ()
   (with-current-buffer (get-buffer "**r4-player-status**")
-    (let* ((tracks-tail (member current-track tracks))
+    ;; current-track && tracks-player are buffer local,
+    ;; set by play-tracks
+    (let* ((tracks-tail (member current-track tracks-player))
 	   (previous-track (nth 0 tracks-tail))
 	   (next-track (nth 1 tracks-tail))
-	   (first-track (nth 0 tracks)))
+	   (first-track (nth 0 tracks-player)))
       (if next-track (r4-player-play-track next-track)
 	(r4-player-play-track first-track)))))
 
@@ -88,8 +109,11 @@ tabulated-list-mode. It plays a track"
     (with-current-buffer r4-buffer
       ;; Since some channels include non-ASCII characters
       (setq buffer-file-coding-system 'utf-8)
-      (defvar tracks nil "Tracks being played")
-      (setq tracks tracks-data)
+      (defvar tracks-original nil "Original tracks")
+      (defvar tracks-player nil "Tracks being played")
+      (defvar current-track nil "Track currently being played")
+      (setq tracks-original tracks-data)
+      (setq tracks-player tracks-data)
       (setq tabulated-list-entries nil)
       (dolist (track tracks-data)
 	(push (list (format "%s" (cdr (assoc 'id track))) (vector
@@ -105,9 +129,14 @@ tabulated-list-mode. It plays a track"
    (string-to-number (elt (car (cdr tabulated-item-a)) 2))
    (string-to-number (elt (car (cdr tabulated-item-b)) 2))))
 
+(defvar r4-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
+    map)
+  "Local keymap for `r4-mode-mode' buffers.")
+
 (define-derived-mode r4-mode tabulated-list-mode "r4"
   "Major mode for handling r4."
-  (kill-all-local-variables)
   (setq major-mode 'r4-mode)
   (setq mode-name "R4")
   (setq tabulated-list-format [("slug" 25 t)
@@ -221,7 +250,7 @@ show the channels"
   (let* ((channels-res (request-response-data (r4-api-get-channels)))
 	 (channels (serialize-channels channels-res))
 	 (r4-buffer-name "**r4-status**")
-	 (r4-buffer (generate-new-buffer r4-buffer-name)))
+	 (r4-buffer (get-buffer-create r4-buffer-name)))
     (with-current-buffer r4-buffer
       ;; Since some channels include non-ASCII characters
       (setq buffer-file-coding-system 'utf-8)
@@ -255,48 +284,50 @@ tabulated-list-mode. It opens a new Help buffer, with the
 ;; could be an interactive function, if we suggest channels?
 (defun r4-describe-channel (channel)
   "Display the full information about a r4 channel."
-  (with-help-window (help-buffer)
-    (with-current-buffer standard-output
-      (insert (format ".title: %s\n"
-		      (propertize (cdr (assoc 'title channel))
-				  'font-lock-face
-				  'package-status-built-in)))
-      (insert (format ".slug: @%s\n"
-		      (cdr (assoc 'slug channel))))
-      (insert (format ".body: %s\n" (cdr (assoc 'body channel))))
-      (insert (format ".created: %s\n" (cdr (assoc 'created channel))))
-      (insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
-      (insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
-      (insert (format ".link: %s\n" (cdr (assoc 'link channel))))
-      (insert (format ".id: %s\n" (cdr (assoc 'id channel))))
-      (insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
-      (insert (format ".image: %s\n" (cdr (assoc 'image channel))))
-      (insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
-      (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
-      (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
-      (insert (format ".tracks:\n"))
+  (let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
+    (with-help-window buffer-name
+      (with-current-buffer standard-output
+	(insert (format ".title: %s\n"
+			(propertize (cdr (assoc 'title channel))
+				    'font-lock-face
+				    'package-status-built-in)))
+	(insert (format ".slug: @%s\n"
+			(cdr (assoc 'slug channel))))
+	(insert (format ".body: %s\n" (cdr (assoc 'body channel))))
+	(insert (format ".created: %s\n" (cdr (assoc 'created channel))))
+	(insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
+	(insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
+	(insert (format ".link: %s\n" (cdr (assoc 'link channel))))
+	(insert (format ".id: %s\n" (cdr (assoc 'id channel))))
+	(insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
+	(insert (format ".image: %s\n" (cdr (assoc 'image channel))))
+	(insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
+	(insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
+	(insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
+	(insert (format ".tracks:\n"))
 
-      (let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
-	     (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
-	     (tracks (serialize-channel-tracks tracks-res)))
+	(let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
+	       (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
+	       (tracks (serialize-channel-tracks tracks-res)))
 
-	(insert " " (make-text-button "Play channel" nil 'action-data tracks 'action
-                                      (lambda (button)
-					(let ((tracks-data (if button (button-get button 'action-data)
-							      (tabulated-list-get-id))))
-					  (if tracks-data
-					      (r4-player-play-tracks tracks-data)
-					    (user-error "No channel.tracks here"))))) "\n")
-	(dolist (track tracks)
-	  (insert (format "%s" (cdr (assoc 'title track))))
-	  (insert " " (make-text-button "play" nil 'action-data track 'action
-                                    (lambda (button)
-				      (let ((track-data (if button (button-get button 'action-data)
-							    (tabulated-list-get-id))))
-					(if track-data
-					    (r4-player-play-track track-data)
-					  (user-error "No track here"))))))
-	  (insert (format "\n")))))))
+	  (insert " " (make-text-button "Play channel" nil 'action-data tracks 'action
+					(lambda (button)
+					  (let ((tracks-data (if button (button-get button 'action-data)
+							       (tabulated-list-get-id))))
+					    (if tracks-data
+						(r4-player-play-tracks tracks-data)
+					      (user-error "No channel.tracks here"))))) "\n")
+	  (dolist (track tracks)
+	    (insert (format "%s" (cdr (assoc 'title track))))
+	    (insert " " (make-text-button "play" nil 'action-data track 'action
+					  (lambda (button)
+					    (let ((track-data (if button (button-get button 'action-data)
+								(tabulated-list-get-id))))
+					      (if track-data
+						  (r4-player-play-track track-data)
+						(user-error "No track here"))))))
+	    (insert (format "\n"))))
+	(switch-to-buffer (current-buffer))))))
 
 ;; (defun handle-track-res (response track-id)
 ;;   (let* ((track-res (request-response-data response))
