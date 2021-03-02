@@ -23,12 +23,24 @@
 (defun r4-kill-player ()
   (interactive)
   (let ((proc (get-process "r4-player")))
-    (when proc (kill-process proc))))
+    (when proc (progn (kill-process proc)))
+    (message "Killed r4-player process")))
 
-(defun msg-me (process event)
-  (message (format "Process: %s had the event '%s'" process event)))
+(defun r4-player-tracks-status-changed (process event)
+  ;; code 2: media not available
+  ;; code 4: C-c to exit the program || kill process from other term
+  ;; finished: track finished
+  (debug)
+  (cond ((string= event "finished\n") (handle-track-finished))
+	((string= event "exited abnormally with code 2\n") (handle-track-finished))
+	((string= event "exited abnormally with code 4\n") (r4-kill-player))
+	((string= event "killed\n") (r4-kill-player))))
 
-(define-derived-mode r4-player-mode tabulated-list-mode "r4-plyer"
+(defun handle-track-finished ()
+  (message "r4-player: track finished")
+  (r4-player-play-next-track))
+
+(define-derived-mode r4-player-mode tabulated-list-mode "r4-player"
   "Major mode for handling r4."
   (kill-all-local-variables)
   (setq major-mode 'r4-mode)
@@ -46,23 +58,38 @@
   "Defines an action for a 'button' used in
 tabulated-list-mode. It plays a track"
   (let ((track-data (if button (button-get button 'action-data)
-			(tabulated-list-get-id))))
+		      (tabulated-list-get-id))))
     (if track-data
-        (r4-player-play-track track-data)
+	(r4-player-play-track track-data)
       (user-error "No track here"))))
 
 (defun r4-player-play-track (track-data)
-  (r4-kill-player)
-  (message (format "Playing: %s" (cdr (assoc 'title track-data))))
-  (start-process "r4-player" "**r4-player**" "mpv" (cdr (assoc 'url track-data))))
+  (with-current-buffer (get-buffer "**r4-player-status**")
+    (when track-data (progn
+		       (r4-kill-player)
+		       (setq current-track track-data)
+		       (message (format "Playing: %s" (cdr (assoc 'title track-data))))
+		       (start-process "r4-player" "**r4-player-process**" "mpv" (cdr (assoc 'url track-data)))
+		       (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed)))))
+
+(defun r4-player-play-next-track ()
+  (with-current-buffer (get-buffer "**r4-player-status**")
+    (let* ((tracks-tail (member current-track tracks))
+	   (previous-track (nth 0 tracks-tail))
+	   (next-track (nth 1 tracks-tail))
+	   (first-track (nth 0 tracks)))
+      (if next-track (r4-player-play-track next-track)
+	(r4-player-play-track first-track)))))
 
 (defun r4-player-play-tracks (tracks-data)
   "Create a new r4-player buffer with a list of tracks to be played"
   (let* ((r4-buffer-name "**r4-player-status**")
-	 (r4-buffer (generate-new-buffer r4-buffer-name)))
+	 (r4-buffer (get-buffer-create r4-buffer-name)))
     (with-current-buffer r4-buffer
       ;; Since some channels include non-ASCII characters
       (setq buffer-file-coding-system 'utf-8)
+      (defvar tracks nil "Tracks being played")
+      (setq tracks tracks-data)
       (setq tabulated-list-entries nil)
       (dolist (track tracks-data)
 	(push (list (format "%s" (cdr (assoc 'id track))) (vector
@@ -259,7 +286,7 @@ tabulated-list-mode. It opens a new Help buffer, with the
 							      (tabulated-list-get-id))))
 					  (if tracks-data
 					      (r4-player-play-tracks tracks-data)
-					    (user-error "No channel.tracks here"))))) "/n")
+					    (user-error "No channel.tracks here"))))) "\n")
 	(dolist (track tracks)
 	  (insert (format "%s" (cdr (assoc 'title track))))
 	  (insert " " (make-text-button "play" nil 'action-data track 'action
