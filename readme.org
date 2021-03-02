@@ -3,19 +3,20 @@ An Emacs major mode to browse [[https://radio4000.com][radio4000.com]].
 
 Inspiration from =list-buffers=, =magit=, =ibuffer=, =list-packages=, =tabulated-list-mode=, =docker=, =info=.
 
-** Dependencies
-- emacs [built-in] =tabulated-list= https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html
-- emacs =request= https://github.com/tkf/emacs-request
-
-** Usage
-- =M-x r4-status=
-
 ** Installation
 *** Development
+1. install the dependency package `emacs-request`, https://github.com/tkf/emacs-request
 1. clone this repository
-2. open the file =r4.el= in an emacs buffer (=M-x find-file RET ./r4.el=)
-3. =M-x evaluate-buffer=
+1. open the file =./r4.el= in an emacs buffer (=M-x find-file RET ./r4.el=)
+1. =M-x evaluate-buffer=
 
 *** TODO Production
 - right now we could =M-x package-install-file r4.el=, then it is available under `M-x list-packages`.
 - later, make it ready to by distributated as a standalone pkg 
+
+** Usage
+- =M-x r4-status=
+
+** Dependencies
+- emacs [built-in] =tabulated-list= https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html
+- emacs =request= https://github.com/tkf/emacs-request
