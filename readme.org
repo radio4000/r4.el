@@ -1,14 +1,13 @@
 * r4-mode
-An Emacs major mode to browse [[https://radio4000.com][radio4000.com]].
-
-Inspiration from =list-buffers=, =magit=, =ibuffer=, =list-packages=, =tabulated-list-mode=, =docker=, =info=.
-
-> Only tested on linux (arch) for now
+An Emacs major mode to browse [[https://radio4000.com][radio4000.com]] (through [[https://api.radio4000.com][api.radio4000.com]]).
 
 ** Installation
+
+> Only tested on linux (arch) for now (so mpv dependency might not work else-where).
+
 *** Development
-1. install =mpv= https://mpv.io/installation; a free media player for the command line
-1. install the dependency package =emacs-request=, https://github.com/tkf/emacs-request; used to make http network requests (to api.r4.com)
+1. install =mpv= [[https://mpv.io/installation][mpv.io/installation]]; a free media player for the command line
+1. install the dependency package =emacs-request=, [[https://github.com/tkf/emacs-request][github/tkf/emacs-request]]; used to make http network requests (to api.r4.com)
 1. clone this repository
 1. open the file =./r4.el= in an emacs buffer (=M-x find-file RET ./r4.el=)
 1. =M-x evaluate-buffer=
@@ -29,6 +28,9 @@ so it could be available with:
 - =M-x r4-status=
 
 ** Dependencies
-- =mpv=, https://mpv.io
-- emacs [built-in] =tabulated-list= https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html
-- emacs =request= https://github.com/tkf/emacs-request
+- =mpv=, [[https://mpv.io][mpv.io]]
+- emacs [built-in] =tabulated-list= [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html][gnu.org/elisp/Tabulated-List-Mode]]
+- emacs =request= [[https://github.com/tkf/emacs-request][github/emacs-request]]
+
+** Inspiration & docs
+Inspiration from =list-buffers=, =magit=, =ibuffer=, =list-packages=, =tabulated-list-mode=, =docker=, =info=.
