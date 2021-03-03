@@ -37,25 +37,10 @@
   (message "r4-player: track finished")
   (r4-player-play-next-track))
 
-;; (define-key map "u" 'package-menu-mark-unmark)
-;; (define-key map "\177" 'package-menu-backup-unmark)
-;; (define-key map "d" 'package-menu-mark-delete)
-;; (define-key map "i" 'package-menu-mark-install)
-;; (define-key map "U" 'package-menu-mark-upgrades)
-;; (define-key map "r" 'revert-buffer)
-;; (define-key map (kbd "/ k") 'package-menu-filter-by-keyword)
-;; (define-key map (kbd "/ n") 'package-menu-filter-by-name)
-;; (define-key map (kbd "/ /") 'package-menu-clear-filter)
-;; (define-key map "~" 'package-menu-mark-obsolete-for-deletion)
-;; (define-key map "x" 'package-menu-execute)
-;; (define-key map "h" 'package-menu-quick-help)
-;; (define-key map "H" #'package-menu-hide-package)
-;; (define-key map "?" 'package-menu-describe-package)
-;; (define-key map "(" #'package-menu-toggle-hiding)
-
 (defvar r4-player-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map "k" 'r4-kill-player)
     (define-key map "\M-n" 'r4-player-play-next-track)
     map)
   "Local keymap for `r4-player-mode' buffers.")
@@ -87,12 +72,16 @@ tabulated-list-mode. It plays a track"
 
 (defun r4-player-play-track (track-data)
   (with-current-buffer (get-buffer "**r4-player-status**")
-    (when track-data (progn
-		       (r4-kill-player)
-		       (setq current-track track-data)
-		       (message (format "Playing: %s" (cdr (assoc 'title track-data))))
-		       (start-process "r4-player" "**r4-player-process**" "mpv" (cdr (assoc 'url track-data)))
-		       (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed)))))
+    (when track-data
+      (let ((track-title (cdr (assoc 'title track-data)))
+	    (track-url (cdr (assoc 'url track-data))))
+	(when (url-basepath track-url)
+	  (r4-kill-player)
+	  (setq current-track track-data)
+	  (message (format "Playing: %s" track-title))
+	  (start-process "r4-player" "**r4-player-process**" "mpv" track-url)
+	  (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed))))))
+
 
 (defun r4-player-play-next-track ()
   (interactive)
@@ -183,7 +172,7 @@ tabulated-list-mode. It plays a track"
     serialized-channels))
 
 (defun serialize-channel (res)
-  "Serializes a request json response containing all r4 channels"
+  "Serializes a json object containing all a r4 channel, from a r4 channels list"
   (let* ((channel-id (car res))
 	 (channel-data (cdr res))
 	 (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
@@ -204,12 +193,6 @@ tabulated-list-mode. It plays a track"
 	(push (cons 'id track-id) new-track)
 	(push new-track serialized-tracks)))
     serialized-tracks))
-
-(defun serialize-track (track-id track-response)
-  "Serializes a request json response containing all r4 channels"
-  (let* ((serialized-track (copy-alist (cdr track-response))))
-    (push (cons 'id track-id) serialized-track)
-    serialized-track))
 
 ;; api.r4 get json endpoints/models methods
 (defun r4-api-get-channels ()
@@ -354,7 +337,6 @@ tabulated-list-mode. It opens a new Help buffer, with the
     (insert (format " => %s" (cdr (assoc 'body track))))
     (insert (format "\n"))))
 
-;; could be an interactive function, if we suggest channels?
 (defun r4-describe-channel (channel)
   "Display the full information about a r4 channel."
   (let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
@@ -378,20 +360,6 @@ tabulated-list-mode. It opens a new Help buffer, with the
 		    (channel (nth 0 (serialize-channels channel-res))))
 	       (r4-describe-channel channel)))
     (message (format "No channel there: @%s" channel-slug))))
-
-;; (defun handle-track-res (response track-id)
-;;   (let* ((track-res (request-response-data response))
-;; 	 (track (serialize-track track-id track-res)))))
-
-;; (dolist (track-pair (cdr (assoc 'tracks channel)))
-;;   (let ((track-id (car track-pair)))
-;;     (r4-api-get-track-async track-id 'handle-track-res)))
-
-
-;; experimentations with how to play medias
-;; (shell-command "mpv https://youtu.be/JbCnoym-pC0")
-;; (start-process "r4-player" "**r4-player**" "mpv" "https://youtu.be/JbCnoym-pC0")
-
 
 ;; authenticated request
 ;; (request "http://httpbin.org/get"
