@@ -370,11 +370,20 @@ tabulated-list-mode. It opens a new Help buffer, with the
 	       (r4-describe-channel channel)))
     (message (format "No channel there: @%s" channel-slug))))
 
-;; authenticated request
-;; (request "http://httpbin.org/get"
-;;   :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
-;;   :complete (cl-function
-;;              (lambda (&key response &allow-other-keys)
-;;                (message "Done: %s" (request-response-status-code response)))))
+;; firebase api calls to login
+;; documentation: https://firebase.google.com/docs/reference/rest/auth/
+(defun r4-api-login (email password)
+  "Make a request to the api.r4 endpoint, to login a user with `email` and `password`''''"
+  (let ((request-params (list
+			 (cons "email" email)
+			 (cons "password" password)
+			 (cons "returnSecureToken" t))))
+    (request "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyBwygjwKXbSHscVhdKuJpgBdd1C2g8aK4g"
+      :type "POST"
+      :data request-params
+      :parser 'json-read
+      :success (cl-function
+		(lambda (&key data &allow-other-keys)
+		  (message "I sent: %S" (assoc-default 'form data)))))))
 
 ;;; r4.el ends here
