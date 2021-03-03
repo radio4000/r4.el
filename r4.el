@@ -170,20 +170,27 @@ tabulated-list-mode. It plays a track"
 (defun get-channel-tracks-api-url (channel-id)
   (format "https://radio4000.firebaseio.com/tracks.json?orderBy=\"channel\"&startAt=\"%s\"&endAt=\"%s\"" channel-id channel-id))
 
+(defun get-channel-by-slug-api-url (channel-slug)
+  (format "https://radio4000.firebaseio.com/channels.json?orderBy=\"slug\"&startAt=\"%s\"&endAt=\"%s\"" channel-slug channel-slug))
+
 ;; api.r4 json endpoints serializers
 (defun serialize-channels (res)
   "Serializes a request json response containing all r4 channels"
   (let* ((serialized-channels)
-	 (channels res))
+	 (channels (request-response-data res)))
     (dolist (channel channels)
-      (let* ((channel-id (car channel))
-	     (channel-data (cdr channel))
-	     (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
-	     (new-channel (copy-alist channel-data)))
-	(push (cons 'id channel-id) new-channel)
-	(push (cons 'tracksLength channel-tracks-length) new-channel)
-	(push new-channel serialized-channels)))
+      (push (serialize-channel channel) serialized-channels))
     serialized-channels))
+
+(defun serialize-channel (res)
+  "Serializes a request json response containing all r4 channels"
+  (let* ((channel-id (car res))
+	 (channel-data (cdr res))
+	 (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
+	 (new-channel (copy-alist channel-data)))
+    (push (cons 'id channel-id) new-channel)
+    (push (cons 'tracksLength channel-tracks-length) new-channel)
+    new-channel))
 
 (defun serialize-channel-tracks (res)
   "Serializes a request json response containing all r4 channels"
@@ -209,6 +216,16 @@ tabulated-list-mode. It plays a track"
   "Make a request to the api.r4 endpoint, to get all
 channels.json"
   (request r4-api-channels-url
+    :sync t
+    :type "GET"
+    :parser 'json-read
+    :error (cl-function
+	    (lambda (&key response &allow-other-keys)))))
+
+(defun r4-api-get-channel-by-slug (channel-slug)
+  "Make a request to the api.r4 endpoint, to get a channel
+by its channel.slug key"
+  (request (get-channel-by-slug-api-url channel-slug)
     :sync t
     :type "GET"
     :parser 'json-read
@@ -258,8 +275,7 @@ channels.json"
   "Create a new r4 buffer with the status of the site. It will
 show the channels"
   (interactive)
-  (let* ((channels-res (request-response-data (r4-api-get-channels)))
-	 (channels (serialize-channels channels-res))
+  (let* ((channels (serialize-channels (r4-api-get-channels)))
 	 (r4-buffer-name "**r4-status**")
 	 (r4-buffer (get-buffer-create r4-buffer-name)))
     (with-current-buffer r4-buffer
@@ -352,6 +368,16 @@ tabulated-list-mode. It opens a new Help buffer, with the
 	  (when (> (cdr (assoc 'tracksLength channel)) 0)
 	    (r4-insert-channel-tracks tracks)))
 	(switch-to-buffer (current-buffer))))))
+
+(defun r4-describe-channel-slug (channel-slug)
+  "Find a r4 channel by slug, and describe it."
+  (interactive "MChannel-slug: @\n")
+  (if channel-slug
+      (progn (message (format "Fetching channel: @%s" channel-slug))
+	     (let* ((channel-res (r4-api-get-channel-by-slug channel-slug))
+		    (channel (nth 0 (serialize-channels channel-res))))
+	       (r4-describe-channel channel)))
+    (message (format "No channel there: @%s" channel-slug))))
 
 ;; (defun handle-track-res (response track-id)
 ;;   (let* ((track-res (request-response-data response))
