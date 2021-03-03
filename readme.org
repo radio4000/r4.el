@@ -14,12 +14,12 @@ An Emacs major mode to browse [[https://radio4000.com][radio4000.com]] (through 
 
 
 Alternatively it is possible to use =M-x package-install-file r4.el=.
-This way the package is available under `M-x list-packages`.
+This way the package is available under =M-x list-packages=.
 
 **** debug
 
-If there is an error happening, you can use `M-x
-toggle-debug-on-error`, to activate globally enterring in the debug
+If there is an error happening, you can use =M-x
+toggle-debug-on-error=, to activate globally enterring in the debug
 mode when the error happens again.
 
 *** TODO Production
