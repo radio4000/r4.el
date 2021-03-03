@@ -49,12 +49,13 @@
   "Major mode for handling the r4 player."
   (setq major-mode 'r4-mode)
   (setq mode-name "R4 Player")
-  (setq tabulated-list-format [("created" 15 t)
-			       ("title" 40 t)
-			       ("description" 50 t)
-			       ("id" 22 t)
-			       ("url" 40 t)])
-  (setq tabulated-list-sort-key (cons "created" (cons "id" nil)))
+  (setq tabulated-list-format
+	[("created" 15 t)
+	 ("title" 40 t)
+	 ("description" 50 t)
+	 ("id" 22 t)
+	 ("url" 40 t)])
+  (setq tabulated-list-sort-key '("created" "id"))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -81,7 +82,6 @@ tabulated-list-mode. It plays a track"
 	  (message (format "Playing: %s" track-title))
 	  (start-process "r4-player" "**r4-player-process**" "mpv" track-url)
 	  (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed))))))
-
 
 (defun r4-player-play-next-track ()
   (interactive)
@@ -112,12 +112,13 @@ tabulated-list-mode. It plays a track"
       (setq tracks-player tracks-data)
       (setq tabulated-list-entries nil)
       (dolist (track tracks-data)
-	(push (list (format "%s" (cdr (assoc 'id track))) (vector
-							   (format "%s" (or (cdr (assoc 'created track)) ""))
-							   (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)
-							   (format "%s" (or (cdr (assoc 'body track)) ""))
-							   (format "%s" (cdr (assoc 'id track)))
-							   (format "%s" (or (cdr (assoc 'url track)) ""))))
+	(push (list (format "%s" (cdr (assoc 'id track)))
+		    (vector
+		     (format "%s" (or (cdr (assoc 'created track)) ""))
+		     (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)
+		     (format "%s" (or (cdr (assoc 'body track)) ""))
+		     (format "%s" (cdr (assoc 'id track)))
+		     (format "%s" (or (cdr (assoc 'url track)) ""))))
 	      tabulated-list-entries))
       (r4-player-mode)
       (when should-switch-buffer (switch-to-buffer r4-buffer)))))
@@ -138,13 +139,14 @@ tabulated-list-mode. It plays a track"
   "Major mode for handling r4."
   (setq major-mode 'r4-mode)
   (setq mode-name "R4")
-  (setq tabulated-list-format [("created" 15 t)
-			       ("updated" 15 t)
-			       ("slug" 25 t)
-			       ("title" 30 t)
-			       ("tracks" 10 sort-tracks-predicate)
-			       ("body" 50 t)])
-  (setq tabulated-list-sort-key (cons "created" (cons "updated" (cons "slug" (cons "title" (cons "tracks" nil))))))
+  (setq tabulated-list-format
+	[("created" 15 t)
+	 ("updated" 15 t)
+	 ("slug" 25 t)
+	 ("title" 30 t)
+	 ("tracks" 10 sort-tracks-predicate)
+	 ("body" 50 t)])
+  (setq tabulated-list-sort-key '("created" "updated" "slug" "title" "tracks"))
   (set-keymap-parent (make-sparse-keymap) tabulated-list-mode-map)
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -342,8 +344,8 @@ tabulated-list-mode. It opens a new Help buffer, with the
   (let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
     (with-help-window buffer-name
       (with-current-buffer standard-output
-
-	(let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
+	(let* ((channel-id (cdr (assoc 'id channel)))
+	       (channel-tracks-url (get-channel-tracks-api-url channel-id))
 	       (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
 	       (tracks (serialize-channel-tracks tracks-res)))
 	  (r4-insert-channel-header channel tracks)
