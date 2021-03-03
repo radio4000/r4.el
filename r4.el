@@ -56,16 +56,17 @@
 (defvar r4-player-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map "\C-m" 'package-menu-describe-package)
+    (define-key map "\M-n" 'r4-player-play-next-track)
     map)
   "Local keymap for `r4-player-mode' buffers.")
 
 (define-derived-mode r4-player-mode tabulated-list-mode "r4-player"
-  "Major mode for handling r4."
+  "Major mode for handling the r4 player."
   (setq major-mode 'r4-mode)
   (setq mode-name "R4 Player")
   (setq tabulated-list-format [("id" 22 t)
-			       ("title" 30 t)])
+			       ("title" 30 t)
+			       ("description" 40 t)])
   (setq tabulated-list-sort-key (cons "id" nil))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -102,7 +103,7 @@ tabulated-list-mode. It plays a track"
       (if next-track (r4-player-play-track next-track)
 	(r4-player-play-track first-track)))))
 
-(defun r4-player-play-tracks (tracks-data)
+(defun r4-player-load-tracks (tracks-data should-switch-buffer)
   "Create a new r4-player buffer with a list of tracks to be played"
   (let* ((r4-buffer-name "**r4-player-status**")
 	 (r4-buffer (get-buffer-create r4-buffer-name)))
@@ -118,10 +119,11 @@ tabulated-list-mode. It plays a track"
       (dolist (track tracks-data)
 	(push (list (format "%s" (cdr (assoc 'id track))) (vector
 							   (format "%s" (cdr (assoc 'id track)))
-							   (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)))
+							   (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)
+							   (format "%s" (or (cdr (assoc 'body track)) ""))))
 	      tabulated-list-entries))
-      (switch-to-buffer r4-buffer)
-      (r4-player-mode))))
+      (r4-player-mode)
+      (when should-switch-buffer (switch-to-buffer r4-buffer)))))
 
 ;; r4 explorer
 (defun sort-tracks-predicate (tabulated-item-a tabulated-item-b)
@@ -315,7 +317,7 @@ tabulated-list-mode. It opens a new Help buffer, with the
 					  (let ((tracks-data (if button (button-get button 'action-data)
 							       (tabulated-list-get-id))))
 					    (if tracks-data
-						(r4-player-play-tracks tracks-data)
+						(r4-player-load-tracks tracks-data t)
 					      (user-error "No channel.tracks here"))))) "\n")
 	  (dolist (track tracks)
 	    (insert (format "%s" (cdr (assoc 'title track))))
@@ -324,7 +326,8 @@ tabulated-list-mode. It opens a new Help buffer, with the
 					    (let ((track-data (if button (button-get button 'action-data)
 								(tabulated-list-get-id))))
 					      (if track-data
-						  (r4-player-play-track track-data)
+						  (progn (r4-player-load-tracks tracks nil)
+							 (r4-player-play-track track-data))
 						(user-error "No track here"))))))
 	    (insert (format "\n"))))
 	(switch-to-buffer (current-buffer))))))
