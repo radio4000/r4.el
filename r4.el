@@ -242,7 +242,6 @@ channels.json"
       :parser 'json-read
       :success (cl-function
 		(lambda (&response response &allow-other-keys)
-		  (debug)
 		  (funcall 'got-track-fn response track-id)))
       :error (cl-function
 	      (lambda (&key response &allow-other-keys))))))
@@ -291,53 +290,63 @@ tabulated-list-mode. It opens a new Help buffer, with the
         (r4-describe-channel channel-data)
       (user-error "No channel here"))))
 
+(defun r4-insert-channel-header (channel tracks)
+  (insert (format ".title: %s"
+		  (make-text-button (cdr (assoc 'title channel))
+				    nil
+				    'action-data tracks
+				    'action (lambda (button)
+					      (let ((tracks-data (if button (button-get button 'action-data)
+								   (tabulated-list-get-id))))
+						(if tracks-data
+						    (r4-player-load-tracks tracks-data t)
+						  (user-error "No channel.tracks here"))))))
+	  "\n")
+  (insert (format ".slug: @%s\n"
+		  (propertize (cdr (assoc 'slug channel))
+			      'font-lock-face
+			      'package-status-built-in)))
+  (insert (format ".body: %s\n" (cdr (assoc 'body channel))))
+  (insert (format ".created: %s\n" (cdr (assoc 'created channel))))
+  (insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
+  (insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
+  (insert (format ".link: %s\n" (cdr (assoc 'link channel))))
+  (insert (format ".id: %s\n" (cdr (assoc 'id channel))))
+  (insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
+  (insert (format ".image: %s\n" (cdr (assoc 'image channel))))
+  (insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
+  (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
+  (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel)))))
+
+(defun r4-insert-channel-tracks (tracks)
+  (insert (format ".tracks:\n"))
+  (dolist (track tracks)
+    (insert (make-text-button (format "%s" (cdr (assoc 'title track))) nil 'track-data track 'tracks-data tracks 'action
+			      (lambda (button)
+				(let ((track-data (if button (button-get button 'track-data)
+						    (tabulated-list-get-id)))
+				      (tracks-data (if button (button-get button 'tracks-data)
+						    (tabulated-list-get-id))))
+				  (if track-data
+				      (progn (r4-player-load-tracks tracks-data nil)
+					     (r4-player-play-track track-data))
+				    (user-error "No track here"))))) " ")
+    (insert (format " => %s" (cdr (assoc 'body track))))
+    (insert (format "\n"))))
+
 ;; could be an interactive function, if we suggest channels?
 (defun r4-describe-channel (channel)
   "Display the full information about a r4 channel."
   (let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
     (with-help-window buffer-name
       (with-current-buffer standard-output
-	(insert (format ".title: %s\n"
-			(propertize (cdr (assoc 'title channel))
-				    'font-lock-face
-				    'package-status-built-in)))
-	(insert (format ".slug: @%s\n"
-			(cdr (assoc 'slug channel))))
-	(insert (format ".body: %s\n" (cdr (assoc 'body channel))))
-	(insert (format ".created: %s\n" (cdr (assoc 'created channel))))
-	(insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
-	(insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
-	(insert (format ".link: %s\n" (cdr (assoc 'link channel))))
-	(insert (format ".id: %s\n" (cdr (assoc 'id channel))))
-	(insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
-	(insert (format ".image: %s\n" (cdr (assoc 'image channel))))
-	(insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
-	(insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
-	(insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel))))
-	(insert (format ".tracks:\n"))
 
 	(let* ((channel-tracks-url (get-channel-tracks-api-url (cdr (assoc 'id channel))))
 	       (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
 	       (tracks (serialize-channel-tracks tracks-res)))
-
-	  (insert " " (make-text-button "Play channel" nil 'action-data tracks 'action
-					(lambda (button)
-					  (let ((tracks-data (if button (button-get button 'action-data)
-							       (tabulated-list-get-id))))
-					    (if tracks-data
-						(r4-player-load-tracks tracks-data t)
-					      (user-error "No channel.tracks here"))))) "\n")
-	  (dolist (track tracks)
-	    (insert (format "%s" (cdr (assoc 'title track))))
-	    (insert " " (make-text-button "play" nil 'action-data track 'action
-					  (lambda (button)
-					    (let ((track-data (if button (button-get button 'action-data)
-								(tabulated-list-get-id))))
-					      (if track-data
-						  (progn (r4-player-load-tracks tracks nil)
-							 (r4-player-play-track track-data))
-						(user-error "No track here"))))))
-	    (insert (format "\n"))))
+	  (r4-insert-channel-header channel tracks)
+	  (when (> (cdr (assoc 'tracksLength channel)) 0)
+	    (r4-insert-channel-tracks tracks)))
 	(switch-to-buffer (current-buffer))))))
 
 ;; (defun handle-track-res (response track-id)
