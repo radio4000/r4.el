@@ -95,15 +95,19 @@ tabulated-list-mode. It plays a track"
 		       (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed)))))
 
 (defun r4-player-play-next-track ()
-  (with-current-buffer (get-buffer "**r4-player-status**")
-    ;; current-track && tracks-player are buffer local,
-    ;; set by play-tracks
-    (let* ((tracks-tail (member current-track tracks-player))
-	   (previous-track (nth 0 tracks-tail))
-	   (next-track (nth 1 tracks-tail))
-	   (first-track (nth 0 tracks-player)))
-      (if next-track (r4-player-play-track next-track)
-	(r4-player-play-track first-track)))))
+  (interactive)
+  (let ((r4-player-buffer (get-buffer "**r4-player-status**")))
+   (if r4-player-buffer
+       (with-current-buffer r4-player-buffer
+	 ;; current-track && tracks-player are buffer local,
+	 ;; set by play-tracks
+	 (let* ((tracks-tail (member current-track tracks-player))
+		(previous-track (nth 0 tracks-tail))
+		(next-track (nth 1 tracks-tail))
+		(first-track (nth 0 tracks-player)))
+	   (if next-track (r4-player-play-track next-track)
+	     (r4-player-play-track first-track))))
+     (message "No active r4-player"))))
 
 (defun r4-player-load-tracks (tracks-data should-switch-buffer)
   "Create a new r4-player buffer with a list of tracks to be played"
