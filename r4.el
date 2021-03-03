@@ -268,13 +268,14 @@ show the channels"
       (setq buffer-file-coding-system 'utf-8)
       (setq tabulated-list-entries nil)
       (dolist (channel channels)
-	(push (list (cdr (assoc 'id channel)) (vector
-					       (format "%s" (cdr (assoc 'created channel)))
-					       (format "%s" (cdr (assoc 'updated channel)))
-					       (list (cdr (assoc 'slug channel)) :type 'r4-xref 'action-data channel)
-					       (cdr (assoc 'title channel))
-					       (format "%s" (cdr (assoc 'tracksLength channel)))
-					       (format "%s" (or (cdr (assoc 'body channel)) ""))))
+	(push (list (cdr (assoc 'id channel))
+		    (vector
+		     (format "%s" (cdr (assoc 'created channel)))
+		     (format "%s" (cdr (assoc 'updated channel)))
+		     (list (cdr (assoc 'slug channel)) :type 'r4-xref-channel 'action-data channel)
+		     (cdr (assoc 'title channel))
+		     (format "%s" (cdr (assoc 'tracksLength channel)))
+		     (format "%s" (or (cdr (assoc 'body channel)) ""))))
 	      tabulated-list-entries))
       (switch-to-buffer r4-buffer)
       (r4-mode))))
@@ -282,7 +283,7 @@ show the channels"
 ;; r4 mode, buttons and their actions
 ;; defines a new button type, to be used by the r4 tabulutaed list
 ;; mode; when selecting a channel
-(define-button-type 'r4-xref
+(define-button-type 'r4-xref-channel
   'action 'button-r4-channel-action)
 
 (defun button-r4-channel-action (button)
@@ -310,8 +311,11 @@ tabulated-list-mode. It opens a new Help buffer, with the
   (insert (format ".slug: @%s\n"
 		  (propertize (cdr (assoc 'slug channel))
 			      'font-lock-face
-			      'package-status-built-in)))
-  (insert (format ".body: %s\n" (cdr (assoc 'body channel))))
+			      'font-lock-type-face)))
+  (insert (format ".body: %s\n"
+		  (propertize (cdr (assoc 'body channel))
+			      'font-lock-face
+			      'font-lock-comment-face)))
   (insert (format ".created: %s\n" (cdr (assoc 'created channel))))
   (insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
   (insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
@@ -336,7 +340,10 @@ tabulated-list-mode. It opens a new Help buffer, with the
 				      (progn (r4-player-load-tracks tracks-data nil)
 					     (r4-player-play-track track-data))
 				    (user-error "No track here"))))) " ")
-    (insert (format " => %s" (cdr (assoc 'body track))))
+    (insert (format " => %s"
+		    (propertize (or (cdr (assoc 'body track)) "")
+				'font-lock-face
+				'font-lock-comment-face)))
     (insert (format "\n"))))
 
 (defun r4-describe-channel (channel)
