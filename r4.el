@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 
-;; Author: H. Ugrp  <h.u.g.u.r.p+emacs@pm.me>
+;; Author: H. Ugrp		<h.u.g.u.r.p+emacs@pm.me>
 ;; Version: 0.1
 ;; Package-Requires: (request tabulated-list)
 ;; Keywords: radio4000
@@ -19,371 +19,473 @@
 
 ;; r4 player
 (defun r4-kill-player ()
-  (interactive)
-  (let ((proc (get-process "r4-player")))
-    (when proc (progn (kill-process proc)))
-    (message "Killed r4-player process")))
+	(interactive)
+	(let ((proc (get-process "r4-player")))
+		(when proc (progn (kill-process proc)))
+		(message "Killed r4-player process")))
 
 (defun r4-player-tracks-status-changed (process event)
-  ;; code 2: media not available
-  ;; code 4: C-c to exit the program || kill process from other term
-  ;; finished: track finished
-  (cond ((string= event "finished\n") (handle-track-finished))
-	((string= event "exited abnormally with code 2\n") (handle-track-finished))
-	((string= event "exited abnormally with code 4\n") (r4-kill-player))
-	((string= event "killed\n") (r4-kill-player))))
+	;; code 2: media not available
+	;; code 4: C-c to exit the program || kill process from other term
+	;; finished: track finished
+	(cond ((string= event "finished\n") (handle-track-finished))
+				((string= event "exited abnormally with code 2\n") (handle-track-finished))
+				((string= event "exited abnormally with code 4\n") (r4-kill-player))
+				((string= event "killed\n") (r4-kill-player))))
 
 (defun handle-track-finished ()
-  (message "r4-player: track finished")
-  (r4-player-play-next-track))
+	(message "r4-player: track finished")
+	(r4-player-play-next-track))
 
 (defvar r4-player-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map "k" 'r4-kill-player)
-    (define-key map "\M-n" 'r4-player-play-next-track)
-    map)
-  "Local keymap for `r4-player-mode' buffers.")
+	(let ((map (make-sparse-keymap)))
+		(set-keymap-parent map tabulated-list-mode-map)
+		(define-key map "k" 'r4-kill-player)
+		(define-key map "\M-n" 'r4-player-play-next-track)
+		map)
+	"Local keymap for `r4-player-mode' buffers.")
 
 (define-derived-mode r4-player-mode tabulated-list-mode "r4-player"
-  "Major mode for handling the r4 player."
-  (setq major-mode 'r4-mode)
-  (setq mode-name "R4 Player")
-  (setq tabulated-list-format
-	[("created" 15 t)
-	 ("title" 40 t)
-	 ("description" 50 t)
-	 ("id" 22 t)
-	 ("url" 40 t)])
-  (setq tabulated-list-sort-key '("created" "id"))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+	"Major mode for handling the r4 player."
+	(setq major-mode 'r4-mode)
+	(setq mode-name "R4 Player")
+	(setq tabulated-list-format
+				[("created" 15 t)
+				 ("title" 40 t)
+				 ("description" 50 t)
+				 ("id" 22 t)
+				 ("url" 40 t)])
+	(setq tabulated-list-sort-key '("created" "id"))
+	(tabulated-list-init-header)
+	(tabulated-list-print))
 
 (define-button-type 'r4-play-track
-  'action 'button-r4-player-play-track-action)
+	'action 'button-r4-player-play-track-action)
 
 (defun button-r4-player-play-track-action (button)
-  "Defines an action for a 'button' used in
+	"Defines an action for a 'button' used in
 tabulated-list-mode. It plays a track"
-  (let ((track-data (if button (button-get button 'action-data)
-		      (tabulated-list-get-id))))
-    (if track-data
-	(r4-player-play-track track-data)
-      (user-error "No track here"))))
+	(let ((track-data (if button (button-get button 'action-data)
+											(tabulated-list-get-id))))
+		(if track-data
+				(r4-player-play-track track-data)
+			(user-error "No track here"))))
 
 (defun r4-player-play-track (track-data)
-  (with-current-buffer (get-buffer "**r4-player-status**")
-    (when track-data
-      (let ((track-title (cdr (assoc 'title track-data)))
-	    (track-url (cdr (assoc 'url track-data))))
-	(when (url-basepath track-url)
-	  (r4-kill-player)
-	  (setq current-track track-data)
-	  (message (format "Playing: %s" track-title))
-	  (start-process "r4-player" "**r4-player-process**" "mpv" track-url)
-	  (set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed))))))
+	(with-current-buffer (get-buffer "**r4-player-status**")
+		(when track-data
+			(let ((track-title (cdr (assoc 'title track-data)))
+						(track-url (cdr (assoc 'url track-data))))
+				(when (url-basepath track-url)
+					(r4-kill-player)
+					(setq current-track track-data)
+					(message (format "Playing: %s" track-title))
+					(start-process "r4-player" "**r4-player-process**" "mpv" track-url)
+					(set-process-sentinel (get-process "r4-player") 'r4-player-tracks-status-changed))))))
 
 (defun r4-player-play-next-track ()
-  (interactive)
-  (let ((r4-player-buffer (get-buffer "**r4-player-status**")))
-   (if r4-player-buffer
-       (with-current-buffer r4-player-buffer
-	 ;; current-track && tracks-player are buffer local,
-	 ;; set by play-tracks
-	 (let* ((tracks-tail (member current-track tracks-player))
-		(previous-track (nth 0 tracks-tail))
-		(next-track (nth 1 tracks-tail))
-		(first-track (nth 0 tracks-player)))
-	   (if next-track (r4-player-play-track next-track)
-	     (r4-player-play-track first-track))))
-     (message "No active r4-player"))))
+	(interactive)
+	(let ((r4-player-buffer (get-buffer "**r4-player-status**")))
+		(if r4-player-buffer
+				(with-current-buffer r4-player-buffer
+					;; current-track && tracks-player are buffer local,
+					;; set by play-tracks
+					(let* ((tracks-tail (member current-track tracks-player))
+								 (previous-track (nth 0 tracks-tail))
+								 (next-track (nth 1 tracks-tail))
+								 (first-track (nth 0 tracks-player)))
+						(if next-track (r4-player-play-track next-track)
+							(r4-player-play-track first-track))))
+			(message "No active r4-player"))))
 
 (defun r4-player-load-tracks (tracks-data should-switch-buffer)
-  "Create a new r4-player buffer with a list of tracks to be played"
-  (let* ((r4-buffer-name "**r4-player-status**")
-	 (r4-buffer (get-buffer-create r4-buffer-name)))
-    (with-current-buffer r4-buffer
-      ;; Since some channels include non-ASCII characters
-      (setq buffer-file-coding-system 'utf-8)
-      (defvar tracks-original nil "Original tracks")
-      (defvar tracks-player nil "Tracks being played")
-      (defvar current-track nil "Track currently being played")
-      (setq tracks-original tracks-data)
-      (setq tracks-player tracks-data)
-      (setq tabulated-list-entries nil)
-      (dolist (track tracks-data)
-	(push (list (format "%s" (cdr (assoc 'id track)))
-		    (vector
-		     (format "%s" (or (cdr (assoc 'created track)) ""))
-		     (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)
-		     (format "%s" (or (cdr (assoc 'body track)) ""))
-		     (format "%s" (cdr (assoc 'id track)))
-		     (format "%s" (or (cdr (assoc 'url track)) ""))))
-	      tabulated-list-entries))
-      (r4-player-mode)
-      (when should-switch-buffer (switch-to-buffer r4-buffer)))))
+	"Create a new r4-player buffer with a list of tracks to be played"
+	(let* ((r4-buffer-name "**r4-player-status**")
+				 (r4-buffer (get-buffer-create r4-buffer-name)))
+		(with-current-buffer r4-buffer
+			;; Since some channels include non-ASCII characters
+			(setq buffer-file-coding-system 'utf-8)
+			(defvar tracks-original nil "Original tracks")
+			(defvar tracks-player nil "Tracks being played")
+			(defvar current-track nil "Track currently being played")
+			(setq tracks-original tracks-data)
+			(setq tracks-player tracks-data)
+			(setq tabulated-list-entries nil)
+			(dolist (track tracks-data)
+				(push (list (format "%s" (cdr (assoc 'id track)))
+										(vector
+										 (format "%s" (or (cdr (assoc 'created track)) ""))
+										 (list (cdr (assoc 'title track)) :type 'r4-play-track 'action-data track)
+										 (format "%s" (or (cdr (assoc 'body track)) ""))
+										 (format "%s" (cdr (assoc 'id track)))
+										 (format "%s" (or (cdr (assoc 'url track)) ""))))
+							tabulated-list-entries))
+			(r4-player-mode)
+			(when should-switch-buffer (switch-to-buffer r4-buffer)))))
 
 ;; r4 explorer
 (defun sort-tracks-predicate (tabulated-item-a tabulated-item-b)
-  (>
-   (string-to-number (elt (car (cdr tabulated-item-a)) 2))
-   (string-to-number (elt (car (cdr tabulated-item-b)) 2))))
+	(>
+	 (string-to-number (elt (car (cdr tabulated-item-a)) 2))
+	 (string-to-number (elt (car (cdr tabulated-item-b)) 2))))
 
 (defvar r4-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map tabulated-list-mode-map)
-    map)
-  "Local keymap for `r4-mode-mode' buffers.")
+	(let ((map (make-sparse-keymap)))
+		(set-keymap-parent map tabulated-list-mode-map)
+		map)
+	"Local keymap for `r4-mode-mode' buffers.")
 
 (define-derived-mode r4-mode tabulated-list-mode "r4"
-  "Major mode for handling r4."
-  (setq major-mode 'r4-mode)
-  (setq mode-name "R4")
-  (setq tabulated-list-format
-	[("created" 15 t)
-	 ("updated" 15 t)
-	 ("slug" 25 t)
-	 ("title" 30 t)
-	 ("tracks" 10 sort-tracks-predicate)
-	 ("body" 50 t)])
-  (setq tabulated-list-sort-key '("created" "updated" "slug" "title" "tracks"))
-  (set-keymap-parent (make-sparse-keymap) tabulated-list-mode-map)
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+	"Major mode for handling r4."
+	(setq major-mode 'r4-mode)
+	(setq mode-name "R4")
+	(setq tabulated-list-format
+				[("created" 15 t)
+				 ("updated" 15 t)
+				 ("slug" 25 t)
+				 ("title" 30 t)
+				 ("tracks" 10 sort-tracks-predicate)
+				 ("body" 50 t)])
+	(setq tabulated-list-sort-key '("created" "updated" "slug" "title" "tracks"))
+	(set-keymap-parent (make-sparse-keymap) tabulated-list-mode-map)
+	(tabulated-list-init-header)
+	(tabulated-list-print))
 
 ;; enpoints urls
 (defvar-local r4-api-channels-url "https://radio4000.firebaseio.com/channels.json"
-  "The url pointing to the r4 api channels listing.")
+	"The url pointing to the r4 api channels listing.")
 
 (defun get-track-api-url (track-id)
-  (format "https://radio4000.firebaseio.com/tracks/%s.json" track-id))
+	(format "https://radio4000.firebaseio.com/tracks/%s.json" track-id))
 
 (defun get-channel-tracks-api-url (channel-id)
-  (format "https://radio4000.firebaseio.com/tracks.json?orderBy=\"channel\"&startAt=\"%s\"&endAt=\"%s\"" channel-id channel-id))
+	(format "https://radio4000.firebaseio.com/tracks.json?orderBy=\"channel\"&startAt=\"%s\"&endAt=\"%s\"" channel-id channel-id))
 
 (defun get-channel-by-slug-api-url (channel-slug)
-  (format "https://radio4000.firebaseio.com/channels.json?orderBy=\"slug\"&startAt=\"%s\"&endAt=\"%s\"" channel-slug channel-slug))
+	(format "https://radio4000.firebaseio.com/channels.json?orderBy=\"slug\"&startAt=\"%s\"&endAt=\"%s\"" channel-slug channel-slug))
 
 ;; api.r4 json endpoints serializers
 (defun serialize-channels (res)
-  "Serializes a request json response containing all r4 channels"
-  (let* ((serialized-channels)
-	 (channels (request-response-data res)))
-    (dolist (channel channels)
-      (push (serialize-channel channel) serialized-channels))
-    serialized-channels))
+	"Serializes a request json response containing all r4 channels"
+	(let* ((serialized-channels)
+				 (channels (request-response-data res)))
+		(dolist (channel channels)
+			(push (serialize-channel channel) serialized-channels))
+		serialized-channels))
 
 (defun serialize-channel (res)
-  "Serializes a json object containing all a r4 channel, from a r4 channels list"
-  (let* ((channel-id (car res))
-	 (channel-data (cdr res))
-	 (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
-	 (new-channel (copy-alist channel-data)))
-    (push (cons 'id channel-id) new-channel)
-    (push (cons 'tracksLength channel-tracks-length) new-channel)
-    new-channel))
+	"Serializes a json object containing all a r4 channel, from a r4 channels list"
+	(let* ((channel-id (car res))
+				 (channel-data (cdr res))
+				 (channel-tracks-length (length (cdr (assoc 'tracks channel-data))))
+				 (new-channel (copy-alist channel-data)))
+		(push (cons 'id channel-id) new-channel)
+		(push (cons 'tracksLength channel-tracks-length) new-channel)
+		new-channel))
 
 (defun serialize-channel-tracks (res)
-  "Serializes a request json response containing all r4 channels"
-  (let* ((serialized-tracks)
-	 (tracks (request-response-data res)))
-    (dolist (track tracks)
-      (let* ((track-id (car track))
-	     (track-data (cdr track))
-	     (track-tracks-length (length (cdr (assoc 'tracks track-data))))
-	     (new-track (copy-alist track-data)))
-	(push (cons 'id track-id) new-track)
-	(push new-track serialized-tracks)))
-    serialized-tracks))
+	"Serializes a request json response containing all r4 channels"
+	(let* ((serialized-tracks)
+				 (tracks (request-response-data res)))
+		(dolist (track tracks)
+			(let* ((track-id (car track))
+						 (track-data (cdr track))
+						 (track-tracks-length (length (cdr (assoc 'tracks track-data))))
+						 (new-track (copy-alist track-data)))
+				(push (cons 'id track-id) new-track)
+				(push new-track serialized-tracks)))
+		serialized-tracks))
 
 ;; api.r4 get json endpoints/models methods
 (defun r4-api-get-channels ()
-  "Make a request to the api.r4 endpoint, to get all
+	"Make a request to the api.r4 endpoint, to get all
 channels.json"
-  (request r4-api-channels-url
-    :sync t
-    :type "GET"
-    :parser 'json-read
-    :error (cl-function
-	    (lambda (&key response &allow-other-keys)))))
+	(request r4-api-channels-url
+		:sync t
+		:type "GET"
+		:parser 'json-read
+		:error (cl-function
+						(lambda (&key response &allow-other-keys)))))
 
 (defun r4-api-get-channel-by-slug (channel-slug)
-  "Make a request to the api.r4 endpoint, to get a channel
+	"Make a request to the api.r4 endpoint, to get a channel
 by its channel.slug key"
-  (request (get-channel-by-slug-api-url channel-slug)
-    :sync t
-    :type "GET"
-    :parser 'json-read
-    :error (cl-function
-	    (lambda (&key response &allow-other-keys)))))
+	(request (get-channel-by-slug-api-url channel-slug)
+		:sync t
+		:type "GET"
+		:parser 'json-read
+		:error (cl-function
+						(lambda (&key response &allow-other-keys)))))
 
 (defun r4-api-get-channel-tracks (channel-tracks-url)
-  "Make a request to the api.r4 endpoint, to get all
+	"Make a request to the api.r4 endpoint, to get all
 channels.json"
-  (request channel-tracks-url
-    :sync t
-    :type "GET"
-    :parser 'json-read
-    :error (cl-function
-	    (lambda (&key response &allow-other-keys)))))
+	(request channel-tracks-url
+		:sync t
+		:type "GET"
+		:parser 'json-read
+		:error (cl-function
+						(lambda (&key response &allow-other-keys)))))
 
 (defun r4-api-get-track (track-id)
-  "Make a request to the api.r4 endpoint, to get all
+	"Make a request to the api.r4 endpoint, to get all
 channels.json"
-  (let ((request-backend 'url-retrieve))
-    (request (get-track-api-url track-id)
-      :sync t
-      :type "GET"
-      :parser 'json-read
-      :error (cl-function
-	      (lambda (&key response &allow-other-keys))))))
+	(let ((request-backend 'url-retrieve))
+		(request (get-track-api-url track-id)
+			:sync t
+			:type "GET"
+			:parser 'json-read
+			:error (cl-function
+							(lambda (&key response &allow-other-keys))))))
 
 (defun r4-api-get-track-async (track-id got-track-fn)
-  "Make a request to the api.r4 endpoint, to get all
+	"Make a request to the api.r4 endpoint, to get all
 channels.json"
-  (let ((request-backend 'url-retrieve))
-    (request (get-track-api-url track-id)
-      :type "GET"
-      :data '((cons 'id track-id))
-      :parser 'json-read
-      :success (cl-function
-		(lambda (&response response &allow-other-keys)
-		  (funcall 'got-track-fn response track-id)))
-      :error (cl-function
-	      (lambda (&key response &allow-other-keys))))))
+	(let ((request-backend 'url-retrieve))
+		(request (get-track-api-url track-id)
+			:type "GET"
+			:data '((cons 'id track-id))
+			:parser 'json-read
+			:success (cl-function
+								(lambda (&response response &allow-other-keys)
+									(funcall 'got-track-fn response track-id)))
+			:error (cl-function
+							(lambda (&key response &allow-other-keys))))))
 
 ;; r4 mode interactive methods
 ;;;###autoload
 (defalias 'list-r4-channels 'r4-status)
 
 (defun r4-status ()
-  "Create a new r4 buffer with the status of the site. It will
+	"Create a new r4 buffer with the status of the site. It will
 show the channels"
-  (interactive)
-  (let* ((channels (serialize-channels (r4-api-get-channels)))
-	 (r4-buffer-name "**r4-status**")
-	 (r4-buffer (get-buffer-create r4-buffer-name)))
-    (with-current-buffer r4-buffer
-      ;; Since some channels include non-ASCII characters
-      (setq buffer-file-coding-system 'utf-8)
-      (setq tabulated-list-entries nil)
-      (dolist (channel channels)
-	(push (list (cdr (assoc 'id channel))
-		    (vector
-		     (format "%s" (cdr (assoc 'created channel)))
-		     (format "%s" (cdr (assoc 'updated channel)))
-		     (list (cdr (assoc 'slug channel)) :type 'r4-xref-channel 'action-data channel)
-		     (cdr (assoc 'title channel))
-		     (format "%s" (cdr (assoc 'tracksLength channel)))
-		     (format "%s" (or (cdr (assoc 'body channel)) ""))))
-	      tabulated-list-entries))
-      (switch-to-buffer r4-buffer)
-      (r4-mode))))
+	(interactive)
+	(let* ((channels (serialize-channels (r4-api-get-channels)))
+				 (r4-buffer-name "**r4-status**")
+				 (r4-buffer (get-buffer-create r4-buffer-name)))
+		(with-current-buffer r4-buffer
+			;; Since some channels include non-ASCII characters
+			(setq buffer-file-coding-system 'utf-8)
+			(setq tabulated-list-entries nil)
+			(dolist (channel channels)
+				(push (list (cdr (assoc 'id channel))
+										(vector
+										 (format "%s" (cdr (assoc 'created channel)))
+										 (format "%s" (cdr (assoc 'updated channel)))
+										 (list (cdr (assoc 'slug channel)) :type 'r4-xref-channel 'action-data channel)
+										 (cdr (assoc 'title channel))
+										 (format "%s" (cdr (assoc 'tracksLength channel)))
+										 (format "%s" (or (cdr (assoc 'body channel)) ""))))
+							tabulated-list-entries))
+			(switch-to-buffer r4-buffer)
+			(r4-mode))))
 
 ;; r4 mode, buttons and their actions
 ;; defines a new button type, to be used by the r4 tabulutaed list
 ;; mode; when selecting a channel
 (define-button-type 'r4-xref-channel
-  'action 'button-r4-channel-action)
+	'action 'button-r4-channel-action)
 
 (defun button-r4-channel-action (button)
-  "Defines an action for a 'button' used in
+	"Defines an action for a 'button' used in
 tabulated-list-mode. It opens a new Help buffer, with the
 'clicked' channel data in it."
-  (let ((channel-data (if button (button-get button 'action-data)
-			(tabulated-list-get-id))))
-    (if channel-data
-        (r4-describe-channel channel-data)
-      (user-error "No channel here"))))
+	(let ((channel-data (if button (button-get button 'action-data)
+												(tabulated-list-get-id))))
+		(if channel-data
+				(r4-describe-channel channel-data)
+			(user-error "No channel here"))))
 
 (defun r4-insert-channel-header (channel tracks)
-  (insert (format ".title: %s"
-		  (make-text-button (cdr (assoc 'title channel))
-				    nil
-				    'action-data tracks
-				    'action (lambda (button)
-					      (let ((tracks-data (if button (button-get button 'action-data)
-								   (tabulated-list-get-id))))
-						(if tracks-data
-						    (r4-player-load-tracks tracks-data t)
-						  (user-error "No channel.tracks here"))))))
-	  "\n")
-  (insert (format ".slug: @%s\n"
-		  (propertize (cdr (assoc 'slug channel))
-			      'font-lock-face
-			      'font-lock-type-face)))
-  (insert (format ".body: %s\n"
-		  (propertize (cdr (assoc 'body channel))
-			      'font-lock-face
-			      'font-lock-comment-face)))
-  (insert (format ".created: %s\n" (cdr (assoc 'created channel))))
-  (insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
-  (insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
-  (insert (format ".link: %s\n" (cdr (assoc 'link channel))))
-  (insert (format ".id: %s\n" (cdr (assoc 'id channel))))
-  (insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
-  (insert (format ".image: %s\n" (cdr (assoc 'image channel))))
-  (insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
-  (insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
-  (insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel)))))
+	(insert (format ".title: %s"
+									(make-text-button (cdr (assoc 'title channel))
+																		nil
+																		'action-data tracks
+																		'action (lambda (button)
+																							(let ((tracks-data (if button (button-get button 'action-data)
+																																	 (tabulated-list-get-id))))
+																								(if tracks-data
+																										(r4-player-load-tracks tracks-data t)
+																									(user-error "No channel.tracks here"))))))
+					"\n")
+	(insert (format ".slug: @%s\n"
+									(propertize (cdr (assoc 'slug channel))
+															'font-lock-face
+															'font-lock-type-face)))
+	(insert (format ".body: %s\n"
+									(propertize (cdr (assoc 'body channel))
+															'font-lock-face
+															'font-lock-comment-face)))
+	(insert (format ".created: %s\n" (cdr (assoc 'created channel))))
+	(insert (format ".updated: %s\n" (cdr (assoc 'updated channel))))
+	(insert (format ".isFeatured: %s\n" (cdr (assoc 'isFeatured channel))))
+	(insert (format ".link: %s\n" (cdr (assoc 'link channel))))
+	(insert (format ".id: %s\n" (cdr (assoc 'id channel))))
+	(insert (format ".channelPublic: %s\n" (cdr (assoc 'channelPublic channel))))
+	(insert (format ".image: %s\n" (cdr (assoc 'image channel))))
+	(insert (format ".coordinatesLatitude: %s\n" (cdr (assoc 'coordinatesLatitude channel))))
+	(insert (format ".coordinatesLongitude: %s\n" (cdr (assoc 'coordinatesLongitude channel))))
+	(insert (format ".tracksLength: %s\n" (cdr (assoc 'tracksLength channel)))))
 
 (defun r4-insert-channel-tracks (tracks)
-  (insert (format ".tracks:\n"))
-  (dolist (track tracks)
-    (insert (make-text-button (format "%s" (cdr (assoc 'title track))) nil 'track-data track 'tracks-data tracks 'action
-			      (lambda (button)
-				(let ((track-data (if button (button-get button 'track-data)
-						    (tabulated-list-get-id)))
-				      (tracks-data (if button (button-get button 'tracks-data)
-						    (tabulated-list-get-id))))
-				  (if track-data
-				      (progn (r4-player-load-tracks tracks-data nil)
-					     (r4-player-play-track track-data))
-				    (user-error "No track here"))))) " ")
-    (insert (format " => %s"
-		    (propertize (or (cdr (assoc 'body track)) "")
-				'font-lock-face
-				'font-lock-comment-face)))
-    (insert (format "\n"))))
+	(insert (format ".tracks:\n"))
+	(dolist (track tracks)
+		(insert (make-text-button (format "%s" (cdr (assoc 'title track))) nil 'track-data track 'tracks-data tracks 'action
+															(lambda (button)
+																(let ((track-data (if button (button-get button 'track-data)
+																										(tabulated-list-get-id)))
+																			(tracks-data (if button (button-get button 'tracks-data)
+																										 (tabulated-list-get-id))))
+																	(if track-data
+																			(progn (r4-player-load-tracks tracks-data nil)
+																						 (r4-player-play-track track-data))
+																		(user-error "No track here"))))) " ")
+		(insert (format " => %s"
+										(propertize (or (cdr (assoc 'body track)) "")
+																'font-lock-face
+																'font-lock-comment-face)))
+		(insert (format "\n"))))
 
 (defun r4-describe-channel (channel)
-  "Display the full information about a r4 channel."
-  (let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
-    (with-help-window buffer-name
-      (with-current-buffer standard-output
-	(let* ((channel-id (cdr (assoc 'id channel)))
-	       (channel-tracks-url (get-channel-tracks-api-url channel-id))
-	       (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
-	       (tracks (serialize-channel-tracks tracks-res)))
-	  (r4-insert-channel-header channel tracks)
-	  (when (> (cdr (assoc 'tracksLength channel)) 0)
-	    (r4-insert-channel-tracks tracks)))
-	(switch-to-buffer (current-buffer))))))
+	"Display the full information about a r4 channel."
+	(let ((buffer-name (format "**r4@%s" (cdr (assoc 'slug channel)))))
+		(with-help-window buffer-name
+			(with-current-buffer standard-output
+				(let* ((channel-id (cdr (assoc 'id channel)))
+							 (channel-tracks-url (get-channel-tracks-api-url channel-id))
+							 (tracks-res (r4-api-get-channel-tracks channel-tracks-url))
+							 (tracks (serialize-channel-tracks tracks-res)))
+					(r4-insert-channel-header channel tracks)
+					(when (> (cdr (assoc 'tracksLength channel)) 0)
+						(r4-insert-channel-tracks tracks)))
+				(switch-to-buffer (current-buffer))))))
 
 (defun r4-describe-channel-slug (channel-slug)
-  "Find a r4 channel by slug, and describe it."
-  (interactive "MChannel-slug: @\n")
-  (if channel-slug
-      (progn (message (format "Fetching channel: @%s" channel-slug))
-	     (let* ((channel-res (r4-api-get-channel-by-slug channel-slug))
-		    (channel (nth 0 (serialize-channels channel-res))))
-	       (r4-describe-channel channel)))
-    (message (format "No channel there: @%s" channel-slug))))
+	"Find a r4 channel by slug, and describe it."
+	(interactive "MChannel-slug: @\n")
+	(if channel-slug
+			(progn (message (format "Fetching channel: @%s" channel-slug))
+						 (let* ((channel-res (r4-api-get-channel-by-slug channel-slug))
+										(channel (nth 0 (serialize-channels channel-res))))
+							 (r4-describe-channel channel)))
+		(message (format "No channel there: @%s" channel-slug))))
 
 ;; firebase api calls to login
 ;; documentation: https://firebase.google.com/docs/reference/rest/auth/
 (defun r4-api-login (email password)
-  "Make a request to the api.r4 endpoint, to login a user with `email` and `password`''''"
-  (let ((request-params (list
-			 (cons "email" email)
-			 (cons "password" password)
-			 (cons "returnSecureToken" t))))
-    (request "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyBwygjwKXbSHscVhdKuJpgBdd1C2g8aK4g"
-      :type "POST"
-      :data request-params
-      :parser 'json-read
-      :success (cl-function
-		(lambda (&key data &allow-other-keys)
-		  (message "I sent: %S" (assoc-default 'form data)))))))
+	"Make a request to firebase signInWithPassword, to login a user
+with `email` and `password"
+	(let ((request-params (list
+												 (cons "email" email)
+												 (cons "password" password)
+												 (cons "returnSecureToken" t))))
+		(request "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE"
+			:sync t
+			:type "POST"
+			:headers '(("Referer" . "https://radio4000.com"))
+			:data request-params
+			:parser 'json-read)))
+
+(defun r4-api-login-token (token)
+	"Make a request to firebase signInWithCustomToken, to sign in
+with a custom token."
+	(let ((request-params (list
+												 (cons "token" token)
+												 (cons "returnSecureToken" t))))
+		(request "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE"
+			:sync t
+			:type "POST"
+			:headers '(("Referer" . "https://radio4000.com"))
+			:data request-params
+			:parser 'json-read)))
+
+(defun r4-api-refresh-token (refresh-token)
+	"Make a request to firebase token, to refresh a login session token."
+	(let ((request-params (list
+												 (cons "grant_type" "refresh_token")
+												 (cons "refresh_token" refresh-token))))
+		(request "https://securetoken.googleapis.com/v1/token?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE"
+			:sync t
+			:type "POST"
+			:headers '(("Referer" . "https://radio4000.com")
+								 ("Content-Type" . "application/x-www-form-urlencoded"))
+			:parser 'json-read)))
+
+(defun r4-api-get-firebase-user ()
+	"Get the current logged in r4 firebase user. Use `(r4-login)` to login
+and save `r4-login-data`."
+	(defvar r4-login-data)
+	(if r4-login-data
+			(let ((request-params (list
+														 (cons "idToken" (cdr (assoc 'idToken r4-login-data))))))
+				(request "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE"
+					:sync t
+					:type "POST"
+					:headers '(("Referer" . "https://radio4000.com"))
+					:data request-params
+					:parser 'json-read))
+		(message "Use `r4-login` first to login your user")))
+
+(defun r4-api-get-user-current ()
+	"Get current user, using the database/users/:firebase-user-id endpoint"
+	(defvar r4-login-data)
+	(if r4-login-data
+			(let* ((local-id (cdr (assoc 'localId r4-login-data)))
+						 (id-token (cdr (assoc 'idToken r4-login-data)))
+						 (user-url (format
+												"https://radio4000.firebaseio.com/users/%s.json?access_token=%s"
+												local-id
+												id-token)))
+				(request user-url
+					:sync t
+					:type "GET"
+					:parser 'json-read))
+		(message "Use r4-login first to login your user")))
+
+(defun r4-login (email password)
+	"Login in a user with email/password."
+	(interactive "MEmail: \nMPassword: ")
+	(when (and email password)
+		(let ((r4-login-res (request-response-data (r4-api-login email password))))
+			(setq r4-login-data r4-login-res))))
+
+(defun r4-channel-edit (channel-data)
+	"Get the current logged in r4 firebase user. Use `(r4-login)` to login
+and save `r4-login-data`."
+	(defvar r4-login-data)
+	(if r4-login-data
+			(let* ((channel-id "-MUtFVq4220A23P7xsr9")
+						 (auth-token (cdr (assoc 'idToken r4-login-data)))
+						 (bearer-token (format "Bearer: %s" auth-token))
+						 (request-url (format
+													 "https://radio4000.firebaseio.com/channels/%s.json?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE"
+													 channel-id))
+						 (request-headers (list (cons "Referer" "https://radio4000.com")
+																		(cons "Content-Type" "application/json")
+																		(cons "Authorization" bearer-token))))
+				(request request-url
+					:sync t
+					:type "PUT"
+					:data (json-encode channel-data)
+					:headers request-headers
+					:encoding 'utf8
+					:parser 'json-read
+					:error (cl-function
+									(lambda (&key response &allow-other-keys)
+										(message "%s" response)))))
+		(message "Use `r4-login` first to login your user")))
+
+(request-response-data (r4-api-get-user-current))
+
+(request-response-data (r4-api-login-token (cdr (assoc 'idToken r4-login-data))))
+
+(request-response-data (r4-api-refresh-token (cdr (assoc 'refreshToken r4-login-data))))
+
+(setq users (request-response-data (r4-api-get-firebase-user)))
+
+(setq channel-edit-data '(("title" . "test-emacs") ("slug" . "radio-test-test-emacs") ("created" . "1614794591791")))
+(request-response-data (r4-channel-edit channel-edit-data))
+
+(provide 'r4)
 
 ;;; r4.el ends here
