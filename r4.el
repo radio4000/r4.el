@@ -475,16 +475,16 @@ and save `r4-login-data`."
 										(message "%s" response)))))
 		(message "Use `r4-login` first to login your user")))
 
-(request-response-data (r4-api-get-user-current))
+;; (request-response-data (r4-api-get-user-current))
 
-(request-response-data (r4-api-login-token (cdr (assoc 'idToken r4-login-data))))
+;; (request-response-data (r4-api-login-token (cdr (assoc 'idToken r4-login-data))))
 
-(request-response-data (r4-api-refresh-token (cdr (assoc 'refreshToken r4-login-data))))
+;; (request-response-data (r4-api-refresh-token (cdr (assoc 'refreshToken r4-login-data))))
 
-(setq users (request-response-data (r4-api-get-firebase-user)))
+;; (setq users (request-response-data (r4-api-get-firebase-user)))
 
-(setq channel-edit-data '(("title" . "test-emacs") ("slug" . "radio-test-test-emacs") ("created" . "1614794591791")))
-(request-response-data (r4-channel-edit channel-edit-data))
+;; (setq channel-edit-data '(("title" . "test-emacs") ("slug" . "radio-test-test-emacs") ("created" . "1614794591791")))
+;; (request-response-data (r4-channel-edit channel-edit-data))
 
 (provide 'r4)
 
