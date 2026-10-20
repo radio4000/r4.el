@@ -136,6 +136,24 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
   "Fetch and return the rows of TABLE with PARAMS, blocking Emacs."
   (r4-api-request "GET" (concat "/rest/v1/" table) :params params))
 
+(defun r4-api-fetch-image (url callback)
+  "Fetch the image at URL and call CALLBACK with it, or with nil on failure."
+  (url-retrieve
+   url
+   (lambda (status)
+     (let* ((buffer (current-buffer))
+            (image (unless (plist-get status :error)
+                     (goto-char (point-min))
+                     (when (search-forward "\n\n" nil t)
+                       (ignore-errors
+                         (create-image (buffer-substring-no-properties (point) (point-max))
+                                       nil t))))))
+       (kill-buffer buffer)
+       (funcall callback image)))
+   nil t t))
+
+;;;; Queries
+
 (defun r4-api-search-filter (query)
   "Return the PostgREST `or' filter matching QUERY, or nil if empty.
 Like radio4000.com, match QUERY as a web search, with operators such

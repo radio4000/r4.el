@@ -217,6 +217,30 @@ clicking a column header.  Choose the columns with
                      (r4-download-tracks tracks tracks)))
                  :slug slug))
 
+(defcustom r4-channel-image-size 250
+  "Size in pixels of the channel image in channel descriptions.
+0 hides the image."
+  :type 'natnum
+  :group 'r4)
+
+(defun r4-channels--insert-image (channel)
+  "Insert the image of CHANNEL at point, once it is fetched."
+  (when-let* (((display-images-p))
+              ((> r4-channel-image-size 0))
+              (url (r4-channel-image-url channel r4-channel-image-size)))
+    (let ((buffer (current-buffer))
+          (marker (point-marker)))
+      (r4-api-fetch-image
+       url
+       (lambda (image)
+         (when (and image (buffer-live-p buffer))
+           (with-current-buffer buffer
+             (let ((inhibit-read-only t))
+               (save-excursion
+                 (goto-char marker)
+                 (insert-image image "[image]")
+                 (insert "\n\n"))))))))))
+
 ;;;###autoload
 (defun r4-describe-channel (channel)
   "Describe CHANNEL, an `r4-channel' or a slug."
@@ -229,6 +253,7 @@ clicking a column header.  Choose the columns with
                           (message "No channel @%s" channel))))
     (with-help-window (format "*r4 @%s info*" (r4-channel-slug channel))
       (with-current-buffer standard-output
+        (r4-channels--insert-image channel)
         (insert (propertize (or (r4-channel-name channel) "") 'face 'bold)
                 "  @" (r4-channel-slug channel) "\n\n")
         (when-let* ((description (r4-channel-description channel)))

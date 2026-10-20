@@ -26,6 +26,11 @@
   :type 'string
   :group 'r4)
 
+(defcustom r4-image-url "https://res.cloudinary.com/radio4000"
+  "Base URL of the Radio4000 images (Cloudinary)."
+  :type 'string
+  :group 'r4)
+
 (cl-defstruct (r4-channel (:constructor r4-channel-create)
                           (:copier nil))
   "A Radio4000 channel."
@@ -63,6 +68,13 @@
 (defun r4-track-web-url (track)
   "Return the radio4000.com URL of TRACK."
   (format "%s/%s/tracks/%s" r4-web-url (r4-track-slug track) (r4-track-id track)))
+
+(defun r4-channel-image-url (channel &optional size)
+  "Return the URL of the image of CHANNEL, SIZE pixels square, or nil."
+  (when-let* ((image (r4-channel-image channel)))
+    (unless (string-empty-p image)
+      (format "%s/image/upload/w_%d,h_%d,c_thumb,q_80/%s.jpg"
+              r4-image-url (or size 250) (or size 250) image))))
 
 (defun r4-format-duration (seconds)
   "Format SECONDS as M:SS or H:MM:SS, or an empty string if nil."

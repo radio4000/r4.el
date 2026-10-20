@@ -67,6 +67,12 @@
     (should (r4-columns-less-p "abc" "ABD"))
     (should (equal (r4-columns-valid '(slug nope tracks) specs) '(slug tracks)))))
 
+(ert-deftest r4-test-channel-image-url ()
+  (should (equal (r4-channel-image-url (r4-channel-create :image "abc") 100)
+                 "https://res.cloudinary.com/radio4000/image/upload/w_100,h_100,c_thumb,q_80/abc.jpg"))
+  (should-not (r4-channel-image-url (r4-channel-create :image "")))
+  (should-not (r4-channel-image-url (r4-channel-create))))
+
 (ert-deftest r4-test-download-basename ()
   (should (equal (r4-download-basename (r4-test--track :title "AC/DC: \"Live\"" :media-id "xyz"))
                  "AC_DC_ _Live_ [xyz]"))
