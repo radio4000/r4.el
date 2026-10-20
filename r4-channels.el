@@ -16,7 +16,9 @@
 (require 'r4-models)
 (require 'r4-api)
 (require 'r4-tracks)
+(require 'r4-files)
 (require 'r4-download)
+(require 'r4-downloads)
 (require 'r4-columns)
 
 (defvar r4-channels--cache nil
@@ -207,15 +209,23 @@ clicking a column header.  Choose the columns with
 
 ;;;###autoload
 (defun r4-download-channel (slug)
-  "Download all the tracks of the channel SLUG."
+  "Download all the tracks of the channel SLUG.
+With a prefix argument, also retry the tracks that failed before."
   (interactive (list (r4-read-channel "Download channel: @")))
   (message "Fetching @%s…" slug)
-  (r4-api-tracks (lambda (tracks)
-                   (when (yes-or-no-p (format "Download %d tracks of @%s to %s? "
-                                              (length tracks) slug
-                                              (r4-download-channel-directory slug)))
-                     (r4-download-tracks tracks tracks)))
-                 :slug slug))
+  (r4-api-channel
+   slug
+   (lambda (channel)
+     (unless channel (user-error "No channel @%s" slug))
+     (r4-api-tracks
+      (lambda (tracks)
+        (when (yes-or-no-p (format "Download %d %s of @%s to %s? "
+                                   (length tracks)
+                                   (if r4-download-video "videos" "tracks")
+                                   slug (r4-files-channel-directory slug)))
+          (r4-download-tracks tracks :channel channel :channel-tracks tracks
+                              :retry current-prefix-arg)))
+      :slug slug))))
 
 (defcustom r4-channel-image-size 250
   "Size in pixels of the channel image in channel descriptions.
@@ -270,7 +280,7 @@ clicking a column header.  Choose the columns with
         (insert "Web:         ")
         (insert-button (r4-channel-web-url channel) 'type 'help-url
                        'help-args (list (r4-channel-web-url channel)))
-        (insert "\nDownloads:   " (r4-download-channel-directory (r4-channel-slug channel)) "\n\n")
+        (insert "\nDownloads:   " (r4-files-channel-directory (r4-channel-slug channel)) "\n\n")
         (insert-text-button "[Open tracks]" 'action
                             (lambda (_) (r4-open-channel (r4-channel-slug channel))))
         (insert "  ")

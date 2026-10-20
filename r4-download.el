@@ -6,38 +6,63 @@
 
 ;;; Commentary:
 
-;; Download tracks as high quality audio files into
-;; `r4-download-directory', one folder per channel, using yt-dlp.
-;; Downloads run asynchronously in a queue; `r4-downloads' lists them.
-;; Downloaded tracks are played from disk by the player.
+;; Download tracks with yt-dlp, as the best audio available, or as
+;; videos, into the folders of r4-files.el.  Downloads run in a queue,
+;; listed by `r4-downloads'.  Downloaded files get the artist, title
+;; and channel of the track as metadata, and a text file like the r4
+;; command line.  Failed downloads are skipped next time, unless
+;; retried.
 
 ;;; Code:
 
 (require 'cl-lib)
-(require 'tabulated-list)
 (require 'r4-models)
-
-(defcustom r4-download-directory "~/Music/radio4000/"
-  "Directory where tracks are downloaded, in one sub-directory per channel."
-  :type 'directory
-  :group 'r4)
+(require 'r4-files)
 
 (defcustom r4-download-program "yt-dlp"
   "Program used to download tracks."
   :type 'string
   :group 'r4)
 
+(defcustom r4-download-video nil
+  "When non-nil, download videos instead of audio.
+Videos and audio files of the same track can live side by side."
+  :type 'boolean
+  :group 'r4)
+
 (defcustom r4-download-audio-format nil
   "Audio format of downloaded tracks.
 nil keeps the best original audio stream, without re-encoding, which
 gives the highest quality.  A format such as \"flac\", \"mp3\",
-\"opus\" or \"m4a\" converts the audio with ffmpeg."
+\"opus\" or \"m4a\" converts the audio with ffmpeg, which never
+improves its quality."
   :type '(choice (const :tag "Best original audio (no re-encoding)" nil)
                  (string :tag "Format"))
   :group 'r4)
 
+(defcustom r4-download-video-quality "bestvideo*+bestaudio/best"
+  "The yt-dlp format of downloaded videos.
+For example \"bestvideo*[height<=1080]+bestaudio/best\" limits them
+to 1080p."
+  :type 'string
+  :group 'r4)
+
+(defcustom r4-download-video-container "mkv"
+  "Container of downloaded videos, \"mkv\" (any codec) or \"mp4\"."
+  :type '(choice (const "mkv") (const "mp4") (const "webm"))
+  :group 'r4)
+
+(defcustom r4-download-metadata t
+  "When non-nil, set the metadata of downloaded files from the track.
+The title, artist (from \"Artist - Title\"), album (the channel name),
+description and comment (the radio4000.com URL)."
+  :type 'boolean
+  :group 'r4)
+
 (defcustom r4-download-arguments '("--embed-metadata" "--embed-thumbnail" "--no-playlist")
-  "Extra arguments passed to `r4-download-program'."
+  "Extra arguments passed to `r4-download-program'.
+For example, add \"--cookies-from-browser\" \"firefox\" to download
+the best audio of YouTube Premium."
   :type '(repeat string)
   :group 'r4)
 
@@ -46,141 +71,70 @@ gives the highest quality.  A format such as \"flac\", \"mp3\",
   :type 'natnum
   :group 'r4)
 
-(defcustom r4-download-write-playlist t
-  "When non-nil, write a CHANNEL.m3u playlist in each channel directory."
-  :type 'boolean
-  :group 'r4)
-
-(defconst r4-download--audio-extensions
-  '("opus" "m4a" "mp3" "flac" "ogg" "oga" "wav" "webm" "aac" "mka" "aiff" "mp4")
-  "File extensions considered downloaded audio.")
-
 (defconst r4-download--progress-prefix "[r4-progress]"
   "Prefix of the progress lines printed by `r4-download-program'.")
-
-(cl-defstruct (r4-download (:constructor r4-download-create)
-                           (:copier nil))
-  "A download job for TRACK."
-  track (status 'queued) (progress 0) process)
-
-(defvar r4-download--jobs nil
-  "List of download jobs, oldest first.")
-
-(defvar r4-download--playlists (make-hash-table :test #'equal)
-  "Hash table of channel slug to its ordered tracks, used for playlists.")
-
-(defvar r4-download--pending (make-hash-table :test #'equal)
-  "Hash table of the ids of queued or running tracks, to their job.")
-
-(defvar r4-download--indexes (make-hash-table :test #'equal)
-  "Cache of `r4-download-index', by channel slug.
-Values are a cons of the modification time of the channel directory
-and its index.")
-
-(defvar r4-download-changed-functions nil
-  "Functions called with a list of tracks whose download status changed.")
 
 (defconst r4-download-log-buffer "*r4 download log*"
   "Name of the buffer logging the output of downloads.")
 
-;;;; Files
+(cl-defstruct (r4-download (:constructor r4-download-create)
+                           (:copier nil))
+  "A download of TRACK, as KIND `audio' or `video', in the channel ALBUM.
+CHANNEL-TRACKS are all the tracks of the channel, for its playlist."
+  track (kind 'audio) album channel-tracks
+  (status 'queued) (progress 0) process error)
 
-(defun r4-download-channel-directory (slug)
-  "Return the download directory of the channel SLUG."
-  (file-name-as-directory (expand-file-name slug r4-download-directory)))
+(defvar r4-download--jobs nil
+  "List of download jobs, oldest first.")
 
-(defun r4-download--sanitize (name)
-  "Return NAME usable as a file name on common file systems."
-  (let ((clean (string-trim
-                (replace-regexp-in-string "[/\\:*?\"<>|[:cntrl:]]+" "_" (or name "")))))
-    ;; Limit the length in bytes, the file name limit of most file
-    ;; systems.  `string-limit' with a coding system hangs on some
-    ;; scripts, such as Thai or Persian, in Emacs 31.
-    (while (> (string-bytes clean) 180)
-      (setq clean (substring clean 0 -1)))
-    (if (string-empty-p clean) "untitled" clean)))
+(defvar r4-download--pending (make-hash-table :test #'equal)
+  "Hash table of the ids of queued or running tracks, to their job.")
 
-(defun r4-download-basename (track)
-  "Return the file name of TRACK, without directory nor extension."
-  (format "%s [%s]"
-          (r4-download--sanitize (r4-track-title track))
-          (or (r4-track-media-id track)
-              (substring (r4-track-id track) 0 8))))
+(defvar r4-download-changed-functions nil
+  "Functions called with a list of tracks whose download status changed.")
 
-(defvar r4-download--index-cache nil
-  "Cache of `r4-download-index' by slug.
-Bound by `r4-download-with-index-cache'.")
+;;;; Command
 
-(defmacro r4-download-with-index-cache (&rest body)
-  "Run BODY, checking the download directories at most once per channel.
-Use it around code calling `r4-download-file' for many tracks."
-  (declare (indent 0) (debug t))
-  `(let ((r4-download--index-cache (make-hash-table :test #'equal)))
-     ,@body))
+(defun r4-download--literal (text)
+  "Return TEXT as a literal value of yt-dlp --parse-metadata."
+  (string-replace ":" "\\:" (string-replace "%" "%%" text)))
 
-(defun r4-download-index (slug)
-  "Return a hash table of the downloaded files of the channel SLUG.
-Keys are file names without extension, values are absolute file names.
-The index is cached until the channel directory changes."
-  (if r4-download--index-cache
-      (or (gethash slug r4-download--index-cache)
-          (puthash slug (r4-download--index slug) r4-download--index-cache))
-    (r4-download--index slug)))
+(defun r4-download--metadata-arguments (job)
+  "Return the yt-dlp arguments setting the metadata of the download JOB."
+  (let ((track (r4-download-track job)))
+    (when r4-download-metadata
+      `("--parse-metadata" ,(concat (r4-download--literal (r4-track-title track)) ":%(title)s")
+        "--parse-metadata" "title:(?P<artist>.+?) - (?P<title>.+)"
+        "--parse-metadata" ,(concat (r4-download--literal (r4-download-album job)) ":%(album)s")
+        "--parse-metadata" ,(concat (r4-download--literal (r4-track-web-url track))
+                                    ":%(meta_comment)s")
+        ,@(when-let* ((description (r4-track-description track))
+                      ((not (string-blank-p description))))
+            (list "--parse-metadata"
+                  (concat (r4-download--literal description) ":%(description)s")))))))
 
-(defun r4-download--index (slug)
-  "Return the index of the downloaded files of SLUG, see `r4-download-index'."
-  (let* ((directory (r4-download-channel-directory slug))
-         (modified (file-attribute-modification-time (file-attributes directory)))
-         (cached (gethash slug r4-download--indexes)))
-    (if (and cached (equal (car cached) modified))
-        (cdr cached)
-      (let ((index (make-hash-table :test #'equal)))
-        (when modified
-          (dolist (file (directory-files
-                         directory t
-                         (concat "\\." (regexp-opt r4-download--audio-extensions) "\\'")
-                         t))
-            (puthash (file-name-base file) file index)))
-        (puthash slug (cons modified index) r4-download--indexes)
-        index))))
-
-(defun r4-download-file (track &optional index)
-  "Return the downloaded file of TRACK, or nil.
-INDEX is the result of `r4-download-index' for the track channel."
-  (gethash (r4-download-basename track)
-           (or index (r4-download-index (r4-track-slug track)))))
-
-(defun r4-download-write-playlist (slug)
-  "Write the M3U playlist of the downloaded tracks of the channel SLUG."
-  (when-let* ((tracks (gethash slug r4-download--playlists))
-              (index (r4-download-index slug)))
-    (with-temp-file (expand-file-name (concat slug ".m3u")
-                                      (r4-download-channel-directory slug))
-      (insert "#EXTM3U\n")
-      (dolist (track tracks)
-        (when-let* ((file (r4-download-file track index)))
-          (insert (format "#EXTINF:%d,%s\n%s\n"
-                          (or (r4-track-duration track) -1)
-                          (r4-one-line (r4-track-title track))
-                          (file-name-nondirectory file))))))))
-
-;;;; Queue
-
-(defun r4-download--command (track)
-  "Return the command line downloading TRACK."
-  (let ((output (concat (r4-download-channel-directory (r4-track-slug track))
-                        (string-replace "%" "%%" (r4-download-basename track))
-                        ".%(ext)s")))
+(defun r4-download--command (job)
+  "Return the command line of the download JOB."
+  (let* ((track (r4-download-track job))
+         (output (concat (r4-files-tracks-directory (r4-track-slug track))
+                         (string-replace "%" "%%" (r4-files-basename track))
+                         ".%(ext)s")))
     `(,r4-download-program
       "--newline" "--color" "never"
       "--progress-template"
       ,(concat "download:" r4-download--progress-prefix " %(progress._percent_str)s")
-      "--format" "bestaudio/best" "--extract-audio" "--audio-quality" "0"
-      ,@(when r4-download-audio-format
-          (list "--audio-format" r4-download-audio-format))
+      ,@(if (eq (r4-download-kind job) 'video)
+            `("--format" ,r4-download-video-quality
+              "--merge-output-format" ,r4-download-video-container)
+          `("--format" "bestaudio/best" "--extract-audio" "--audio-quality" "0"
+            ,@(when r4-download-audio-format
+                (list "--audio-format" r4-download-audio-format))))
+      ,@(r4-download--metadata-arguments job)
       "--output" ,output
       ,@r4-download-arguments
       "--" ,(r4-track-url track))))
+
+;;;; Queue
 
 (defun r4-download--active-p (job)
   "Return non-nil if JOB is queued or running."
@@ -199,6 +153,9 @@ INDEX is the result of `r4-download-index' for the track channel."
       (remhash (r4-track-id track) r4-download--pending))
     (run-hook-with-args 'r4-download-changed-functions (list track))))
 
+(defvar r4-download-refresh-function #'ignore
+  "Function called when the list of downloads should be redisplayed.")
+
 (defun r4-download--log (format-string &rest args)
   "Append FORMAT-STRING formatted with ARGS to the download log."
   (with-current-buffer (get-buffer-create r4-download-log-buffer)
@@ -213,45 +170,55 @@ INDEX is the result of `r4-download-index' for the track channel."
          (lines (split-string (concat (process-get process 'r4-pending) output) "\n")))
     (process-put process 'r4-pending (car (last lines)))
     (dolist (line (butlast lines))
-      (if (string-prefix-p r4-download--progress-prefix line)
-          (when (string-match "\\([0-9.]+\\)%" line)
-            (setf (r4-download-progress job) (string-to-number (match-string 1 line))))
-        (r4-download--log "%s" line)))
-    (r4-download--refresh)))
+      (cond ((string-prefix-p r4-download--progress-prefix line)
+             (when (string-match "\\([0-9.]+\\)%" line)
+               (setf (r4-download-progress job) (string-to-number (match-string 1 line)))))
+            (t (when (string-prefix-p "ERROR:" line)
+                 (setf (r4-download-error job) line))
+               (r4-download--log "%s" line))))
+    (funcall r4-download-refresh-function)))
+
+(defun r4-download--finish (job ok)
+  "Finish the download JOB, successful if OK."
+  (let ((track (r4-download-track job)))
+    (if ok
+        (progn
+          (setf (r4-download-progress job) 100)
+          (when-let* ((file (r4-files-track-file track (r4-download-kind job))))
+            (r4-files-finish-track track file))
+          (when (r4-download-channel-tracks job)
+            (r4-files-write-playlist (r4-track-slug track) (r4-download-channel-tracks job)))
+          (message "Downloaded: %s" (r4-track-title track)))
+      (r4-files-add-failure track (or (r4-download-error job) "Download failed"))
+      (message "Download failed (see %s): %s" r4-download-log-buffer (r4-track-title track)))
+    (r4-download--set-status job (if ok 'done 'failed))))
 
 (defun r4-download--sentinel (process _event)
   "Update the job of the download PROCESS when it ends."
   (unless (process-live-p process)
-    (let* ((job (process-get process 'r4-download))
-           (track (r4-download-track job))
-           (ok (and (eq (process-status process) 'exit)
-                    (zerop (process-exit-status process)))))
+    (let ((job (process-get process 'r4-download)))
       (unless (eq (r4-download-status job) 'cancelled)
-        (r4-download--set-status job (if ok 'done 'failed))
-        (when ok (setf (r4-download-progress job) 100))
-        (message (if ok "Downloaded: %s" "Download failed (see %s): %s")
-                 (if ok (r4-track-title track) r4-download-log-buffer)
-                 (r4-track-title track)))
-      (when (and ok r4-download-write-playlist)
-        (r4-download-write-playlist (r4-track-slug track)))
+        (r4-download--finish job (and (eq (process-status process) 'exit)
+                                      (zerop (process-exit-status process)))))
       (r4-download--start-next)
-      (r4-download--refresh))))
+      (funcall r4-download-refresh-function))))
 
 (defun r4-download--start (job)
   "Start the download process of JOB."
   (let ((track (r4-download-track job)))
-    (make-directory (r4-download-channel-directory (r4-track-slug track)) t)
-    (r4-download--log "\n# @%s %s\n# %s" (r4-track-slug track) (r4-track-title track)
-                      (r4-track-url track))
+    (make-directory (r4-files-tracks-directory (r4-track-slug track)) t)
+    (r4-download--log "\n# @%s %s (%s)\n# %s" (r4-track-slug track) (r4-track-title track)
+                      (r4-download-kind job) (r4-track-url track))
     (let ((process (make-process
                     :name "r4-download"
-                    :command (r4-download--command track)
+                    :command (r4-download--command job)
                     :connection-type 'pipe
                     :noquery t
                     :filter #'r4-download--filter
                     :sentinel #'r4-download--sentinel)))
       (process-put process 'r4-download job)
-      (setf (r4-download-process job) process)
+      (setf (r4-download-process job) process
+            (r4-download-error job) nil)
       (r4-download--set-status job 'running))))
 
 (defun r4-download--start-next ()
@@ -263,28 +230,45 @@ INDEX is the result of `r4-download-index' for the track channel."
         (r4-download--start job)
         (cl-incf running)))))
 
-(defun r4-download-tracks (tracks &optional channel-tracks)
+(cl-defun r4-download-tracks (tracks &key kind channel channel-tracks retry)
   "Queue the download of TRACKS, skipping those already downloaded.
-CHANNEL-TRACKS, all the tracks of one channel in order, is used to write
-the channel playlist."
+KIND is `audio' or `video', by default according to
+`r4-download-video'.  CHANNEL, the `r4-channel' of the tracks, names
+the album, and CHANNEL-TRACKS, all its tracks in order, make its
+playlist.  Tracks whose download failed before are skipped, unless
+RETRY is non-nil."
   (unless (executable-find r4-download-program)
     (user-error "Cannot find `%s', please install it" r4-download-program))
-  (when channel-tracks
-    (puthash (r4-track-slug (car channel-tracks)) channel-tracks r4-download--playlists))
-  (let ((queued nil))
-    (dolist (track tracks)
-      (unless (or (r4-download-file track) (r4-download-pending-p track))
-        (let ((job (r4-download-create :track track)))
-          (puthash (r4-track-id track) job r4-download--pending)
-          (push job queued))))
+  (let ((kind (or kind (if r4-download-video 'video 'audio)))
+        (failed (make-hash-table :test #'equal))
+        (queued nil)
+        (skipped-failures 0))
+    (when channel
+      (r4-files-write-channel channel (or channel-tracks tracks)))
+    (dolist (slug (delete-dups (mapcar #'r4-track-slug tracks)))
+      (if retry
+          (r4-files-forget-failures slug)
+        (dolist (id (r4-files-failed-ids slug)) (puthash id t failed))))
+    (r4-files-with-index-cache
+      (dolist (track tracks)
+        (cond ((or (r4-files-track-file track kind) (r4-download-pending-p track)))
+              ((gethash (r4-track-id track) failed) (cl-incf skipped-failures))
+              (t (let ((job (r4-download-create
+                             :track track :kind kind :channel-tracks channel-tracks
+                             :album (if channel
+                                        (r4-channel-name channel)
+                                      (concat "@" (r4-track-slug track))))))
+                   (puthash (r4-track-id track) job r4-download--pending)
+                   (push job queued))))))
     (setq r4-download--jobs (nconc r4-download--jobs (nreverse queued)))
-    (message "Queued %d track%s for download (%d already downloaded or queued)"
+    (message "Queued %d track%s for download%s"
              (length queued) (if (= (length queued) 1) "" "s")
-             (- (length tracks) (length queued)))
-    (run-hook-with-args 'r4-download-changed-functions
-                        (mapcar #'r4-download-track queued))
+             (if (> skipped-failures 0)
+                 (format ", skipped %d that failed before (retry with C-u)" skipped-failures)
+               ""))
+    (run-hook-with-args 'r4-download-changed-functions (mapcar #'r4-download-track queued))
     (r4-download--start-next)
-    (r4-download--refresh)))
+    (funcall r4-download-refresh-function)))
 
 (defun r4-download-cancel (job)
   "Cancel the download JOB."
@@ -293,114 +277,19 @@ the channel playlist."
     (when-let* ((process (r4-download-process job)))
       (delete-process process))))
 
+(defun r4-download-retry (job)
+  "Queue the download JOB again."
+  (unless (r4-download--active-p job)
+    (setf (r4-download-progress job) 0)
+    (r4-download--set-status job 'queued)
+    (r4-download--start-next)))
+
 (defun r4-download-cancel-all ()
   "Cancel all queued and running downloads."
   (interactive)
   (mapc #'r4-download-cancel r4-download--jobs)
-  (r4-download--refresh)
+  (funcall r4-download-refresh-function)
   (message "Cancelled all downloads"))
-
-(defun r4-download-open-directory (&optional slug)
-  "Open the download directory, or the one of the channel SLUG, in Dired."
-  (interactive)
-  (let ((directory (if slug
-                       (r4-download-channel-directory slug)
-                     (file-name-as-directory (expand-file-name r4-download-directory)))))
-    (make-directory directory t)
-    (dired directory)))
-
-;;;; Downloads list
-
-(defconst r4-downloads-buffer "*r4 downloads*"
-  "Name of the buffer listing downloads.")
-
-(defvar r4-download--refresh-timer nil
-  "Timer refreshing the downloads list buffer.")
-
-(defun r4-download--refresh ()
-  "Refresh the downloads list buffer soon, if it exists."
-  (when (and (get-buffer r4-downloads-buffer) (not r4-download--refresh-timer))
-    (setq r4-download--refresh-timer
-          (run-with-timer 0.5 nil #'r4-download--refresh-now))))
-
-(defun r4-download--refresh-now ()
-  "Refresh the downloads list buffer."
-  (setq r4-download--refresh-timer nil)
-  (when-let* ((buffer (get-buffer r4-downloads-buffer)))
-    (with-current-buffer buffer
-      (revert-buffer))))
-
-(defun r4-downloads--entries ()
-  "Return the `tabulated-list-entries' of the downloads list."
-  (mapcar (lambda (job)
-            (let ((track (r4-download-track job)))
-              (list job
-                    (vector (symbol-name (r4-download-status job))
-                            (format "%5.1f%%" (r4-download-progress job))
-                            (concat "@" (r4-track-slug track))
-                            (r4-one-line (r4-track-title track))))))
-          (reverse r4-download--jobs)))
-
-(defun r4-downloads-cancel ()
-  "Cancel the download at point."
-  (interactive)
-  (if-let* ((job (tabulated-list-get-id)))
-      (progn (r4-download-cancel job) (revert-buffer))
-    (user-error "No download at point")))
-
-(defun r4-downloads-retry ()
-  "Queue again the download at point."
-  (interactive)
-  (let ((job (or (tabulated-list-get-id) (user-error "No download at point"))))
-    (when (r4-download--active-p job)
-      (user-error "Already downloading"))
-    (setf (r4-download-progress job) 0)
-    (r4-download--set-status job 'queued)
-    (r4-download--start-next)
-    (revert-buffer)))
-
-(defun r4-downloads-clear ()
-  "Remove finished, failed and cancelled downloads from the list."
-  (interactive)
-  (setq r4-download--jobs (cl-remove-if-not #'r4-download--active-p r4-download--jobs))
-  (revert-buffer))
-
-(defun r4-downloads-show-log ()
-  "Show the download log."
-  (interactive)
-  (display-buffer (get-buffer-create r4-download-log-buffer)))
-
-(defvar-keymap r4-downloads-mode-map
-  :doc "Keymap for `r4-downloads-mode'."
-  "k" #'r4-downloads-cancel
-  "K" #'r4-download-cancel-all
-  "r" #'r4-downloads-retry
-  "c" #'r4-downloads-clear
-  "l" #'r4-downloads-show-log
-  "o" #'r4-download-open-directory)
-
-(define-derived-mode r4-downloads-mode tabulated-list-mode "r4 downloads"
-  "Major mode listing Radio4000 downloads.
-
-\\{r4-downloads-mode-map}"
-  (setq tabulated-list-format [("Status" 10 t)
-                               ("Progress" 9 t :right-align t)
-                               ("Channel" 20 t)
-                               ("Title" 0 t)]
-        tabulated-list-padding 2)
-  (add-hook 'tabulated-list-revert-hook
-            (lambda () (setq tabulated-list-entries (r4-downloads--entries)))
-            nil t)
-  (tabulated-list-init-header))
-
-;;;###autoload
-(defun r4-downloads ()
-  "List Radio4000 downloads."
-  (interactive)
-  (with-current-buffer (get-buffer-create r4-downloads-buffer)
-    (r4-downloads-mode)
-    (revert-buffer)
-    (pop-to-buffer (current-buffer))))
 
 (provide 'r4-download)
 

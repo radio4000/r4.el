@@ -20,6 +20,7 @@
 (require 'json)
 (require 'r4-models)
 (require 'r4-api)
+(require 'r4-files)
 (require 'r4-download)
 (require 'r4-tracks)
 (require 'r4-channels)
@@ -28,7 +29,7 @@
 
 (defun r4-local-file (slug)
   "Return the backup file of the local channel SLUG."
-  (expand-file-name (concat slug ".json") (r4-download-channel-directory slug)))
+  (expand-file-name (concat slug ".json") (r4-files-channel-directory slug)))
 
 (defun r4-local-p (slug)
   "Return non-nil if SLUG is a local channel."
@@ -120,7 +121,7 @@
     (setf (r4-channel-track-count channel) (length tracks)
           (r4-channel-latest-track-at channel) (and tracks (r4-track-created-at (car tracks)))
           (r4-channel-updated-at channel) (r4-local-now))
-    (make-directory (r4-download-channel-directory slug) t)
+    (make-directory (r4-files-channel-directory slug) t)
     (with-temp-file (r4-local-file slug)
       (setq buffer-file-coding-system 'utf-8-unix)
       (json-insert `((version . 2)
@@ -128,7 +129,7 @@
                      (channel . ,(r4-local--channel-to-json channel))
                      (tracks . ,(vconcat (mapcar #'r4-local--track-to-json tracks)))))
       (json-pretty-print-buffer))
-    (puthash slug tracks r4-download--playlists)))
+    (r4-files-write-playlist slug tracks)))
 
 (defun r4-local--fetch (source callback)
   "Call CALLBACK with the tracks of SOURCE if it is a local channel.

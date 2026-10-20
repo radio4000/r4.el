@@ -20,9 +20,17 @@ Signing in to radio4000.com.
 #+INCLUDE: "r4-auth.el" src emacs-lisp
 
 * Media
+** r4-files.el
+The folders and files of downloaded channels, shared with the r4 command line.
+#+INCLUDE: "r4-files.el" src emacs-lisp
+
 ** r4-download.el
-Downloading tracks as high quality audio with yt-dlp.
+Downloading tracks with yt-dlp, as the best audio or as videos.
 #+INCLUDE: "r4-download.el" src emacs-lisp
+
+** r4-downloads.el
+The list of downloads.
+#+INCLUDE: "r4-downloads.el" src emacs-lisp
 
 ** r4-player.el
 Playing tracks with mpv.

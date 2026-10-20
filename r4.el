@@ -30,7 +30,9 @@
 (require 'transient)
 (require 'r4-models)
 (require 'r4-api)
+(require 'r4-files)
 (require 'r4-download)
+(require 'r4-downloads)
 (require 'r4-player)
 (require 'r4-tracks)
 (require 'r4-channels)
@@ -65,7 +67,7 @@
    ["Download"
     ("D" "Download channel" r4-download-channel)
     ("L" "Downloads" r4-downloads)
-    ("F" "Open music folder" r4-download-open-directory)
+    ("F" "Open music folder" r4-files-open-directory)
     ("K" "Cancel all downloads" r4-download-cancel-all)]
    ["Local"
     ("l" "Open local channel" r4-local-open-channel)

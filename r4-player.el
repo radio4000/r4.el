@@ -15,7 +15,7 @@
 (require 'cl-lib)
 (require 'tabulated-list)
 (require 'r4-models)
-(require 'r4-download)
+(require 'r4-files)
 
 (defcustom r4-player-program "mpv"
   "Program used to play tracks."
@@ -151,7 +151,7 @@
 
 (defun r4-player--source (track)
   "Return the file or URL to play for TRACK."
-  (or (and r4-player-prefer-downloads (r4-download-file track))
+  (or (and r4-player-prefer-downloads (r4-files-track-file track))
       (r4-track-url track)))
 
 (defun r4-player--play-index (index)

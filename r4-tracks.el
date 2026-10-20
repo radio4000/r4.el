@@ -16,7 +16,9 @@
 (require 'r4-models)
 (require 'r4-api)
 (require 'r4-player)
+(require 'r4-files)
 (require 'r4-download)
+(require 'r4-downloads)
 (require 'r4-columns)
 
 (defvar-local r4-tracks--source nil
@@ -39,7 +41,7 @@ non-nil if it handles the source.")
   "Return the status of TRACK: ▶ playing, ↓ downloading, ✓ downloaded."
   (cond ((equal (r4-track-id track) r4-tracks--playing-id) "▶")
         ((r4-download-pending-p track) "↓")
-        ((r4-download-file track) "✓")
+        ((r4-files-track-file track) "✓")
         (t "")))
 
 (defconst r4-tracks-column-specs
@@ -72,7 +74,7 @@ non-nil if it handles the source.")
 
 (defun r4-tracks--entries ()
   "Return the `tabulated-list-entries' of the buffer tracks."
-  (r4-download-with-index-cache
+  (r4-files-with-index-cache
     (mapcar (lambda (track)
               (list track (r4-columns-row track r4-tracks--columns r4-tracks-column-specs)))
             r4-tracks--tracks)))
@@ -106,7 +108,7 @@ non-nil if it handles the source.")
 (defun r4-tracks-update-status (ids)
   "Update the status of the tracks with IDS in all track lists."
   (when ids
-    (r4-download-with-index-cache
+    (r4-files-with-index-cache
       (r4-tracks--update-status ids))))
 
 (defun r4-tracks--update-status (ids)
@@ -206,20 +208,27 @@ non-nil if it handles the source.")
           (tabulated-list-put-tag "*" t)
         (forward-line 1)))))
 
-(defun r4-tracks-download ()
-  "Download the marked tracks, or the track at point."
-  (interactive)
+(defun r4-tracks--channel-tracks ()
+  "Return all the tracks of the channel of the buffer, or nil."
+  (when (and (plist-get r4-tracks--source :slug) (not (plist-get r4-tracks--source :query)))
+    r4-tracks--tracks))
+
+(defun r4-tracks-download (&optional retry)
+  "Download the marked tracks, or the track at point.
+With prefix argument RETRY, also retry the tracks that failed before."
+  (interactive "P")
   (r4-download-tracks (r4-tracks--marked)
-                      (when (plist-get r4-tracks--source :slug)
-                        (unless (plist-get r4-tracks--source :query) r4-tracks--tracks)))
+                      :channel-tracks (r4-tracks--channel-tracks) :retry retry)
   (tabulated-list-clear-all-tags))
 
-(defun r4-tracks-download-all ()
-  "Download all the tracks of the buffer."
-  (interactive)
-  (when (yes-or-no-p (format "Download %d tracks? " (length r4-tracks--tracks)))
+(defun r4-tracks-download-all (&optional retry)
+  "Download all the tracks of the buffer.
+With prefix argument RETRY, also retry the tracks that failed before."
+  (interactive "P")
+  (when (yes-or-no-p (format "Download %d %s? " (length r4-tracks--tracks)
+                             (if r4-download-video "videos" "tracks")))
     (r4-download-tracks r4-tracks--tracks
-                        (when (plist-get r4-tracks--source :slug) r4-tracks--tracks))))
+                        :channel-tracks (r4-tracks--channel-tracks) :retry retry)))
 
 (defun r4-tracks-browse ()
   "Open the track at point on radio4000.com."
@@ -248,7 +257,7 @@ non-nil if it handles the source.")
 (defun r4-tracks-open-file ()
   "Visit the downloaded file of the track at point in Dired."
   (interactive)
-  (let ((file (or (r4-download-file (r4-tracks--at-point))
+  (let ((file (or (r4-files-track-file (r4-tracks--at-point))
                   (user-error "Track not downloaded"))))
     (dired-jump nil file)))
 
