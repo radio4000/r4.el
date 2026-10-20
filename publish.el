@@ -51,7 +51,7 @@
                       (content "main" "content")
                       (postamble "footer" "postamble"))
       org-html-container-element "section"
-      org-html-preamble "<nav><a href=\"index.html\">r4.el</a> <a href=\"source.html\">Source</a> <a href=\"https://github.com/radio4000/r4.el\">Repository</a> <a href=\"https://radio4000.com\">radio4000.com</a></nav>"
+      org-html-preamble "<nav><a href=\"index.html\">r4.el</a> <a href=\"features.html\">Features</a> <a href=\"source.html\">Source</a> <a href=\"https://github.com/radio4000/r4.el\">Repository</a> <a href=\"https://radio4000.com\">radio4000.com</a></nav>"
       org-html-postamble nil)
 
 (setq org-publish-project-alist
@@ -59,7 +59,7 @@
          :base-directory "."
          :base-extension "org"
          :exclude ".*"
-         :include ("readme.org" "source.org")
+         :include ("readme.org" "features.org" "source.org")
          :publishing-directory "./public"
          :publishing-function org-html-publish-to-html)
         ("r4-static"
