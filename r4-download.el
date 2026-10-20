@@ -85,9 +85,12 @@ gives the highest quality.  A format such as \"flac\", \"mp3\",
   "Return NAME usable as a file name on common file systems."
   (let ((clean (string-trim
                 (replace-regexp-in-string "[/\\:*?\"<>|[:cntrl:]]+" "_" (or name "")))))
-    (if (string-empty-p clean)
-        "untitled"
-      (string-limit clean 180 nil 'utf-8))))
+    ;; Limit the length in bytes, the file name limit of most file
+    ;; systems.  `string-limit' with a coding system hangs on some
+    ;; scripts, such as Thai, in Emacs 31.
+    (while (> (string-bytes clean) 180)
+      (setq clean (substring clean 0 -1)))
+    (if (string-empty-p clean) "untitled" clean)))
 
 (defun r4-download-basename (track)
   "Return the file name of TRACK, without directory nor extension."

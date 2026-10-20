@@ -48,7 +48,11 @@
                  "AC_DC_ _Live_ [xyz]"))
   (should (equal (r4-download-basename (r4-test--track :title "  "))
                  "untitled [9919e967]"))
-  (should (<= (string-bytes (r4-download--sanitize (make-string 300 ?é))) 180)))
+  (should (<= (string-bytes (r4-download--sanitize (make-string 300 ?é))) 180))
+  ;; Used to hang, see `r4-download--sanitize'.
+  (should (equal (r4-download--sanitize "Molam International Band - ลำสั้นดิสโก้")
+                 "Molam International Band - ลำสั้นดิสโก้"))
+  (should (<= (string-bytes (r4-download--sanitize (apply #'concat (make-list 50 "ลำสั้น")))) 180)))
 
 (ert-deftest r4-test-download-command-escapes-percent ()
   (let ((r4-download-directory "/music/")
@@ -186,7 +190,7 @@
                        (lambda (row) (equal (alist-get (intern column) row) value))
                        rows))))
        rows))
-    (`("POST" ,(rx "/rest/v1/" (let table (+ any))))
+    (`("POST" ,(rx "/rest/v1/" (let table (+ anychar))))
      (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
      (let ((key (intern table)))
        (setf (alist-get key r4-test--db)
