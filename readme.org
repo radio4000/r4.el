@@ -1,42 +1,112 @@
-* r4-mode
-An Emacs major mode to browse [[https://radio4000.com][radio4000.com]] (through [[https://api.radio4000.com][api.radio4000.com]]).
+* r4.el
+Browse, play and download [[https://radio4000.com][radio4000.com]] channels from Emacs.
+
+- Browse and search channels and tracks (Radio4000 Supabase API).
+- Play channels with =mpv=: a queue, shuffle, pause, seek, volume,
+  and the current track in the mode line.
+- Download tracks as high quality audio with =yt-dlp= into
+  =~/Music/radio4000/<channel>/=, with an =<channel>.m3u= playlist.
+  Downloaded tracks are played from disk instead of streamed.
+- Local-first channels: create channels and add tracks without a
+  radio4000.com account, or save a copy of any channel to browse it
+  offline.
+
+** Requirements
+- Emacs 29.1 or newer.
+- [[https://mpv.io][mpv]], to play tracks.
+- [[https://github.com/yt-dlp/yt-dlp][yt-dlp]] (recent), and =ffmpeg=, to download and stream tracks.
+
+YouTube changes often: keep yt-dlp up to date (=pipx install yt-dlp=
+or =pipx upgrade yt-dlp=, distribution packages are often too old).
+yt-dlp also needs a JavaScript runtime for YouTube, see [[https://github.com/yt-dlp/yt-dlp/wiki/EJS][yt-dlp/wiki/EJS]].
+With =deno= installed it works out of the box; for =bun= or =node=,
+add it to =~/.config/yt-dlp/config= (used by both r4 downloads and
+mpv streaming):
+
+#+begin_src conf
+--js-runtimes bun
+#+end_src
 
 ** Installation
+#+begin_src emacs-lisp
+(use-package r4
+  :vc (:url "https://gitlab.com/ugrp/lisp/r4.el" :rev :newest)
+  :bind ("C-c r" . r4))
+#+end_src
 
-> Only tested on linux (arch) for now (so mpv dependency might not work else-where).
-
-*** Development
-1. install =mpv= [[https://mpv.io/installation][mpv.io/installation]]; a free media player for the command line
-1. install the dependency package =emacs-request=, [[https://github.com/tkf/emacs-request][github/tkf/emacs-request]]; used to make http network requests (to api.r4.com)
-1. clone this repository
-1. open the file =./r4.el= in an emacs buffer (=M-x find-file RET ./r4.el=)
-1. =M-x evaluate-buffer=
-
-
-Alternatively it is possible to use =M-x package-install-file r4.el=.
-This way the package is available under =M-x list-packages=.
-
-**** debug
-
-If there is an error happening, you can use =M-x
-toggle-debug-on-error=, to activate globally enterring in the debug
-mode when the error happens again.
-
-*** TODO Production
-
-Later, make it ready to by distributated as a standalone pkg;
-so it could be available with:
-- package-archives, such as =elpa= & =melpa=
-- =M-x install package RET r4-client=
-- =(use-package r4-client)=
+Or =M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el=.
 
 ** Usage
-- =M-x r4-status=
+=M-x r4= opens a menu with all the commands.
 
-** Dependencies
-- =mpv=, [[https://mpv.io][mpv.io]]
-- emacs [built-in] =tabulated-list= [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Tabulated-List-Mode.html][gnu.org/elisp/Tabulated-List-Mode]]
-- emacs =request= [[https://github.com/tkf/emacs-request][github/emacs-request]]
+| Command                  | Description                                  |
+|--------------------------+----------------------------------------------|
+| =r4-channels=            | List channels, most recently active first    |
+| =r4-search-channels=     | Full-text search of channels                 |
+| =r4-open-channel=        | List the tracks of a channel (with completion) |
+| =r4-search-tracks=       | Full-text search of all tracks               |
+| =r4-play-channel=        | Play a channel                               |
+| =r4-download-channel=    | Download all the tracks of a channel         |
+| =r4-downloads=           | List downloads and their progress            |
+| =r4-queue=               | Show the play queue                          |
+| =r4-local-create-channel= | Create a local channel                      |
+| =r4-local-add-track=     | Add a track by URL to a local channel        |
+| =r4-local-open-channel=  | List the tracks of a local channel           |
+| =r4-local-save-channel=  | Save a copy of a channel, to browse offline  |
 
-** Inspiration & docs
-Inspiration from =list-buffers=, =magit=, =ibuffer=, =list-packages=, =tabulated-list-mode=, =docker=, =info=.
+In channel and track lists, =C-h m= shows all the keys. The main ones:
+
+| Key   | Tracks list                        | Channels list        |
+|-------+------------------------------------+----------------------|
+| =RET= | Play from this track               | Open channel         |
+| =P=   | Play all                           | Play channel         |
+| =z=   | Shuffle play                       |                      |
+| =SPC= | Pause/resume                       | Pause/resume         |
+| =n= =p= | Next/previous track              | Next/previous track  |
+| =m= =u= =U= =M= | Mark, unmark, unmark all, mark all |      |
+| =d=   | Download marked tracks or at point |                      |
+| =D=   | Download all                       | Download channel     |
+| =a=   | Add to a local channel             |                      |
+| =x=   | Remove from this local channel     |                      |
+| =S=   | Save channel locally               |                      |
+| =s=   | Search tracks                      | Search channels      |
+| =o=   | Open on radio4000.com              | Open on radio4000.com |
+| =g=   | Refresh                            | Refresh              |
+
+The first column of a tracks list shows =▶= for the playing track,
+=✓= for downloaded tracks and =↓= for queued downloads.
+
+** Configuration
+=M-x customize-group RET r4=. For example:
+
+#+begin_src emacs-lisp
+(setq r4-download-directory "~/Music/radio4000/" ; the default
+      r4-download-audio-format "flac"            ; nil keeps the original audio, without re-encoding
+      r4-download-max-processes 3
+      r4-channels-min-tracks 10)                 ; hide small channels
+#+end_src
+
+** Local channels
+A local channel is a file in the radio4000.com backup format
+(version 2), stored with its downloads:
+
+#+begin_example
+~/Music/radio4000/my-radio/
+├── my-radio.json   ; the channel and its tracks
+├── my-radio.m3u    ; playlist of the downloaded tracks
+└── Artist - Title [media-id].opus
+#+end_example
+
+It can be imported into radio4000.com, versioned with git, or synced
+between machines like any other file.
+
+** Development
+#+begin_src sh
+make compile   # byte-compile, warnings are errors
+make test      # ERT tests
+make lint      # checkdoc
+#+end_src
+
+** Roadmap
+- Sign in to radio4000.com (Supabase auth, password from =auth-source=).
+- Sync local channels up to a radio4000.com channel.
