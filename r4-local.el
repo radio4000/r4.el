@@ -234,7 +234,7 @@ Return the new `r4-channel'."
                                :provider (and media-id "youtube") :media-id media-id))))
   (message "Added \"%s\" to @%s" title slug))
 
-(defun r4-tracks-add-to-local (slug)
+(defun r4-tracks-copy-to-local (slug)
   "Add the marked tracks, or the track at point, to the local channel SLUG."
   (interactive (list (r4-read-local-channel "Add to local channel: @" t)))
   (let ((tracks (r4-tracks--marked)))
@@ -281,9 +281,16 @@ An existing local channel SLUG is replaced."
   (r4-local-save-channel (or (plist-get r4-tracks--source :slug)
                              (user-error "Not a channel"))))
 
-(keymap-set r4-tracks-mode-map "a" #'r4-tracks-add-to-local)
+(keymap-set r4-tracks-mode-map "c" #'r4-tracks-copy-to-local)
 (keymap-set r4-tracks-mode-map "x" #'r4-tracks-remove-from-local)
-(keymap-set r4-tracks-mode-map "A" #'r4-tracks-save-local)
+(keymap-set r4-tracks-mode-map "C" #'r4-tracks-save-local)
+
+(defun r4-channels-save-local ()
+  "Save a local copy of the channel at point."
+  (interactive)
+  (r4-local-save-channel (r4-channel-slug (r4-channels--at-point))))
+
+(keymap-set r4-channels-mode-map "C" #'r4-channels-save-local)
 
 (provide 'r4-local)
 

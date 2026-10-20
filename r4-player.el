@@ -22,9 +22,25 @@
   :type 'string
   :group 'r4)
 
-(defcustom r4-player-arguments '("--no-video" "--ytdl-format=bestaudio/best")
+(defcustom r4-player-arguments nil
   "Extra arguments passed to `r4-player-program'."
   :type '(repeat string)
+  :group 'r4)
+
+(defcustom r4-player-video nil
+  "When non-nil, play videos in a window, else only audio.
+Toggle it with `r4-player-toggle-video'."
+  :type 'boolean
+  :group 'r4)
+
+(defcustom r4-player-audio-quality "bestaudio/best"
+  "The yt-dlp format of streamed audio."
+  :type 'string
+  :group 'r4)
+
+(defcustom r4-player-video-quality "bestvideo[height<=?1080]+bestaudio/best"
+  "The yt-dlp format of streamed videos."
+  :type 'string
   :group 'r4)
 
 (defcustom r4-player-prefer-downloads t
@@ -49,12 +65,20 @@
 (defvar r4-player-paused nil
   "Non-nil when the player is paused.")
 
+(defvar r4-player-label nil
+  "What the player plays, such as \"auto-radio @slug\", or nil.
+When non-nil, the queue plays in order, without shuffle.")
+
 (defvar r4-player-track-changed-hook nil
   "Hook run after the current track changed.")
+
+(defvar r4-player-queue-changed-hook nil
+  "Hook run after tracks were added to or removed from the queue.")
 
 (defvar r4-player--process nil "The mpv process.")
 (defvar r4-player--ipc nil "The network process connected to mpv.")
 (defvar r4-player--history nil "Indexes of the previously played tracks.")
+(defvar r4-player--start-at nil "Position in seconds to seek to, once loaded.")
 
 (defun r4-player--socket ()
   "Return the file name of the mpv IPC socket."
@@ -94,7 +118,15 @@
            :noquery t
            :filter #'r4-player--filter))
     (r4-player--send "observe_property" 1 "pause")
+    (r4-player--apply-video)
     (r4-player--mode-line-setup)))
+
+(defun r4-player--apply-video ()
+  "Show or hide videos, according to `r4-player-video'."
+  (when (r4-player-live-p)
+    (r4-player--send "set_property" "vid" (if r4-player-video "auto" "no"))
+    (r4-player--send "set_property" "ytdl-format"
+                     (if r4-player-video r4-player-video-quality r4-player-audio-quality))))
 
 (defun r4-player--kill ()
   "Stop mpv and forget the connection."
@@ -134,6 +166,10 @@
          ("error"
           (message "r4: cannot play %s (%s)" (r4-player--current-title) .file_error)
           (r4-player-next))))
+      ("file-loaded"
+       (when r4-player--start-at
+         (r4-player--send "seek" r4-player--start-at "absolute")
+         (setq r4-player--start-at nil)))
       ("property-change"
        (when (equal .name "pause")
          (setq r4-player-paused .data)
@@ -151,14 +187,16 @@
 
 (defun r4-player--source (track)
   "Return the file or URL to play for TRACK."
-  (or (and r4-player-prefer-downloads (r4-files-track-file track))
+  (or (and r4-player-prefer-downloads
+           (r4-files-track-file track (if r4-player-video 'video 'audio)))
       (r4-track-url track)))
 
-(defun r4-player--play-index (index)
-  "Play the track at INDEX in the queue."
+(defun r4-player--play-index (index &optional start)
+  "Play the track at INDEX in the queue, from START seconds if non-nil."
   (let* ((track (aref r4-player-queue index))
          (source (r4-player--source track)))
-    (setq r4-player-index index)
+    (setq r4-player-index index
+          r4-player--start-at (and start (> start 0) start))
     (r4-player--send "loadfile" source "replace")
     (r4-player--send "set_property" "pause" :false)
     (message "r4: %s %s" (if (file-name-absolute-p source) "Playing" "Streaming")
@@ -166,14 +204,22 @@
     (run-hooks 'r4-player-track-changed-hook)
     (force-mode-line-update t)))
 
-(defun r4-player-play (tracks &optional index)
+(defun r4-player-play (tracks &optional index start label)
   "Replace the queue by the list TRACKS and play the one at INDEX.
-If INDEX is nil, play the first track, or a random one when shuffling."
+If INDEX is nil, play the first track, or a random one when shuffling.
+Start at START seconds if non-nil.  LABEL, see `r4-player-label',
+plays the queue in order."
   (when (null tracks) (user-error "No tracks to play"))
   (setq r4-player-queue (vconcat tracks)
-        r4-player--history nil)
+        r4-player--history nil
+        r4-player-label label)
   (r4-player--play-index (or index
-                             (if r4-player-shuffle (random (length tracks)) 0))))
+                             (if (and r4-player-shuffle (not label)) (random (length tracks)) 0))
+                         start))
+
+(defun r4-player--shuffling-p ()
+  "Return non-nil if the next track is random."
+  (and r4-player-shuffle (not r4-player-label)))
 
 (defun r4-player-next ()
   "Play the next track in the queue."
@@ -181,7 +227,7 @@ If INDEX is nil, play the first track, or a random one when shuffling."
   (unless r4-player-index (user-error "Nothing is playing"))
   (push r4-player-index r4-player--history)
   (let ((size (length r4-player-queue)))
-    (r4-player--play-index (if (and r4-player-shuffle (> size 1))
+    (r4-player--play-index (if (and (r4-player--shuffling-p) (> size 1))
                                (mod (+ r4-player-index 1 (random (1- size))) size)
                              (mod (1+ r4-player-index) size)))))
 
@@ -193,10 +239,56 @@ If INDEX is nil, play the first track, or a random one when shuffling."
                              (mod (1- r4-player-index) (length r4-player-queue)))))
 
 (defun r4-player-toggle-pause ()
-  "Pause or resume playback."
+  "Pause or resume playback, or play the queue if stopped."
   (interactive)
-  (unless (r4-player-live-p) (user-error "Nothing is playing"))
-  (r4-player--send "cycle" "pause"))
+  (cond ((r4-player-live-p) (r4-player--send "cycle" "pause"))
+        ((> (length r4-player-queue) 0) (r4-player--play-index (or r4-player-index 0)))
+        (t (user-error "Nothing to play"))))
+
+(defun r4-player-toggle-video ()
+  "Toggle showing videos, see `r4-player-video'."
+  (interactive)
+  (setq r4-player-video (not r4-player-video))
+  (r4-player--apply-video)
+  (message "r4: video %s" (if r4-player-video "on" "off")))
+
+;;;; Queue operations
+
+(defun r4-player-enqueue (tracks)
+  "Add TRACKS at the end of the queue."
+  (setq r4-player-queue (vconcat r4-player-queue tracks))
+  (run-hooks 'r4-player-queue-changed-hook)
+  (message "Added %d track%s to the queue" (length tracks) (if (cdr tracks) "s" "")))
+
+(defun r4-player-play-next (tracks)
+  "Insert TRACKS in the queue, after the current track."
+  (let ((position (if r4-player-index (1+ r4-player-index) 0)))
+    (setq r4-player-queue (vconcat (seq-take r4-player-queue position)
+                                   tracks
+                                   (seq-drop r4-player-queue position))))
+  (run-hooks 'r4-player-queue-changed-hook)
+  (message "%d track%s will play next" (length tracks) (if (cdr tracks) "s" "")))
+
+(defun r4-player-remove (index)
+  "Remove the track at INDEX from the queue."
+  (when (eql index r4-player-index)
+    (user-error "Cannot remove the playing track"))
+  (setq r4-player-queue (vconcat (seq-take r4-player-queue index)
+                                 (seq-drop r4-player-queue (1+ index)))
+        r4-player--history nil)
+  (when (and r4-player-index (> r4-player-index index))
+    (cl-decf r4-player-index))
+  (run-hooks 'r4-player-queue-changed-hook))
+
+(defun r4-player-clear ()
+  "Remove all the tracks of the queue, but the playing one."
+  (interactive)
+  (let ((current (r4-player-current)))
+    (setq r4-player-queue (if current (vector current) [])
+          r4-player-index (and current 0)
+          r4-player--history nil))
+  (run-hooks 'r4-player-queue-changed-hook)
+  (message "Cleared the queue"))
 
 (defun r4-player-toggle-shuffle ()
   "Toggle playing the queue in random order."
@@ -239,7 +331,8 @@ If INDEX is nil, play the first track, or a random one when shuffling."
   "Stop playback and quit mpv."
   (interactive)
   (r4-player--kill)
-  (setq r4-player-index nil)
+  (setq r4-player-index nil
+        r4-player-label nil)
   (run-hooks 'r4-player-track-changed-hook)
   (force-mode-line-update t)
   (message "r4: stopped"))
@@ -274,7 +367,8 @@ If INDEX is nil, play the first track, or a random one when shuffling."
 (defun r4-player-mode-line-string ()
   "Return the mode line string of the player."
   (when-let* ((track (and r4-player-mode-line (r4-player-live-p) (r4-player-current))))
-    (propertize (format " %s %s " (if r4-player-paused "⏸" "▶")
+    (propertize (format " %s %s%s " (if r4-player-paused "⏸" "▶")
+                        (if r4-player-label (format "[%s] " r4-player-label) "")
                         (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…"))
                 'help-echo (format "@%s: %s" (r4-track-slug track) (r4-track-title track)))))
 
@@ -286,72 +380,27 @@ If INDEX is nil, play the first track, or a random one when shuffling."
   "Add the player to `global-mode-string'."
   (add-to-list 'global-mode-string 'r4-player--mode-line-construct t))
 
-;;;; Queue buffer
+;;;; Keys
 
-(defconst r4-queue-buffer "*r4 queue*"
-  "Name of the buffer listing the play queue.")
-
-(defun r4-queue--entries ()
-  "Return the `tabulated-list-entries' of the play queue."
-  (cl-loop for track across r4-player-queue
-           for index from 0
-           collect (list index
-                         (vector (if (eql index r4-player-index) "▶" "")
-                                 (concat "@" (r4-track-slug track))
-                                 (r4-one-line (r4-track-title track))
-                                 (r4-format-duration (r4-track-duration track))))))
-
-(defun r4-queue-play ()
-  "Play the queue track at point."
-  (interactive)
-  (r4-player--play-index (or (tabulated-list-get-id) (user-error "No track at point"))))
-
-(defun r4-queue--refresh ()
-  "Refresh the queue buffer, if it exists."
-  (when-let* ((buffer (get-buffer r4-queue-buffer)))
-    (with-current-buffer buffer (revert-buffer))))
-
-(add-hook 'r4-player-track-changed-hook #'r4-queue--refresh)
-
-(defvar-keymap r4-queue-mode-map
-  :doc "Keymap for `r4-queue-mode'."
-  "RET" #'r4-queue-play
+(defvar-keymap r4-player-map
+  :doc "Keys of the player, shared by the r4 lists."
   "SPC" #'r4-player-toggle-pause
-  "n" #'r4-player-next
-  "p" #'r4-player-previous
-  "z" #'r4-player-toggle-shuffle
-  "f" #'r4-player-seek-forward
-  "b" #'r4-player-seek-backward
+  ">" #'r4-player-next
+  "<" #'r4-player-previous
+  "]" #'r4-player-seek-forward
+  "[" #'r4-player-seek-backward
   "+" #'r4-player-volume-up
   "-" #'r4-player-volume-down
-  "w" #'r4-player-copy-url
-  "W" #'r4-player-copy-web-url
-  "o" #'r4-player-browse-current
-  "k" #'r4-player-stop)
+  "Z" #'r4-player-toggle-shuffle
+  "V" #'r4-player-toggle-video
+  "k" #'r4-player-stop
+  "Q" #'r4-queue)
 
-(define-derived-mode r4-queue-mode tabulated-list-mode "r4 queue"
-  "Major mode listing the Radio4000 play queue.
+(declare-function r4-queue "r4-queue")
 
-\\{r4-queue-mode-map}"
-  (setq tabulated-list-format [(" " 1 nil) ("Channel" 20 t) ("Title" 60 t)
-                               ("Time" 8 nil :right-align t)]
-        tabulated-list-padding 1)
-  (add-hook 'tabulated-list-revert-hook
-            (lambda () (setq tabulated-list-entries (r4-queue--entries)))
-            nil t)
-  (tabulated-list-init-header))
-
-;;;###autoload
-(defun r4-queue ()
-  "Show the Radio4000 play queue."
-  (interactive)
-  (with-current-buffer (get-buffer-create r4-queue-buffer)
-    (r4-queue-mode)
-    (revert-buffer)
-    (when r4-player-index
-      (goto-char (point-min))
-      (forward-line r4-player-index))
-    (pop-to-buffer (current-buffer))))
+(defun r4-player-list-map ()
+  "Return a parent keymap for r4 lists: the player and tabulated list keys."
+  (make-composed-keymap r4-player-map tabulated-list-mode-map))
 
 (provide 'r4-player)
 

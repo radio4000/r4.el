@@ -16,6 +16,7 @@
 (require 'r4-models)
 (require 'r4-api)
 (require 'r4-player)
+(require 'r4-queue)
 (require 'r4-files)
 (require 'r4-download)
 (require 'r4-downloads)
@@ -23,8 +24,10 @@
 
 (defvar-local r4-tracks--source nil
   "Plist describing the tracks of the buffer.
-It has the keys :slug, a channel slug, :query, a search, and :local,
-non-nil for a local channel.")
+It has the keys :slug, a channel slug, :query, a search, :local,
+non-nil for a local channel, :columns, the columns to show instead
+of `r4-tracks-columns', and :name, the name of the list.  Other keys
+are handled by `r4-tracks-fetch-functions'.")
 
 (defvar-local r4-tracks--tracks nil
   "List of the `r4-track' of the buffer, in their original order.")
@@ -44,7 +47,7 @@ non-nil if it handles the source.")
         ((r4-files-track-file track) "✓")
         (t "")))
 
-(defconst r4-tracks-column-specs
+(defvar r4-tracks-column-specs
   `((status . ,(r4-column-create :name " " :width 1 :key #'r4-tracks--status
                                  :format #'identity))
     (created . ,(r4-column-create :name "Added" :width 10 :key #'r4-track-created-at
@@ -83,9 +86,10 @@ non-nil if it handles the source.")
   "Return a short description of SOURCE."
   (let ((slug (plist-get source :slug))
         (query (plist-get source :query)))
-    (concat (when (plist-get source :local) "local ")
+    (or (plist-get source :name)
+     (concat (when (plist-get source :local) "local ")
             (if slug (concat "@" slug) "all channels")
-            (when query (format " matching \"%s\"" query)))))
+            (when query (format " matching \"%s\"" query))))))
 
 (defun r4-tracks--set (buffer tracks)
   "Display TRACKS in BUFFER."
@@ -174,6 +178,18 @@ non-nil if it handles the source.")
   "Play all the tracks of the buffer, in random order when shuffling."
   (interactive)
   (r4-player-play (r4-tracks--displayed)))
+
+(defun r4-tracks-enqueue ()
+  "Add the marked tracks, or the track at point, to the end of the queue."
+  (interactive)
+  (r4-player-enqueue (r4-tracks--marked))
+  (tabulated-list-clear-all-tags))
+
+(defun r4-tracks-play-next ()
+  "Play the marked tracks, or the track at point, after the current track."
+  (interactive)
+  (r4-player-play-next (r4-tracks--marked))
+  (tabulated-list-clear-all-tags))
 
 (defun r4-tracks-shuffle ()
   "Turn shuffle on and play the tracks of the buffer."
@@ -276,14 +292,12 @@ With prefix argument RETRY, also retry the tracks that failed before."
 
 (defvar-keymap r4-tracks-mode-map
   :doc "Keymap for `r4-tracks-mode'."
+  :parent (r4-player-list-map)
   "RET" #'r4-tracks-play
   "P" #'r4-tracks-play-all
   "z" #'r4-tracks-shuffle
-  "SPC" #'r4-player-toggle-pause
-  ">" #'r4-player-next
-  "<" #'r4-player-previous
-  "k" #'r4-player-stop
-  "Q" #'r4-queue
+  "a" #'r4-tracks-enqueue
+  "N" #'r4-tracks-play-next
   "m" #'r4-tracks-mark
   "u" #'r4-tracks-unmark
   "U" #'r4-tracks-unmark-all
@@ -297,7 +311,7 @@ With prefix argument RETRY, also retry the tracks that failed before."
   "w" #'r4-tracks-copy-url
   "W" #'r4-tracks-copy-web-url
   "s" #'r4-tracks-search
-  "c" #'r4-tracks-open-channel)
+  "@" #'r4-tracks-open-channel)
 
 (define-derived-mode r4-tracks-mode tabulated-list-mode "r4 tracks"
   "Major mode listing Radio4000 tracks.
@@ -308,11 +322,15 @@ tracks and ↓ for queued downloads.  Sort by the column at point with
 columns with `r4-tracks-columns'.
 
 \\{r4-tracks-mode-map}"
-  (setq r4-tracks--columns (r4-columns-valid r4-tracks-columns r4-tracks-column-specs)
+  (setq tabulated-list-padding 2)
+  (r4-tracks--set-columns r4-tracks-columns)
+  (setq-local revert-buffer-function #'r4-tracks-revert))
+
+(defun r4-tracks--set-columns (columns)
+  "Show the COLUMNS, defined in `r4-tracks-column-specs'."
+  (setq r4-tracks--columns (r4-columns-valid columns r4-tracks-column-specs)
         tabulated-list-format (r4-columns-list-format r4-tracks--columns
-                                                      r4-tracks-column-specs)
-        tabulated-list-padding 2)
-  (setq-local revert-buffer-function #'r4-tracks-revert)
+                                                      r4-tracks-column-specs))
   (tabulated-list-init-header))
 
 (defun r4-tracks-buffer-name (source)
@@ -325,6 +343,7 @@ columns with `r4-tracks-columns'.
   (with-current-buffer (get-buffer-create (r4-tracks-buffer-name source))
     (unless (derived-mode-p 'r4-tracks-mode) (r4-tracks-mode))
     (setq r4-tracks--source source)
+    (r4-tracks--set-columns (or (plist-get source :columns) r4-tracks-columns))
     (revert-buffer)
     (pop-to-buffer-same-window (current-buffer))))
 

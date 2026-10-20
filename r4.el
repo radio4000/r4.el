@@ -27,59 +27,20 @@
 
 ;;; Code:
 
-(require 'transient)
 (require 'r4-models)
 (require 'r4-api)
 (require 'r4-files)
 (require 'r4-download)
 (require 'r4-downloads)
 (require 'r4-player)
+(require 'r4-queue)
+(require 'r4-history)
 (require 'r4-tracks)
 (require 'r4-channels)
 (require 'r4-local)
 (require 'r4-auth)
 (require 'r4-sync)
-
-;;;###autoload (autoload 'r4 "r4" nil t)
-(transient-define-prefix r4 ()
-  "Radio4000 menu."
-  [["Browse"
-    ("c" "Channels" r4-channels)
-    ("C" "Search channels" r4-search-channels)
-    ("o" "Open channel" r4-open-channel)
-    ("i" "Describe channel" r4-describe-channel)
-    ("t" "Search tracks" r4-search-tracks)]
-   ["Player"
-    ("P" "Play channel" r4-play-channel)
-    ("SPC" "Pause/resume" r4-player-toggle-pause :transient t)
-    ("n" "Next" r4-player-next :transient t)
-    ("p" "Previous" r4-player-previous :transient t)
-    ("f" "Seek forward" r4-player-seek-forward :transient t)
-    ("b" "Seek backward" r4-player-seek-backward :transient t)
-    ("+" "Volume up" r4-player-volume-up :transient t)
-    ("-" "Volume down" r4-player-volume-down :transient t)
-    ("z" "Toggle shuffle" r4-player-toggle-shuffle :transient t)
-    ("Q" "Queue" r4-queue)
-    ("w" "Copy current track media URL" r4-player-copy-url)
-    ("W" "Copy current track radio4000.com URL" r4-player-copy-web-url)
-    ("e" "Open current track on radio4000.com" r4-player-browse-current)
-    ("k" "Stop" r4-player-stop)]
-   ["Download"
-    ("D" "Download channel" r4-download-channel)
-    ("L" "Downloads" r4-downloads)
-    ("F" "Open music folder" r4-files-open-directory)
-    ("K" "Cancel all downloads" r4-download-cancel-all)]
-   ["Local"
-    ("l" "Open local channel" r4-local-open-channel)
-    ("N" "New local channel" r4-local-create-channel)
-    ("a" "Add track by URL" r4-local-add-track)
-    ("S" "Save channel locally" r4-local-save-channel)]
-   ["Account"
-    ("Y" "Sync local channel" r4-sync-channel)
-    ("G" "Get one of my channels" r4-sync-pull-channel)
-    ("I" "Sign in" r4-login)
-    ("O" "Sign out" r4-logout)
-    ("M" "Who am I" r4-whoami)]])
+(require 'r4-menus)
 
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")
 (define-obsolete-function-alias 'list-r4-channels #'r4-channels "0.2.0")

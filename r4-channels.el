@@ -127,6 +127,19 @@ The Active column is the date of the latest track.")
   (interactive)
   (r4-play-channel (r4-channel-slug (r4-channels--at-point))))
 
+(defun r4-channels-shuffle ()
+  "Shuffle play the channel at point."
+  (interactive)
+  (setq r4-player-shuffle t)
+  (r4-play-channel (r4-channel-slug (r4-channels--at-point))))
+
+(defun r4-channels-copy-url ()
+  "Copy the radio4000.com URL of the channel at point."
+  (interactive)
+  (let ((url (r4-channel-web-url (r4-channels--at-point))))
+    (kill-new url)
+    (message "Copied %s" url)))
+
 (defun r4-channels-download ()
   "Download all the tracks of the channel at point."
   (interactive)
@@ -144,19 +157,17 @@ The Active column is the date of the latest track.")
 
 (defvar-keymap r4-channels-mode-map
   :doc "Keymap for `r4-channels-mode'."
+  :parent (r4-player-list-map)
   "RET" #'r4-channels-open
   "P" #'r4-channels-play
+  "z" #'r4-channels-shuffle
   "D" #'r4-channels-download
-  "o" #'r4-channels-browse
+  "L" #'r4-downloads
   "i" #'r4-channels-describe
+  "o" #'r4-channels-browse
+  "w" #'r4-channels-copy-url
   "s" #'r4-search-channels
-  "t" #'r4-search-tracks
-  "SPC" #'r4-player-toggle-pause
-  ">" #'r4-player-next
-  "<" #'r4-player-previous
-  "k" #'r4-player-stop
-  "Q" #'r4-queue
-  "L" #'r4-downloads)
+  "t" #'r4-search-tracks)
 
 (define-derived-mode r4-channels-mode tabulated-list-mode "r4 channels"
   "Major mode listing Radio4000 channels.

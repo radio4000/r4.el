@@ -33,8 +33,16 @@ The list of downloads.
 #+INCLUDE: "r4-downloads.el" src emacs-lisp
 
 ** r4-player.el
-Playing tracks with mpv.
+Playing tracks with mpv, from disk when downloaded.
 #+INCLUDE: "r4-player.el" src emacs-lisp
+
+** r4-queue.el
+The play queue.
+#+INCLUDE: "r4-queue.el" src emacs-lisp
+
+** r4-history.el
+The tracks played, kept on this computer.
+#+INCLUDE: "r4-history.el" src emacs-lisp
 
 * Interface
 ** r4-columns.el
@@ -59,6 +67,10 @@ Syncing local channels with radio4000.com.
 #+INCLUDE: "r4-sync.el" src emacs-lisp
 
 * Entry point
+** r4-menus.el
+The =r4= menu, and the =?= menu of each list.
+#+INCLUDE: "r4-menus.el" src emacs-lisp
+
 ** r4.el
-The package entry point and the =r4= menu.
+The package entry point.
 #+INCLUDE: "r4.el" src emacs-lisp
