@@ -9,6 +9,11 @@
 (require 'ert)
 (require 'r4)
 
+;; Never read or write the files of the user.
+(setq r4-history-file nil
+      r4-channels-cache-file nil
+      r4-auth-session-file nil)
+
 (defun r4-test--track (&rest fields)
   "Return an `r4-track' with FIELDS and default values."
   (apply #'r4-track-create
