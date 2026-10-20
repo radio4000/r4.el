@@ -41,8 +41,12 @@
   (should (equal (assoc "or" (r4-api--channels-params "jazz blues"))
                  '("or" "(fts.wfts.jazz blues,fts.fts.jazz:* & blues:*)")))
   (should-not (assoc "or" (r4-api--channels-params)))
-  (should (string-match-p (regexp-quote "or=(fts.wfts.jazz%20blues,fts.fts.jazz:*%20%26%20blues:*)")
-                          (r4-api--url "x" (r4-api--channels-params "jazz blues")))))
+  ;; Emacs versions escape different characters, so check the decoded
+  ;; value, and that its & does not split the query.
+  (let ((url (r4-api--url "x" (r4-api--channels-params "jazz blues"))))
+    (should (string-match "[?&]or=\\([^&]*\\)" url))
+    (should (equal (url-unhex-string (match-string 1 url))
+                   "(fts.wfts.jazz blues,fts.fts.jazz:* & blues:*)"))))
 
 (ert-deftest r4-test-search-filter ()
   (should (equal (r4-api-search-filter "osk") "(fts.wfts.osk,fts.fts.osk:*)"))
