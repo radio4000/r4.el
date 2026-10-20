@@ -152,6 +152,138 @@
             (should (equal (length (alist-get 'tracks data)) 2))))
       (delete-directory r4-download-directory t))))
 
+;;;; Sync, against a fake Supabase backend
+
+(defvar r4-test--db nil "Fake database: alist of table name to rows.")
+(defvar r4-test--requests nil "Requests received by the fake backend.")
+
+(defun r4-test--param (params key)
+  "Return the value of KEY in PARAMS, without its eq. prefix."
+  (when-let* ((value (cadr (assoc key params))))
+    (string-remove-prefix "eq." value)))
+
+(cl-defun r4-test--fake-request (method path &key params body token _prefer)
+  "Answer the request METHOD PATH like Supabase, from `r4-test--db'."
+  (push (list method path params body token) r4-test--requests)
+  (pcase (list method path)
+    (`("POST" "/auth/v1/token?grant_type=password")
+     (if (equal (alist-get 'password body) "secret")
+         '((access_token . "token-1") (refresh_token . "refresh-1") (expires_in . 3600)
+           (user (id . "user-1") (email . "me@example.org")))
+       (signal 'r4-api-error '("Invalid login credentials"))))
+    (`("POST" "/auth/v1/token?grant_type=refresh_token")
+     (if (equal (alist-get 'refresh_token body) "refresh-1")
+         '((access_token . "token-1") (refresh_token . "refresh-2") (expires_in . 3600)
+           (user (id . "user-1") (email . "me@example.org")))
+       (signal 'r4-api-error '("Refresh token is not valid"))))
+    (`("POST" "/auth/v1/logout") nil)
+    (`("GET" ,(rx "/rest/v1/" (let table (+ (not "?")))))
+     (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
+     (let ((rows (alist-get (intern table) r4-test--db)))
+       (dolist (column '("id" "slug" "channel_id" "user_id"))
+         (when-let* ((value (r4-test--param params column)))
+           (setq rows (cl-remove-if-not
+                       (lambda (row) (equal (alist-get (intern column) row) value))
+                       rows))))
+       rows))
+    (`("POST" ,(rx "/rest/v1/" (let table (+ any))))
+     (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
+     (let ((key (intern table)))
+       (setf (alist-get key r4-test--db)
+             (append (alist-get key r4-test--db)
+                     (if (vectorp body) (append body nil) (list body)))))
+     nil)))
+
+(defmacro r4-test--with-backend (&rest body)
+  "Run BODY with a fake backend, a temporary music directory and no prompts."
+  (declare (indent 0))
+  `(let ((r4-download-directory (make-temp-file "r4-test" t))
+         (r4-auth-session-file nil)
+         (r4-auth--session nil)
+         (r4-test--db nil)
+         (r4-test--requests nil))
+     (cl-letf (((symbol-function 'r4-api-request) #'r4-test--fake-request)
+               ((symbol-function 'yes-or-no-p) #'always))
+       (unwind-protect (progn (r4-login-with-password "me@example.org" "secret") ,@body)
+         (delete-directory r4-download-directory t)))))
+
+(ert-deftest r4-test-auth ()
+  (r4-test--with-backend
+    (should (equal (r4-auth-user-id) "user-1"))
+    (should (equal (r4-auth-token) "token-1"))
+    (should-error (r4-login-with-password "me@example.org" "wrong") :type 'r4-api-error)
+    ;; An expired session is refreshed.
+    (setf (plist-get r4-auth--session :expires-at) 0)
+    (should (equal (r4-auth-token) "token-1"))
+    (should (equal (plist-get r4-auth--session :refresh-token) "refresh-2"))
+    ;; The session is saved, readable only by the user, and loaded again.
+    (let ((r4-auth-session-file (expand-file-name "session.eld" r4-download-directory)))
+      (r4-auth--save)
+      (should (equal (file-modes r4-auth-session-file) #o600))
+      (let ((saved r4-auth--session))
+        (setq r4-auth--session nil)
+        (should (equal (r4-auth-session) saved))))
+    (r4-logout)
+    (should-not (r4-auth-session))))
+
+(ert-deftest r4-test-sync-publishes-then-merges ()
+  (r4-test--with-backend
+    (let* ((channel (r4-local-create-channel "My Radio"))
+           (id (r4-channel-id channel)))
+      (r4-local-add-track "my-radio" "https://youtu.be/aaaaaaaaaaa" "One" "")
+      (r4-local-add-track "my-radio" "https://youtu.be/bbbbbbbbbbb" "Two" "#tag")
+      ;; First sync publishes the channel and its tracks.
+      (r4-sync-channel "my-radio")
+      (should (equal (alist-get 'id (car (alist-get 'channels r4-test--db))) id))
+      (should (equal (alist-get 'user_channel r4-test--db)
+                     `(((user_id . "user-1") (channel_id . ,id)))))
+      (should (equal (mapcar (lambda (row) (alist-get 'title row)) (alist-get 'tracks r4-test--db))
+                     '("Two" "One")))
+      (should (cl-every (lambda (row) (equal (alist-get 'channel_id row) id))
+                        (alist-get 'channel_track r4-test--db)))
+      ;; Every write is authenticated.
+      (should (cl-every (lambda (request) (equal (nth 4 request) "token-1"))
+                        (cl-remove-if (lambda (request) (string-prefix-p "/auth" (nth 1 request)))
+                                      r4-test--requests)))
+      ;; A track added on radio4000.com is downloaded, a local one uploaded.
+      (push '((id . "remote-track") (slug . "my-radio") (title . "Remote")
+              (url . "https://youtu.be/ccccccccccc") (created_at . "2000-01-01T00:00:00Z"))
+            (alist-get 'channel_tracks r4-test--db))
+      (dolist (row (alist-get 'tracks r4-test--db))
+        (push (append row '((slug . "my-radio"))) (alist-get 'channel_tracks r4-test--db)))
+      (r4-local-add-track "my-radio" "https://youtu.be/ddddddddddd" "Three" "")
+      (setq r4-test--requests nil)
+      (r4-sync-channel "my-radio")
+      (should-not (cl-find "channels" r4-test--requests
+                           :key (lambda (r) (and (equal (car r) "POST") (string-remove-prefix "/rest/v1/" (nth 1 r))))
+                           :test #'equal))
+      (should (equal (mapcar (lambda (row) (alist-get 'title row)) (alist-get 'tracks r4-test--db))
+                     '("Two" "One" "Three")))
+      (should (equal (mapcar #'r4-track-title (cdr (r4-local-read "my-radio")))
+                     '("Three" "Two" "One" "Remote"))))))
+
+(ert-deftest r4-test-sync-refuses-other-accounts ()
+  (r4-test--with-backend
+    (let ((channel (r4-local-create-channel "Taken")))
+      ;; Same slug, owned by someone else.
+      (push `((id . "other") (slug . "taken")) (alist-get 'channels r4-test--db))
+      (should-error (r4-sync-channel "taken") :type 'user-error)
+      ;; A saved copy of someone else's channel.
+      (push `((id . ,(r4-channel-id channel)) (slug . "taken")) (alist-get 'channels r4-test--db))
+      (should-error (r4-sync-channel "taken") :type 'user-error)
+      (should-not (alist-get 'tracks r4-test--db)))))
+
+(ert-deftest r4-test-sync-links-offline-channel ()
+  (r4-test--with-backend
+    (r4-local-create-channel "Mine")
+    (push '((id . "remote-id") (slug . "mine")) (alist-get 'channels r4-test--db))
+    (push '((user_id . "user-1") (channel_id . "remote-id")) (alist-get 'user_channel r4-test--db))
+    (r4-local-add-track "mine" "https://youtu.be/aaaaaaaaaaa" "One" "")
+    (r4-sync-channel "mine")
+    (should (equal (r4-channel-id (car (r4-local-read "mine"))) "remote-id"))
+    (should (equal (alist-get 'channel_id (car (alist-get 'channel_track r4-test--db)))
+                   "remote-id"))))
+
 (provide 'r4-test)
 
 ;;; r4-test.el ends here

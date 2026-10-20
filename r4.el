@@ -20,7 +20,8 @@
 ;; - Tracks are played with mpv, from disk when downloaded.
 ;; - Tracks are downloaded as high quality audio with yt-dlp into
 ;;   `r4-download-directory' (~/Music/radio4000/ by default).
-;; - Local channels live in files, without a radio4000.com account.
+;; - Local channels live in files, without a radio4000.com account,
+;;   and sync with radio4000.com after `r4-login'.
 ;;
 ;; Requires the programs mpv, yt-dlp and ffmpeg.
 
@@ -34,6 +35,8 @@
 (require 'r4-tracks)
 (require 'r4-channels)
 (require 'r4-local)
+(require 'r4-auth)
+(require 'r4-sync)
 
 ;;;###autoload (autoload 'r4 "r4" nil t)
 (transient-define-prefix r4 ()
@@ -66,7 +69,13 @@
     ("l" "Open local channel" r4-local-open-channel)
     ("N" "New local channel" r4-local-create-channel)
     ("a" "Add track by URL" r4-local-add-track)
-    ("S" "Save channel locally" r4-local-save-channel)]])
+    ("S" "Save channel locally" r4-local-save-channel)]
+   ["Account"
+    ("Y" "Sync local channel" r4-sync-channel)
+    ("G" "Get one of my channels" r4-sync-pull-channel)
+    ("I" "Sign in" r4-login)
+    ("O" "Sign out" r4-logout)
+    ("W" "Who am I" r4-whoami)]])
 
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")
 (define-obsolete-function-alias 'list-r4-channels #'r4-channels "0.2.0")
