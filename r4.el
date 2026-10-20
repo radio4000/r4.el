@@ -6,7 +6,7 @@
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: multimedia, hypermedia
-;; URL: https://gitlab.com/ugrp/lisp/r4.el
+;; URL: https://github.com/radio4000/r4.el
 
 ;; This file is not part of GNU Emacs.
 

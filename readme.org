@@ -37,7 +37,7 @@ branch, byte-compiles them and generates their autoloads.
 
 #+begin_src emacs-lisp
 (use-package r4
-  :vc (:url "https://gitlab.com/ugrp/lisp/r4.el" :rev :newest)
+  :vc (:url "https://github.com/radio4000/r4.el" :rev :newest)
   :bind ("C-c r" . r4)
   :custom
   (r4-download-directory "~/Music/radio4000/"))
@@ -52,7 +52,7 @@ installs the latest release: the last commit that changed the
 once, then configure it with =use-package=:
 
 #+begin_example
-M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el RET
+M-x package-vc-install RET https://github.com/radio4000/r4.el RET
 #+end_example
 
 #+begin_src emacs-lisp
@@ -67,7 +67,7 @@ M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el RET
 
 *** From a local clone, for development
 #+begin_example
-git clone git@gitlab.com:ugrp/lisp/r4.el.git
+git clone git@github.com:radio4000/r4.el.git
 M-x package-vc-install-from-checkout RET ~/path/to/r4.el RET r4 RET
 #+end_example
 
