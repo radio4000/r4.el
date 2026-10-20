@@ -9,7 +9,7 @@ Browse, play and download [[https://radio4000.com][radio4000.com]] channels from
   Downloaded tracks are played from disk instead of streamed.
 - Local-first channels: create channels and add tracks without a
   radio4000.com account, or save a copy of any channel to browse it
-  offline.
+  offline. Sign in later to publish and sync them to radio4000.com.
 
 ** Requirements
 - Emacs 29.1 or newer.
@@ -53,6 +53,9 @@ Or =M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el=.
 | =r4-local-add-track=     | Add a track by URL to a local channel        |
 | =r4-local-open-channel=  | List the tracks of a local channel           |
 | =r4-local-save-channel=  | Save a copy of a channel, to browse offline  |
+| =r4-login= / =r4-logout= | Sign in to / out of radio4000.com            |
+| =r4-sync-channel=        | Publish or sync a local channel              |
+| =r4-sync-pull-channel=   | Get a local copy of one of your channels     |
 
 In channel and track lists, =C-h m= shows all the keys. The main ones:
 
@@ -69,6 +72,7 @@ In channel and track lists, =C-h m= shows all the keys. The main ones:
 | =a=   | Add to a local channel             |                      |
 | =x=   | Remove from this local channel     |                      |
 | =S=   | Save channel locally               |                      |
+| =Y=   | Sync this local channel            |                      |
 | =s=   | Search tracks                      | Search channels      |
 | =o=   | Open on radio4000.com              | Open on radio4000.com |
 | =g=   | Refresh                            | Refresh              |
@@ -100,6 +104,30 @@ A local channel is a file in the radio4000.com backup format
 It can be imported into radio4000.com, versioned with git, or synced
 between machines like any other file.
 
+** Account and sync
+=r4-login= signs in with a code sent by email, like radio4000.com, or
+with a password. A password stored in =auth-source= is used without
+asking, for example in =~/.authinfo.gpg=:
+
+#+begin_example
+machine radio4000.com login you@example.org password secret
+#+end_example
+
+The session is saved in =r4-session.eld= in =user-emacs-directory=
+(readable only by you, see =r4-auth-session-file=) and refreshed
+automatically.
+
+=r4-sync-channel= (or =Y= in a local channel) then:
+- publishes the local channel if it is not on radio4000.com yet, or
+  links it to your radio4000.com channel with the same slug;
+- uploads the tracks only in the local channel;
+- downloads the tracks only on radio4000.com.
+
+A sync never deletes tracks: remove a track on both sides to delete
+it. Local and remote channels and tracks share the same ids, so
+syncing again is safe. To work on an existing channel of yours, start
+with =r4-sync-pull-channel=.
+
 ** Development
 #+begin_src sh
 make compile   # byte-compile, warnings are errors
@@ -107,6 +135,3 @@ make test      # ERT tests
 make lint      # checkdoc
 #+end_src
 
-** Roadmap
-- Sign in to radio4000.com (Supabase auth, password from =auth-source=).
-- Sync local channels up to a radio4000.com channel.
