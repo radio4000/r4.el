@@ -40,15 +40,23 @@ non-nil if it handles the source.")
 (defvar r4-tracks--playing-id nil
   "Id of the track shown as playing in the track lists.")
 
+(defvar r4-tracks-played-function #'ignore
+  "Function returning non-nil if a track was played before, see r4-history.el.")
+
 (defun r4-tracks--status (track)
-  "Return the status of TRACK: ▶ playing, ↓ downloading, ✓ downloaded."
-  (cond ((equal (r4-track-id track) r4-tracks--playing-id) "▶")
-        ((r4-download-pending-p track) "↓")
-        ((r4-files-track-file track) "✓")
-        (t "")))
+  "Return the status of TRACK, two characters.
+The file: ✓ downloaded, ↓ downloading, ✗ its download failed.
+The player: ▶ playing, · played before."
+  (concat (cond ((r4-download-pending-p track) "↓")
+                ((r4-files-track-file track) "✓")
+                ((r4-files-failed-p track) "✗")
+                (t " "))
+          (cond ((equal (r4-track-id track) r4-tracks--playing-id) "▶")
+                ((funcall r4-tracks-played-function track) "·")
+                (t " "))))
 
 (defvar r4-tracks-column-specs
-  `((status . ,(r4-column-create :name " " :width 1 :key #'r4-tracks--status
+  `((status . ,(r4-column-create :name " " :width 2 :key #'r4-tracks--status
                                  :format #'identity))
     (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-track-created-at
                                      :format #'r4-format-date))
@@ -70,8 +78,8 @@ non-nil if it handles the source.")
                                       :key #'r4-track-discogs-url)))
   "Columns available in track lists, see `r4-tracks-columns'.
 They are named after the fields of the tracks of radio4000.com, and
-status shows ▶ for the playing track, ✓ when downloaded and ↓ when
-downloading.")
+status shows the file and the player state of a track, see
+`r4-tracks--status'.")
 
 (defcustom r4-tracks-columns
   '(status created_at updated_at slug title duration tags description)
@@ -370,8 +378,9 @@ With prefix argument RETRY, also retry the tracks that failed before."
 (define-derived-mode r4-tracks-mode tabulated-list-mode "r4 tracks"
   "Major mode listing Radio4000 tracks.
 
-The status column shows ▶ for the playing track, ✓ for downloaded
-tracks and ↓ for queued downloads.  Sort by the column at point with
+The status column shows ✓ for downloaded tracks, ↓ while downloading
+and ✗ when the download failed, then ▶ for the playing track and · for
+tracks played before.  Sort by the column at point with
 \\[tabulated-list-sort], or by clicking a column header.  Choose the
 columns with `r4-tracks-columns'.
 

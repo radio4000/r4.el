@@ -30,6 +30,16 @@
   "List of the played tracks, newest first, as (TIME . TRACK).
 TIME is an ISO 8601 timestamp.")
 
+(defvar r4-history--played (make-hash-table :test #'equal)
+  "Hash table of the ids of the played tracks.")
+
+(defun r4-history-played-p (track)
+  "Return non-nil if TRACK was played before."
+  (r4-history--load)
+  (gethash (r4-track-id track) r4-history--played))
+
+(setq r4-tracks-played-function #'r4-history-played-p)
+
 (defvar r4-history--loaded nil
   "Non-nil once `r4-history-file' is loaded.")
 
@@ -45,7 +55,10 @@ TIME is an ISO 8601 timestamp.")
                (ignore-errors
                  (with-temp-buffer
                    (insert-file-contents r4-history-file)
-                   (read (current-buffer))))))))
+                   (read (current-buffer))))))
+    (clrhash r4-history--played)
+    (dolist (entry r4-history--entries)
+      (puthash (r4-track-id (cdr entry)) t r4-history--played))))
 
 (defun r4-history--save ()
   "Save the history in `r4-history-file'."
@@ -62,6 +75,7 @@ TIME is an ISO 8601 timestamp.")
     (r4-history--load)
     (unless (eq track (cdar r4-history--entries))
       (push (cons (format-time-string "%FT%T%z") track) r4-history--entries)
+      (puthash (r4-track-id track) t r4-history--played)
       (setq r4-history--entries (seq-take r4-history--entries r4-history-size))
       (r4-history--save))))
 
@@ -102,6 +116,7 @@ TIME is an ISO 8601 timestamp.")
   (when (yes-or-no-p "Forget all the played tracks? ")
     (setq r4-history--entries nil
           r4-history--loaded t)
+    (clrhash r4-history--played)
     (r4-history--save)
     (message "Cleared the history")))
 

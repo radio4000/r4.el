@@ -351,6 +351,33 @@ thumbnails left next to them are deleted."
                  for id = (alist-get 'id (alist-get 'track failure))
                  when id collect id)))))
 
+(defvar r4-files--failures (make-hash-table :test #'equal)
+  "Cache of the failed track ids by channel slug.
+Values are a cons of the modification time of the failures file and a
+hash table of the ids.")
+
+(defun r4-files-failed-p (track)
+  "Return non-nil if the download of TRACK failed before."
+  (gethash (r4-track-id track)
+           (if r4-files--index-cache
+               (let ((key (cons 'failed (r4-track-slug track))))
+                 (or (gethash key r4-files--index-cache)
+                     (puthash key (r4-files--failed-ids (r4-track-slug track))
+                              r4-files--index-cache)))
+             (r4-files--failed-ids (r4-track-slug track)))))
+
+(defun r4-files--failed-ids (slug)
+  "Return a hash table of the failed track ids of SLUG, cached."
+  (let* ((file (r4-files--failures-file slug))
+         (modified (file-attribute-modification-time (file-attributes file)))
+         (cached (gethash slug r4-files--failures)))
+    (unless (and cached (equal (car cached) modified))
+      (let ((ids (make-hash-table :test #'equal)))
+        (when modified
+          (dolist (id (r4-files-failed-ids slug)) (puthash id t ids)))
+        (setq cached (puthash slug (cons modified ids) r4-files--failures))))
+    (cdr cached)))
+
 (defun r4-files-add-failure (track error)
   "Add TRACK to the failed downloads of its channel, because of ERROR."
   (let ((file (r4-files--failures-file (r4-track-slug track))))

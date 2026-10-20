@@ -89,6 +89,7 @@
           (r4-history--record)
           (r4-history--record)
           (should (equal (length r4-history--entries) 1))
+          (should (r4-history-played-p one))
           ;; It is saved, and loaded back.
           (setq r4-history--entries nil r4-history--loaded nil)
           (r4-history--load)
