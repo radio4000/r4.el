@@ -12,6 +12,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'url)
 (require 'url-http)
 (require 'r4-models)
@@ -69,10 +70,18 @@ The default hides the many empty channels."
   (json-parse-buffer :object-type 'alist :array-type 'list
                      :null-object nil :false-object nil))
 
+(define-error 'r4-api-error "Radio4000 API error")
+
+(defun r4-api--body-message ()
+  "Return the error message of the JSON body of the current response, or nil."
+  (ignore-errors
+    (let ((body (r4-api--parse)))
+      (when (consp body)
+        (let-alist body (or .message .msg .error_description .error))))))
+
 (defun r4-api--error-message (status)
   "Return a readable error message from the `url-retrieve' STATUS and body."
-  (let ((body (ignore-errors (alist-get 'message (r4-api--parse)))))
-    (format "Radio4000 API error: %s" (or body (plist-get status :error)))))
+  (format "Radio4000 API error: %s" (or (r4-api--body-message) (plist-get status :error))))
 
 (defun r4-api-get (table params callback)
   "Fetch rows of TABLE with PARAMS and call CALLBACK with the parsed rows.
@@ -94,17 +103,38 @@ On failure, report the error with `message'."
            (funcall callback (plist-get result :data)))))
      nil t t)))
 
+(cl-defun r4-api-request (method path &key params body token prefer)
+  "Send a METHOD request to PATH below `r4-api-url', and return the parsed JSON.
+PARAMS is a list of (KEY VALUE) query params, BODY is sent as JSON,
+TOKEN is a user access token and PREFER the PostgREST Prefer header.
+Block Emacs until the response, and signal `r4-api-error' on failure."
+  (let* ((url-request-method method)
+         (url-request-noninteractive t)
+         (url-request-extra-headers
+          `(,@(r4-api--headers)
+            ,@(when body '(("Content-Type" . "application/json")))
+            ,@(when token `(("Authorization" . ,(concat "Bearer " token))))
+            ,@(when prefer `(("Prefer" . ,prefer)))))
+         (url-request-data (and body (json-serialize body)))
+         (url (concat r4-api-url path (when params (concat "?" (url-build-query-string params)))))
+         (buffer (or (url-retrieve-synchronously url t t 60)
+                     (signal 'r4-api-error (list "No response from the server")))))
+    (with-current-buffer buffer
+      (unwind-protect
+          (if (and (numberp url-http-response-status)
+                   (<= 200 url-http-response-status 299))
+              (progn
+                (goto-char url-http-end-of-headers)
+                (skip-chars-forward " \t\r\n")
+                (unless (eobp) (r4-api--parse)))
+            (signal 'r4-api-error
+                    (list (or (r4-api--body-message)
+                              (format "HTTP status %s" url-http-response-status)))))
+        (kill-buffer buffer)))))
+
 (defun r4-api-get-sync (table params)
   "Fetch and return the rows of TABLE with PARAMS, blocking Emacs."
-  (let ((url-request-method "GET")
-        (url-request-extra-headers (r4-api--headers)))
-    (with-current-buffer (url-retrieve-synchronously
-                          (r4-api--url table params) t t 30)
-      (unwind-protect
-          (if (eql url-http-response-status 200)
-              (r4-api--parse)
-            (error "%s" (r4-api--error-message nil)))
-        (kill-buffer)))))
+  (r4-api-request "GET" (concat "/rest/v1/" table) :params params))
 
 ;;;; Queries
 
