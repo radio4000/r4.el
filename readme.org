@@ -28,13 +28,51 @@ mpv streaming):
 #+end_src
 
 ** Installation
+r4.el is installed from its git repository with =package-vc=, built
+into Emacs 29.1 and newer. It installs the =.el= files of the default
+branch, byte-compiles them and generates their autoloads.
+
+*** Emacs 30 and newer, with use-package
+=use-package= installs the package on first start with its =:vc= keyword:
+
 #+begin_src emacs-lisp
 (use-package r4
   :vc (:url "https://gitlab.com/ugrp/lisp/r4.el" :rev :newest)
+  :bind ("C-c r" . r4)
+  :custom
+  (r4-download-directory "~/Music/radio4000/"))
+#+end_src
+
+=:rev :newest= installs the latest commit. Without it, use-package
+installs the latest release: the last commit that changed the
+=Version:= header of =r4.el=.
+
+*** Emacs 29
+=use-package= in Emacs 29 has no =:vc= keyword: install the package
+once, then configure it with =use-package=:
+
+#+begin_example
+M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el RET
+#+end_example
+
+#+begin_src emacs-lisp
+(use-package r4
   :bind ("C-c r" . r4))
 #+end_src
 
-Or =M-x package-vc-install RET https://gitlab.com/ugrp/lisp/r4.el=.
+*** Update and remove
+- =M-x package-vc-upgrade RET r4= pulls the latest commits and
+  rebuilds the package (=package-vc-upgrade-all= updates all of them).
+- =M-x package-delete RET r4= removes it.
+
+*** From a local clone, for development
+#+begin_example
+git clone git@gitlab.com:ugrp/lisp/r4.el.git
+M-x package-vc-install-from-checkout RET ~/path/to/r4.el RET r4 RET
+#+end_example
+
+Changes in the clone are then used directly, after =M-x
+package-vc-rebuild=, or by evaluating the edited buffers.
 
 ** Usage
 =M-x r4= opens a menu with all the commands.
