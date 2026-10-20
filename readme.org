@@ -151,8 +151,9 @@ radio4000.com.  Click the player in the mode line to pause it,
 middle-click for the next track, right-click for the queue.  With
 [[https://github.com/oantolin/embark][Embark]], act on the channels of any completion.
 
-The status column of track lists shows =▶= for the playing track, =✓=
-for downloaded tracks and =↓= for queued downloads.
+The status column of track lists, the history and the feed shows the
+file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the
+player, =▶= playing, =·= played before.
 
 Searches match whole words, like on radio4000.com, and also the
 beginning of words: =osk= finds =oskar=.  =@slug= targets a channel and
@@ -186,10 +187,22 @@ command line: retry them with =C-u d=, or =R= in =r4-downloads=.
 Set =r4-download-video= to download videos instead, in
 =r4-download-video-quality= and =r4-download-video-container=; audio and
 video files of a track live side by side.  =V= shows videos while
-playing.
+playing, in a window of mpv.
 
 Downloads of r4.el 0.2 were outside =tracks/=: =M-x r4-files-migrate=
 moves them.
+
+** Synced channels
+Choose the channels to keep synced locally, such as a few of the ones
+you follow: =y= in a channel list, or in the list of a channel, syncs
+it or stops syncing it.  Their new tracks download:
+- with =M-x r4-sync-channels=, or =y= in the =r4= menu;
+- when you open an r4 list, at most every =r4-sync-interval= (an hour);
+- while they play, to not stream them again (=r4-player-download=,
+  =t= for all tracks, =nil= for none).
+
+=r4-list-synced-channels= lists them, and =r4-synced-channels= holds
+their slugs, saved with Customize.
 
 ** Auto-radio and broadcasts
 =R= tunes in to the auto-radio of a channel, like the infinity button

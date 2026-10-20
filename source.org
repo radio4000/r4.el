@@ -28,6 +28,10 @@ The folders and files of downloaded channels, shared with the r4 command line.
 Downloading tracks with yt-dlp, as the best audio or as videos.
 #+INCLUDE: "r4-download.el" src emacs-lisp
 
+** r4-synced.el
+Channels kept synced locally: their new tracks download.
+#+INCLUDE: "r4-synced.el" src emacs-lisp
+
 ** r4-downloads.el
 The list of downloads.
 #+INCLUDE: "r4-downloads.el" src emacs-lisp

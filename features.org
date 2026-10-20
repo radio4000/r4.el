@@ -67,6 +67,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Artist, title and channel metadata     | ffmetadata                     | yt-dlp                       |         |
 | Skip failed tracks, retry them         | =failures.jsonl=, =--retry-failed= | =C-u d=, =r4-downloads-retry-failed= | =R= |
 | Downloads and their log                |                                | =r4-downloads=               | =L=     |
+| Keep chosen channels synced            |                                | =r4-synced-channels=, =r4-sync-channels= | =y= |
+| Download tracks while playing them     |                                | =r4-player-download=         |         |
 | Move downloads of r4.el 0.2            |                                | =r4-files-migrate=           |         |
 
 * Account and editing

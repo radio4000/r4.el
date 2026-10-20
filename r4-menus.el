@@ -30,6 +30,7 @@
 (require 'r4-broadcast)
 (require 'r4-describe)
 (require 'r4-explore)
+(require 'r4-synced)
 
 ;;;; Descriptions showing the state
 
@@ -70,6 +71,21 @@
 (defun r4-menus--playing-remote-p ()
   "Return non-nil if the playing track is on radio4000.com."
   (and (r4-menus--playing-p) (not (r4-track-local-p (r4-player-current)))))
+
+(defun r4-menus--sync-label (slug)
+  "Return the label of the sync toggle of the channel SLUG."
+  (if (and slug (r4-synced-p slug))
+      (concat "Sync channel " (r4-menus--on-off t))
+    (concat "Sync channel " (r4-menus--on-off nil))))
+
+(defun r4-menus--channel-sync ()
+  "Return the label of the sync toggle of the channel at point."
+  (r4-menus--sync-label (when-let* ((channel (tabulated-list-get-id)))
+                          (r4-channel-slug channel))))
+
+(defun r4-menus--list-sync ()
+  "Return the label of the sync toggle of the channel of the list."
+  (r4-menus--sync-label (plist-get r4-tracks--source :slug)))
 
 (defun r4-menus--filter ()
   "Return the description of the filter of the track list."
@@ -130,7 +146,9 @@
    ["Download"
     ("D" "Download channel" r4-download-channel)
     ("L" "Downloads" r4-downloads)
-    ("F" "Downloads folder" r4-files-open-directory)]
+    ("F" "Downloads folder" r4-files-open-directory)
+    ("y" "Sync channels now" r4-sync-channels)
+    ("Y" "Synced channels" r4-list-synced-channels)]
    ["Local"
     ("l" "Local channels…" r4-local-menu)]
    ["Account"
@@ -200,7 +218,9 @@
     ("d" "Marked or at point" r4-tracks-download)
     ("D" "All" r4-tracks-download-all)
     ("F" "Visit file" r4-tracks-open-file)
-    ("L" "Downloads" r4-downloads)]
+    ("L" "Downloads" r4-downloads)
+    ("y" r4-tracks-toggle-sync :description r4-menus--list-sync
+     :if r4-menus--remote-list-p)]
    ["Edit"
     ("A" "Add track" r4-tracks-create)
     ("e" "Edit track" r4-tracks-edit)
@@ -237,6 +257,7 @@
     ("r" "Followers" r4-channels-followers)]]
   [["Download"
     ("D" "Download channel" r4-channels-download)
+    ("y" r4-channels-toggle-sync :description r4-menus--channel-sync)
     ("C" "Backup channel" r4-channels-save-local)]
    ["Edit"
     ("A" "Create channel" r4-create-channel)

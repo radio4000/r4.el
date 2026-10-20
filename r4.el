@@ -54,6 +54,7 @@
 (require 'r4-broadcast)
 (require 'r4-describe)
 (require 'r4-explore)
+(require 'r4-synced)
 (require 'r4-bookmark)
 (require 'r4-embark)
 (require 'r4-menus)
