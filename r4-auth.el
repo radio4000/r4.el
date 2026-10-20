@@ -50,9 +50,11 @@ and :email.")
   "Save the current session, or delete the saved one when signed out."
   (when r4-auth-session-file
     (if r4-auth--session
-        (with-file-modes #o600
-          (with-temp-file r4-auth-session-file
-            (prin1 r4-auth--session (current-buffer))))
+        (progn
+          (make-directory (file-name-directory (expand-file-name r4-auth-session-file)) t)
+          (with-file-modes #o600
+            (with-temp-file r4-auth-session-file
+              (prin1 r4-auth--session (current-buffer)))))
       (when (file-exists-p r4-auth-session-file)
         (delete-file r4-auth-session-file)))))
 

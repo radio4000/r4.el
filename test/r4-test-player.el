@@ -64,7 +64,9 @@
     (should (equal r4-player-index 0))))
 
 (ert-deftest r4-test-history ()
-  (let* ((r4-history-file (make-temp-file "r4-history"))
+  (let* ((directory (make-temp-file "r4-test" t))
+         ;; In a directory to create, like on a new computer.
+         (r4-history-file (expand-file-name "new/r4-history.eld" directory))
          (r4-history--entries nil) (r4-history--loaded t)
          (one (r4-test--track :id "1" :title "one"))
          (r4-player-queue (vector one)) (r4-player-index 0))
@@ -82,7 +84,7 @@
             (should (equal (car (aref tabulated-list-format 1)) "time"))
             (should (equal (r4-track-title (tabulated-list-get-id (point-min))) "one")))
           (kill-buffer "*r4 history*"))
-      (delete-file r4-history-file))))
+      (delete-directory directory t))))
 
 (ert-deftest r4-test-mode-line ()
   (let ((r4-player-queue (vector (r4-test--track :title "Song")))

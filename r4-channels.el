@@ -124,6 +124,7 @@ They are named after the fields of the channels of radio4000.com.")
   "Remember CHANNELS, the list of all channels, in memory and on disk."
   (setq r4-channels--cache channels)
   (when r4-channels-cache-file
+    (make-directory (file-name-directory (expand-file-name r4-channels-cache-file)) t)
     (let ((print-length nil) (print-level nil))
       (with-temp-file r4-channels-cache-file
         (prin1 channels (current-buffer)))))

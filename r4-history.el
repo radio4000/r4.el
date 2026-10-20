@@ -50,6 +50,7 @@ TIME is an ISO 8601 timestamp.")
 (defun r4-history--save ()
   "Save the history in `r4-history-file'."
   (when r4-history-file
+    (make-directory (file-name-directory (expand-file-name r4-history-file)) t)
     (let ((print-length nil) (print-level nil))
       (with-temp-file r4-history-file
         (prin1 r4-history--entries (current-buffer))))))
