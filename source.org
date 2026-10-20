@@ -57,6 +57,10 @@ The list of tracks.
 The list of channels.
 #+INCLUDE: "r4-channels.el" src emacs-lisp
 
+** r4-search.el
+The search language: =@channel #tag words=, and filters of the lists.
+#+INCLUDE: "r4-search.el" src emacs-lisp
+
 * Local first
 ** r4-local.el
 Local channels, stored in files.

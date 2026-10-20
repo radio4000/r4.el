@@ -200,23 +200,39 @@ If QUERY is non-nil, only return channels matching that full-text search."
               (lambda (rows)
                 (funcall callback (and rows (r4-channel-from-json (car rows)))))))
 
+(defun r4-api--array (values)
+  "Return VALUES as a PostgREST array literal."
+  (format "{%s}" (mapconcat (lambda (value)
+                              (format "\"%s\"" (string-replace "\"" "" value)))
+                            values ",")))
+
+(defun r4-api--tracks-params (filters)
+  "Return the query params of the tracks matching FILTERS, see `r4-api-tracks'."
+  (let* ((slugs (or (plist-get filters :slugs)
+                    (and (plist-get filters :slug) (list (plist-get filters :slug)))))
+         (query (plist-get filters :query))
+         (tags (plist-get filters :tags))
+         (mention (plist-get filters :mention)))
+    `(("select" ,r4-api--track-columns)
+      ,@(cond ((cdr slugs) `(("slug" ,(format "in.(%s)" (string-join slugs ",")))))
+              (slugs `(("slug" ,(concat "eq." (car slugs))))))
+      ,@(when tags `(("tags" ,(concat "ov." (r4-api--array tags)))))
+      ,@(when mention `(("description" ,(format "ilike.*@%s*" mention))))
+      ,@(when-let* ((filter (and query (r4-api-search-filter query))))
+          `(("or" ,filter)))
+      ("order" "created_at.desc")
+      ("limit" ,(number-to-string
+                 (or (plist-get filters :limit)
+                     (if slugs r4-api-tracks-limit r4-api-search-limit)))))))
+
 (defun r4-api-tracks (callback &rest filters)
   "Call CALLBACK with a list of `r4-track', newest first.
-FILTERS is a plist with the optional keys :slug, a channel slug, and
-:query, a full-text search."
-  (let ((slug (plist-get filters :slug))
-        (query (plist-get filters :query)))
-    (r4-api-get "channel_tracks"
-                `(("select" ,r4-api--track-columns)
-                  ,@(when slug `(("slug" ,(concat "eq." slug))))
-                  ,@(when-let* ((filter (and query (r4-api-search-filter query))))
-                      `(("or" ,filter)))
-                  ("order" "created_at.desc")
-                  ("limit" ,(number-to-string
-                             (if (and query (not slug))
-                                 r4-api-search-limit
-                               r4-api-tracks-limit))))
-                (lambda (rows) (funcall callback (mapcar #'r4-track-from-json rows))))))
+FILTERS is a plist with the optional keys :slug, a channel slug,
+:slugs, a list of channel slugs, :tags, a list of tags, any of which
+matches, :query, a full-text search, :mention, a channel slug
+mentioned in the description, and :limit."
+  (r4-api-get "channel_tracks" (r4-api--tracks-params filters)
+              (lambda (rows) (funcall callback (mapcar #'r4-track-from-json rows)))))
 
 (provide 'r4-api)
 

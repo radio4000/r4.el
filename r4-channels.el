@@ -166,8 +166,7 @@ The Active column is the date of the latest track.")
   "i" #'r4-channels-describe
   "o" #'r4-channels-browse
   "w" #'r4-channels-copy-url
-  "s" #'r4-search-channels
-  "t" #'r4-search-tracks)
+  "s" #'r4-search-channels)
 
 (define-derived-mode r4-channels-mode tabulated-list-mode "r4 channels"
   "Major mode listing Radio4000 channels.

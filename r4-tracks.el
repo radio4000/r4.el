@@ -75,12 +75,34 @@ non-nil if it handles the source.")
 (defvar-local r4-tracks--columns nil
   "Columns of the buffer, from `r4-tracks-columns'.")
 
+(defvar-local r4-tracks--filter nil
+  "Predicate of the tracks shown, or nil to show all, see `r4-tracks-set-filter'.")
+
+(defun r4-tracks--visible ()
+  "Return the tracks of the buffer that pass its filter."
+  (if r4-tracks--filter
+      (seq-filter r4-tracks--filter r4-tracks--tracks)
+    r4-tracks--tracks))
+
 (defun r4-tracks--entries ()
   "Return the `tabulated-list-entries' of the buffer tracks."
   (r4-files-with-index-cache
     (mapcar (lambda (track)
               (list track (r4-columns-row track r4-tracks--columns r4-tracks-column-specs)))
-            r4-tracks--tracks)))
+            (r4-tracks--visible))))
+
+(defun r4-tracks-redisplay ()
+  "Redisplay the tracks of the buffer, without fetching them."
+  (setq tabulated-list-entries (r4-tracks--entries))
+  (tabulated-list-print t)
+  (setq mode-line-process
+        (when r4-tracks--filter
+          (format " %d/%d" (length tabulated-list-entries) (length r4-tracks--tracks)))))
+
+(defun r4-tracks-set-filter (predicate)
+  "Only show the tracks passing PREDICATE, or all tracks if nil."
+  (setq r4-tracks--filter predicate)
+  (r4-tracks-redisplay))
 
 (defun r4-tracks--describe-source (source)
   "Return a short description of SOURCE."
@@ -95,9 +117,8 @@ non-nil if it handles the source.")
   "Display TRACKS in BUFFER."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
-      (setq r4-tracks--tracks tracks
-            tabulated-list-entries (r4-tracks--entries))
-      (tabulated-list-print t)
+      (setq r4-tracks--tracks tracks)
+      (r4-tracks-redisplay)
       (message "%d tracks for %s" (length tracks) (r4-tracks--describe-source r4-tracks--source)))))
 
 (defun r4-tracks-revert (&rest _)
@@ -277,14 +298,6 @@ With prefix argument RETRY, also retry the tracks that failed before."
                   (user-error "Track not downloaded"))))
     (dired-jump nil file)))
 
-(defun r4-tracks-search (query)
-  "Search tracks matching QUERY, in the channel of the buffer if any."
-  (interactive (list (read-string "Search tracks: ")))
-  (let ((slug (plist-get r4-tracks--source :slug))
-        (query (if (string-blank-p query) nil query)))
-    (unless (or slug query) (user-error "Empty search"))
-    (r4-tracks-show (list :slug slug :query query))))
-
 (defun r4-tracks-open-channel ()
   "Open the channel of the track at point."
   (interactive)
@@ -310,7 +323,6 @@ With prefix argument RETRY, also retry the tracks that failed before."
   "O" #'r4-tracks-browse-media
   "w" #'r4-tracks-copy-url
   "W" #'r4-tracks-copy-web-url
-  "s" #'r4-tracks-search
   "@" #'r4-tracks-open-channel)
 
 (define-derived-mode r4-tracks-mode tabulated-list-mode "r4 tracks"
@@ -349,12 +361,6 @@ columns with `r4-tracks-columns'.
 
 (add-hook 'r4-player-track-changed-hook #'r4-tracks--track-changed)
 (add-hook 'r4-download-changed-functions #'r4-tracks--downloads-changed)
-
-;;;###autoload
-(defun r4-search-tracks (query)
-  "Search tracks matching QUERY in all Radio4000 channels."
-  (interactive (list (read-string "Search tracks: ")))
-  (r4-tracks-show (list :query query)))
 
 (provide 'r4-tracks)
 

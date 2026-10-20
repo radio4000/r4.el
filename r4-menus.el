@@ -19,6 +19,7 @@
 (require 'r4-tracks)
 (require 'r4-channels)
 (require 'r4-history)
+(require 'r4-search)
 (require 'r4-local)
 (require 'r4-auth)
 (require 'r4-sync)
@@ -53,7 +54,8 @@
   [["Browse"
     ("c" "Channels" r4-channels)
     ("C" "Search channels" r4-search-channels)
-    ("s" "Search tracks" r4-search-tracks)
+    ("s" "Search tracks: @channel #tag words" r4-search)
+    ("@" "Tracks mentioning a channel" r4-mentions)
     ("o" "Open channel" r4-open-channel)
     ("i" "Describe channel" r4-describe-channel)
     ("h" "History" r4-history)]
@@ -99,7 +101,9 @@
     ("F" "Visit file" r4-tracks-open-file)
     ("L" "Downloads" r4-downloads)]]
   [["Find"
-    ("s" "Search" r4-tracks-search)
+    ("s" "Search: #tag words" r4-tracks-search)
+    ("/" "Filter shown tracks" r4-tracks-filter)
+    ("#" "Filter by tags" r4-tracks-filter-tag)
     ("@" "Open channel of track" r4-tracks-open-channel)
     ("g" "Refresh" revert-buffer)
     ("S" "Sort by column" tabulated-list-sort)]
@@ -126,7 +130,8 @@
     ("C" "Save locally" r4-channels-save-local)]
    ["Find"
     ("s" "Search channels" r4-search-channels)
-    ("t" "Search tracks" r4-search-tracks)
+    ("t" "Search tracks" r4-search)
+    ("M" "Tracks mentioning it" r4-channels-mentions)
     ("g" "Refresh" revert-buffer)
     ("S" "Sort by column" tabulated-list-sort)]
    ["Links"

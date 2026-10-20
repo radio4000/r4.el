@@ -16,7 +16,8 @@
 ;;
 ;; - `r4' opens a menu with all the commands.
 ;; - `r4-channels' lists the channels, `r4-open-channel' lists the
-;;   tracks of a channel, `r4-search-tracks' searches all tracks.
+;;   tracks of a channel, `r4-search' searches tracks, as in
+;;   "@ko002 #jazz miles".
 ;; - Tracks are played with mpv, from disk when downloaded.
 ;; - Tracks are downloaded as high quality audio with yt-dlp into
 ;;   `r4-download-directory' (~/Music/radio4000/ by default).
@@ -37,6 +38,7 @@
 (require 'r4-history)
 (require 'r4-tracks)
 (require 'r4-channels)
+(require 'r4-search)
 (require 'r4-local)
 (require 'r4-auth)
 (require 'r4-sync)
