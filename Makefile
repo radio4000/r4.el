@@ -6,8 +6,11 @@ SOURCES = $(wildcard r4*.el)
 
 all: compile test
 
+# Compile each file in a fresh Emacs, like package-vc, to catch missing requires.
 compile:
-	$(BATCH) --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile $(SOURCES)
+	@for f in $(SOURCES); do \
+	  $(BATCH) --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile $$f || exit 1; \
+	done
 
 test:
 	$(BATCH) -L test -l test/r4-test.el -f ert-run-tests-batch-and-exit
