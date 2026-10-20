@@ -266,15 +266,71 @@ That is SLUG.txt, image.url and the tracks.m3u playlist of track URLs."
                             ""))
                         tracks "")))))
 
+(defconst r4-files-image-extensions '("webp" "png" "jpg" "jpeg")
+  "Extensions of the thumbnails downloaded with tracks.")
+
+(defun r4-files--delete-thumbnails (file)
+  "Delete the thumbnails left next to the media FILE, if any.
+yt-dlp leaves them when it cannot embed them."
+  (dolist (extension r4-files-image-extensions)
+    (let ((thumbnail (concat (file-name-sans-extension file) "." extension)))
+      (when (file-exists-p thumbnail)
+        (delete-file thumbnail)))))
+
 (defun r4-files-finish-track (track file)
   "Write the text file of the downloaded TRACK in FILE, and date them.
-The files get the date the track was added to the channel."
+The files get the date the track was added to the channel.  Leftover
+thumbnails are deleted."
   (let ((text-file (concat (file-name-sans-extension file) ".txt"))
         (time (and (r4-track-created-at track) (date-to-time (r4-track-created-at track)))))
+    (r4-files--delete-thumbnails file)
     (r4-files--write text-file (r4-files-track-text track))
     (when time
       (dolist (path (list file text-file))
         (ignore-errors (set-file-times path time))))))
+
+;;;; Migration
+
+(defun r4-files--flat-media (slug)
+  "Return the media files of SLUG outside of its tracks directory.
+Older versions of r4.el downloaded them there."
+  (let ((directory (r4-files-channel-directory slug)))
+    (when (file-directory-p directory)
+      (directory-files directory t (r4-files--media-regexp) t))))
+
+(defun r4-files-migrate (&optional slugs)
+  "Move the downloads of older r4.el versions into the tracks directories.
+SLUGS are the channels to migrate, all by default.  Media files move
+to SLUG/tracks/, unless a file with the same name is there, and the
+thumbnails left next to them are deleted."
+  (interactive)
+  (let* ((root (expand-file-name r4-download-directory))
+         (slugs (or slugs
+                    (and (file-directory-p root)
+                         (cl-remove-if-not
+                          (lambda (slug) (file-directory-p (expand-file-name slug root)))
+                          (directory-files root nil "\\`[^.]")))))
+         (files (mapcan (lambda (slug) (mapcar (lambda (file) (cons slug file))
+                                                (r4-files--flat-media slug)))
+                        slugs))
+         (moved 0) (kept 0))
+    (cond
+     ((null files) (message "Nothing to migrate in %s" root))
+     ((yes-or-no-p (format "Move %d downloaded file%s of %d channel%s into their tracks directory? "
+                           (length files) (if (cdr files) "s" "")
+                           (length (delete-dups (mapcar #'car files)))
+                           (if (cdr (delete-dups (mapcar #'car files))) "s" "")))
+      (pcase-dolist (`(,slug . ,file) files)
+        (let ((target (expand-file-name (file-name-nondirectory file)
+                                        (r4-files-tracks-directory slug))))
+          (make-directory (file-name-directory target) t)
+          (if (file-exists-p target)
+              (cl-incf kept)
+            (rename-file file target)
+            (r4-files--delete-thumbnails file)
+            (cl-incf moved))))
+      (message "Moved %d file%s%s" moved (if (= moved 1) "" "s")
+               (if (> kept 0) (format ", left %d already in tracks/" kept) ""))))))
 
 ;;;; Failures
 

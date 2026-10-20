@@ -153,6 +153,24 @@
                                 (date-to-time "2020-01-02T03:04:05Z"))))
       (delete-directory r4-download-directory t))))
 
+(ert-deftest r4-test-files-migrate ()
+  (let* ((r4-download-directory (make-temp-file "r4-test" t))
+         (channel (expand-file-name "test" r4-download-directory)))
+    (unwind-protect
+        (progn
+          (make-directory (expand-file-name "tracks" channel) t)
+          (dolist (name '("Old [a].opus" "Old [a].png" "Old [a].webp" "Both [b].m4a" "notes.txt"))
+            (write-region "" nil (expand-file-name name channel)))
+          (write-region "" nil (expand-file-name "tracks/Both [b].m4a" channel))
+          (cl-letf (((symbol-function 'yes-or-no-p) #'always))
+            (r4-files-migrate))
+          (should (equal (directory-files (expand-file-name "tracks" channel) nil "\\`[^.]")
+                         '("Both [b].m4a" "Old [a].opus")))
+          ;; Files already in tracks/ are left, and other files kept.
+          (should (equal (directory-files channel nil "\\`[^.]")
+                         '("Both [b].m4a" "notes.txt" "tracks"))))
+      (delete-directory r4-download-directory t))))
+
 (ert-deftest r4-test-files-channel ()
   (let* ((r4-download-directory (make-temp-file "r4-test" t))
          (channel (r4-channel-create :id "c1" :slug "test" :name "Test" :description "Hello"
