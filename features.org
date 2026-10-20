@@ -2,81 +2,95 @@
 #+OPTIONS: toc:2
 
 What radio4000.com (the web app) and =r4= (the command line) do, and
-how to do it in Emacs. The keys are the same in every r4 list where
-they make sense, and =?= in a list shows all its keys.
+how to do it in Emacs.  Every command works with =M-x= from anywhere;
+the keys are the ones of the r4 lists, where =?= shows them all.
 
 * Principles
-- One command per action, named =r4-<thing>-<action>=, callable with
-  =M-x= from anywhere, and bound to the same key in every list.
+- One command per action, named after what it acts on: =r4-tracks-…=
+  for the tracks of a list, =r4-channels-…= for channel lists,
+  =r4-player-…= for the player.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
-  sorts, =g= refreshes, =m= =u= mark, =q= quits.
-- The player keys work in every r4 list and in the =r4= menu.
+  sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.
+- The same key does the same thing in every list, and the player keys
+  work in every list and in the =r4= menu.
 - Downloads use the same folders and file names as =r4 download=, so
   the command line, Emacs and the radio4000.com import share them.
 
 * Browse
-| Feature                                  | Web / CLI                         | Emacs                          | Key       |
-|------------------------------------------+-----------------------------------+--------------------------------+-----------|
-| List channels                            | /explore/channels, =r4 channel list= | =r4-channels=               | menu =c=  |
-| Search channels                          | /search/channels, =r4 search --channels= | =r4-search-channels=    | =s=       |
-| Search tracks: =@slug #tag words=        | /search, =r4 search --tracks=     | =r4-search=                    | menu =s=  |
-| Open a channel                           | /@slug, =r4 track list --channel= | =r4-open-channel=              | menu =o=  |
-| Channel details, image                   | /@slug, =r4 channel view=         | =r4-describe-channel=          | =i=       |
-| Tracks with a tag (one channel or all)   | /@slug/tags, /tags, =--tag=       | =r4-tracks-filter-tag=, =r4-search= | =#=  |
-| Filter the shown tracks                  | queue and tracks filters          | =r4-tracks-filter=             | =/=       |
-| Channel tags with counts                 | /@slug/tags, =r4 tags list=       | =r4-tracks-filter-tag=         | =#=       |
-| Tracks mentioning a channel              | /@slug/mentions                   | =r4-mentions=                  | menu =@=  |
-| Open the channel of a track              | link                              | =r4-tracks-open-channel=       | =@=       |
-| Open on radio4000.com, copy links        | share                             | =r4-*-browse=, =r4-*-copy-*=   | =o= =O= =w= =W= |
+| Feature                                  | Web, command line                      | Emacs                     | Key        |
+|------------------------------------------+----------------------------------------+---------------------------+------------|
+| List channels                            | /explore/channels, =r4 channel list=   | =r4-channels=             | menu =c=   |
+| Featured, with artwork, 10/100/1000+ tracks | /explore/channels/FILTER            | =r4-explore=              | menu =x=   |
+| Search channels                          | /search/channels, =r4 search --channels= | =r4-search-channels=    | =s=        |
+| Search tracks: =@slug #tag words=        | /search, =r4 search --tracks=          | =r4-search=               | menu =s=   |
+| Search in a channel                      | /@slug/tracks?q=                       | =r4-tracks-search=        | =s=        |
+| Tracks with tags, of a channel or all    | /@slug/tags, /tags, =--tag=            | =r4-search= with =#tag=   |            |
+| Filter the shown tracks or channels      | queue and tracks filters               | =r4-tracks-filter=, =r4-channels-filter= | =/= |
+| Filter by tags, with their counts        | /@slug/tags, =r4 tags list=            | =r4-tracks-filter-tag=    | =#=        |
+| Tracks mentioning a channel              | /@slug/mentions                        | =r4-mentions=             | =M=, menu =@= |
+| Open a channel                           | /@slug, =r4 track list --channel=      | =r4-open-channel=         | =RET=      |
+| Channel details, image, RSS, map         | /@slug, =r4 channel view=              | =r4-describe-channel=     | =i=        |
+| Track details                            | /@slug/tracks/ID, =r4 track view=      | =r4-tracks-describe=      | =i=        |
+| Open the channel of a track              | link                                   | =r4-tracks-open-channel=  | =@=        |
+| Open on radio4000.com, the media         | share                                  | =r4-tracks-browse=, =r4-tracks-browse-media= | =o= =O= |
+| Copy links                               | share                                  | =r4-tracks-copy-url=, =r4-tracks-copy-web-url= | =w= =W= |
+| Sort by any column, choose columns       | sort menu                              | =tabulated-list-sort=, =r4-tracks-columns= | =S= |
 
 * Play
-| Feature                       | Web                    | Emacs                       | Key         |
-|-------------------------------+------------------------+-----------------------------+-------------|
-| Play from a track             | click                  | =r4-tracks-play=            | =RET=       |
-| Play a channel or all tracks  | play                   | =r4-tracks-play-all=, =r4-play-channel= | =P= |
-| Shuffle play                  | shuffle                | =r4-tracks-shuffle=         | =z=         |
-| Auto-radio: shared live timeline | infinity button     | =r4-tracks-auto-radio=, =r4-auto-radio= | =R= |
-| Listen to a live broadcast    | /broadcast             | =r4-broadcasts=             | menu =b=    |
-| Pause, next, previous, stop   | =k=, =N=, =P=          | =r4-player-*=               | =SPC= =>= =<= =k= |
-| Seek, volume                  | player                 | =r4-player-seek-*=, =r4-player-volume-*= | =[= =]= =+= =-= |
-| Play next, add to queue       | menu                   | =r4-tracks-play-next=, =r4-tracks-enqueue= | =N= =a= |
-| Queue: show, remove, clear    | queue panel            | =r4-queue=, =r4-queue-remove=, =r4-queue-clear= | =Q=, =x=, =C= |
-| Play history                  | /history               | =r4-history=                | menu =h=    |
-| Videos                        | player video           | =r4-player-video=           | menu =v=    |
+| Feature                          | Web                         | Emacs                         | Key           |
+|----------------------------------+-----------------------------+-------------------------------+---------------|
+| Play from a track                | click                       | =r4-tracks-play=              | =RET=         |
+| Play a channel, all tracks       | play                        | =r4-tracks-play-all=, =r4-play-channel= | =P= |
+| Shuffle play                     | shuffle                     | =r4-tracks-shuffle=           | =z=           |
+| Auto-radio, the same for everyone | infinity button            | =r4-tracks-auto-radio=, =r4-auto-radio= | =R= |
+| Listen to a live broadcast       | /broadcast                  | =r4-broadcasts=               | menu =b=      |
+| Pause, next, previous, stop      | =k=, =N=, =P=               | =r4-player-toggle-pause=, =r4-player-next=… | =SPC= =>= =<= =k= |
+| Seek, volume                     | player                      | =r4-player-seek-forward=…     | =]= =[= =+= =-= |
+| Shuffle, video                   | player                      | =r4-player-toggle-shuffle=, =r4-player-toggle-video= | =Z= =V= |
+| Play next, add to the queue      | track menu                  | =r4-tracks-play-next=, =r4-tracks-enqueue= | =N= =a= |
+| Queue: show, remove, clear       | queue panel                 | =r4-queue=, =r4-queue-remove=, =r4-player-clear= | =Q=, =x=, =C= |
+| Play history                     | /history                    | =r4-history=                  | menu =h=      |
+| Current track links              | player                      | =r4-player-copy-url=, =r4-player-copy-web-url= | menu =w= =W= |
 
 * Download
-| Feature                             | CLI                          | Emacs                       | Key   |
-|-------------------------------------+------------------------------+-----------------------------+-------|
-| Download a channel                  | =r4 download slug=           | =r4-download-channel=       | =D=   |
-| Download some tracks                | =--limit=                    | =r4-tracks-download=        | =d=   |
-| Best audio, or video                | yt-dlp                       | =r4-download-video=         |       |
-| Same folders and files as the CLI   | =<slug>/tracks/Title [id].ext= | =r4-download-directory=   |       |
-| Track and channel text files, playlist | =.txt=, =tracks.m3u=      | written with each download  |       |
-| Artist and title metadata           | ffmetadata                   | ffmpeg                      |       |
-| Skip failed tracks, retry them      | =failures.jsonl=, =--retry-failed= | =r4-downloads-retry-failed= | =R= |
-| Download list and log               |                              | =r4-downloads=              | =L=   |
+| Feature                                | Command line                   | Emacs                        | Key     |
+|----------------------------------------+--------------------------------+------------------------------+---------|
+| Download a channel                     | =r4 download slug=             | =r4-download-channel=        | =D=     |
+| Download some tracks                   | =--limit=                      | =r4-tracks-download=         | =d=     |
+| Best audio, or videos                  | yt-dlp                         | =r4-download-video=          |         |
+| Same folders and files                 | =SLUG/tracks/Title [id].ext=   | =r4-download-directory=      |         |
+| Channel and track text files, playlists | =SLUG.txt=, =.txt=, =tracks.m3u= | written with downloads     |         |
+| Artist, title and channel metadata     | ffmetadata                     | yt-dlp                       |         |
+| Skip failed tracks, retry them         | =failures.jsonl=, =--retry-failed= | =C-u d=, =r4-downloads-retry-failed= | =R= |
+| Downloads and their log                |                                | =r4-downloads=               | =L=     |
+| Move downloads of r4.el 0.2            |                                | =r4-files-migrate=           |         |
 
 * Account and editing
-| Feature                          | Web / CLI                       | Emacs                        | Key       |
-|----------------------------------+---------------------------------+------------------------------+-----------|
-| Sign in, out                     | /auth, =r4 auth login=          | =r4-login=, =r4-logout=      | menu =I= =O= |
-| Create, edit, delete a channel   | /create-channel, /@slug/edit, =r4 channel create= | =r4-channel-create=, =r4-channel-edit=, =r4-channel-delete= | =+= =e= =x= |
-| Add, edit, delete a track        | /add, =r4 track create=         | =r4-track-create=, =r4-tracks-edit=, =r4-tracks-delete= | =+= =e= =x= |
-| Follow, unfollow a channel       | follow button                   | =r4-channels-follow=         | =f=       |
-| Feed of followed channels        | home feed                       | =r4-feed=                    | menu =f=  |
-| Followers, following             | /@slug/followers                | =r4-followers=, =r4-following= | menu    |
+| Feature                          | Web, command line               | Emacs                          | Key            |
+|----------------------------------+---------------------------------+--------------------------------+----------------|
+| Sign in, out                     | /auth, =r4 auth login=          | =r4-login=, =r4-logout=        | menu =I= =O=   |
+| Your channels                    | /settings                       | =r4-my-channels=               | menu =y=       |
+| Create, edit, delete a channel   | /create-channel, /@slug/edit, =r4 channel create= | =r4-create-channel=, =r4-edit-channel=, =r4-delete-channel= | =A= =e= =x= |
+| Add, edit, delete tracks         | /add, =r4 track create=         | =r4-add-track=, =r4-tracks-edit=, =r4-tracks-delete= | =A= =e= =x= |
+| Follow, unfollow a channel       | follow button                   | =r4-channels-follow=           | =f=            |
+| Feed of followed channels        | home feed                       | =r4-feed=                      | menu =f=       |
+| Following, followers             | /@slug/following, /followers    | =r4-following=, =r4-followers= | =F= =r=        |
 
 * Local first
-| Feature                                 | Web                  | Emacs                        | Key |
-|-----------------------------------------+----------------------+------------------------------+-----|
-| Local channel, without account          | local channels       | =r4-local-create-channel=    | menu =N= |
-| Copy tracks to a local channel          |                      | =r4-tracks-copy-to-local=    | =c= |
-| Save a channel locally (backup)         | /@slug/backup        | =r4-local-save-channel=      | =C= |
-| Sync a local channel                    | import               | =r4-sync-channel=            | =Y= |
+| Feature                                 | Web             | Emacs                        | Key        |
+|-----------------------------------------+-----------------+------------------------------+------------|
+| Local channel, without account          | local channels  | =r4-local-create-channel=    | menu =N=   |
+| Add a track by URL                      |                 | =r4-local-add-track=         | =A=        |
+| Copy tracks to a local channel          |                 | =r4-tracks-copy-to-local=    | =c=        |
+| Save a channel locally (backup)         | /@slug/backup   | =r4-local-save-channel=      | =C=        |
+| Sync a local channel                    | import          | =r4-sync-channel=            | =Y=        |
 
 * Not in Emacs
-- Map, 3D universe, decks and video layouts: visual features of the web app.
+- The map, the 3D universe, decks and video layouts: visual features of
+  the web app.  Channel descriptions link to a map of the channel.
 - Broadcasting your own player: listening works, broadcasting needs a
   realtime connection.
+- Saved views: Emacs bookmarks, registers or commands do it.
 - Soulseek downloads (=r4 download --source soulseek=).
 - Track metadata from MusicBrainz and Discogs.
+- Uploading channel images.

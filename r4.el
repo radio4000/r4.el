@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021-2026 Internet4000
 
 ;; Author: H. Ugrp <h.u.g.u.r.p+emacs@pm.me>
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: multimedia, hypermedia
 ;; URL: https://github.com/radio4000/r4.el
@@ -12,19 +12,25 @@
 
 ;;; Commentary:
 
-;; A Radio4000 (https://radio4000.com) client for Emacs.
+;; A Radio4000 (https://radio4000.com) client for Emacs: everything
+;; radio4000.com and the r4 command line do, in Emacs lists and menus.
 ;;
-;; - `r4' opens a menu with all the commands.
-;; - `r4-channels' lists the channels, `r4-open-channel' lists the
-;;   tracks of a channel, `r4-search' searches tracks, as in
+;; - `r4' opens a menu with all the commands, and ? in any list the
+;;   menu of that list.
+;; - `r4-channels', `r4-explore' and `r4-search' browse channels and
+;;   tracks, with the search language of radio4000.com, as in
 ;;   "@ko002 #jazz miles".
-;; - Tracks are played with mpv, from disk when downloaded.
-;; - Tracks are downloaded as high quality audio with yt-dlp into
-;;   `r4-download-directory' (~/Music/radio4000/ by default).
+;; - Tracks play with mpv, from disk when downloaded; `r4-auto-radio'
+;;   plays the same live radio as radio4000.com, and `r4-broadcasts'
+;;   lists live broadcasts.
+;; - Tracks download as the best audio, or videos, with yt-dlp, into
+;;   the folders of the r4 command line, `r4-download-directory'.
+;; - Follow channels, read your feed, and edit your channels and tracks
+;;   after `r4-login'.
 ;; - Local channels live in files, without a radio4000.com account,
-;;   and sync with radio4000.com after `r4-login'.
+;;   and sync with radio4000.com.
 ;;
-;; Requires the programs mpv, yt-dlp and ffmpeg.
+;; Requires the programs mpv, yt-dlp and ffmpeg.  See features.org.
 
 ;;; Code:
 

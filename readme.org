@@ -1,15 +1,22 @@
 * r4.el
-Browse, play and download [[https://radio4000.com][radio4000.com]] channels from Emacs.
+Browse, play and download [[https://radio4000.com][radio4000.com]] channels from Emacs: everything
+radio4000.com and the =r4= command line do, in Emacs lists and menus.
 
-- Browse and search channels and tracks (Radio4000 Supabase API).
-- Play channels with =mpv=: a queue, shuffle, pause, seek, volume,
-  and the current track in the mode line.
-- Download tracks as high quality audio with =yt-dlp= into
-  =~/Music/radio4000/<channel>/=, with an =<channel>.m3u= playlist.
-  Downloaded tracks are played from disk instead of streamed.
-- Local-first channels: create channels and add tracks without a
-  radio4000.com account, or save a copy of any channel to browse it
-  offline. Sign in later to publish and sync them to radio4000.com.
+- Browse, explore and search channels and tracks, with the search
+  language of radio4000.com: =@ko002 #jazz miles=.
+- Play with =mpv=: a queue, shuffle, play next, video, history, and
+  the current track in the mode line.
+- Auto-radio: the same live radio as radio4000.com, where everyone
+  hears the same track at the same second; and live broadcasts.
+- Download tracks as the best audio, or videos, with =yt-dlp=, into the
+  same folders as the =r4= command line, with metadata.  Downloaded
+  tracks play from disk.
+- Follow channels, read your feed, and edit your channels and tracks.
+- Local-first channels, without an account, synced later to
+  radio4000.com.
+
+See [[file:features.org][features.org]] for what radio4000.com and the command line do, and
+how to do it in Emacs.
 
 ** Requirements
 - Emacs 29.1 or newer.
@@ -75,56 +82,113 @@ Changes in the clone are then used directly, after =M-x
 package-vc-rebuild=, or by evaluating the edited buffers.
 
 ** Usage
-=M-x r4= opens a menu with all the commands.
+=M-x r4= opens a menu with all the commands, and =?= in any list opens
+the menu of that list.  Start with:
 
-| Command                  | Description                                  |
-|--------------------------+----------------------------------------------|
-| =r4-channels=            | List channels, most recently active first    |
-| =r4-search-channels=     | Full-text search of channels                 |
-| =r4-open-channel=        | List the tracks of a channel (with completion) |
-| =r4-search-tracks=       | Full-text search of all tracks               |
-| =r4-play-channel=        | Play a channel                               |
-| =r4-download-channel=    | Download all the tracks of a channel         |
-| =r4-downloads=           | List downloads and their progress            |
-| =r4-queue=               | Show the play queue                          |
-| =r4-local-create-channel= | Create a local channel                      |
-| =r4-local-add-track=     | Add a track by URL to a local channel        |
-| =r4-local-open-channel=  | List the tracks of a local channel           |
-| =r4-local-save-channel=  | Save a copy of a channel, to browse offline  |
-| =r4-login= / =r4-logout= | Sign in to / out of radio4000.com            |
-| =r4-sync-channel=        | Publish or sync a local channel              |
-| =r4-sync-pull-channel=   | Get a local copy of one of your channels     |
+| Command               | Description                                         |
+|-----------------------+-----------------------------------------------------|
+| =r4-channels=         | List channels, most recently active first           |
+| =r4-explore=          | Featured channels, with artwork, with many tracks…  |
+| =r4-open-channel=     | List the tracks of a channel                        |
+| =r4-search=           | Search tracks: =@channel #tag words=                |
+| =r4-play-channel=     | Play a channel                                      |
+| =r4-auto-radio=       | Tune in to the auto-radio of a channel              |
+| =r4-broadcasts=       | Live broadcasts, RET to listen                      |
+| =r4-feed=             | Latest tracks of the channels you follow            |
+| =r4-history=          | The tracks you played                               |
+| =r4-download-channel= | Download a channel                                  |
 
-In channel and track lists, =C-h m= shows all the keys. The main ones:
+Lists are =tabulated-list-mode= buffers: =n= =p= move, =S= sorts by the
+column at point (or click a header), =g= refreshes, =m= =u= mark, =q=
+quits.  The player keys work in every list:
 
-| Key       | Tracks list                        | Channels list         |
-|-----------+------------------------------------+-----------------------|
-| =RET=     | Play from this track               | Open channel          |
-| =P=       | Play all                           | Play channel          |
-| =z=       | Shuffle play                       |                       |
-| =SPC=     | Pause/resume                       | Pause/resume          |
-| =>= =<=   | Next/previous track                | Next/previous track   |
-| =n= =p=   | Next/previous line                 | Next/previous line    |
-| =S=       | Sort by the column at point        | Sort by the column at point |
-| =m= =u= =U= =M= | Mark, unmark, unmark all, mark all |               |
-| =d=       | Download marked tracks or at point |                       |
-| =D=       | Download all                       | Download channel      |
-| =a=       | Add to a local channel             |                       |
-| =A=       | Save this channel locally          |                       |
-| =x=       | Remove from this local channel     |                       |
-| =Y=       | Sync this local channel            |                       |
-| =i=       |                                    | Describe channel, with its image |
-| =s=       | Search tracks                      | Search channels       |
-| =o=       | Open on radio4000.com              | Open on radio4000.com |
-| =w= =W=   | Copy the media / radio4000.com URL |                       |
-| =g=       | Refresh                            | Refresh               |
+| Key           | Player                         |
+|---------------+--------------------------------|
+| =SPC=         | Pause, resume                  |
+| =>= =<=       | Next, previous track           |
+| =]= =[=       | Seek forward, backward         |
+| =+= =-=       | Volume                         |
+| =Z=           | Toggle shuffle                 |
+| =V=           | Toggle video                   |
+| =Q=           | Queue                          |
+| =k=           | Stop                           |
 
-The status column of a tracks list shows =▶= for the playing track,
-=✓= for downloaded tracks and =↓= for queued downloads.
+In lists of tracks:
+
+| Key           | Tracks                                                   |
+|---------------+----------------------------------------------------------|
+| =RET=         | Play from this track                                     |
+| =P= =z= =R=   | Play all, shuffle, auto-radio                            |
+| =a= =N=       | Add to the queue, play next                              |
+| =d= =D=       | Download the marked tracks (or at point), all            |
+| =s=           | Search: =#tag words=, in this channel                     |
+| =/= =#=       | Filter the shown tracks, by text or tags                 |
+| =i= =@=       | Describe the track, open its channel                     |
+| =A= =e= =x=   | Add, edit, delete tracks (your channel or a local one)   |
+| =c= =C= =Y=   | Copy to a local channel, save locally, sync              |
+| =o= =O=       | Open on radio4000.com, open the media                    |
+| =w= =W=       | Copy the media URL, the radio4000.com URL                |
+| =F= =L=       | Visit the downloaded file, list downloads                |
+
+In lists of channels:
+
+| Key           | Channels                                                 |
+|---------------+----------------------------------------------------------|
+| =RET=         | Open the tracks                                          |
+| =P= =z= =R=   | Play, shuffle, auto-radio                                |
+| =i=           | Describe, with its image                                 |
+| =f= =F= =r=   | Follow or unfollow, its following, its followers         |
+| =M=           | Tracks mentioning it                                     |
+| =D= =C=       | Download, save locally                                   |
+| =s= =/= =t=   | Search channels, filter the shown channels, search tracks |
+| =A= =e= =x=   | Create, edit, delete your channels                       |
+| =o= =w=       | Open on radio4000.com, copy its URL                      |
+
+The status column of track lists shows =▶= for the playing track, =✓=
+for downloaded tracks and =↓= for queued downloads.
 
 Searches match whole words, like on radio4000.com, and also the
-beginning of words: =osk= finds =oskar=. Use quotes, =or= and =-=
-for a web search, such as =jazz -blues=.
+beginning of words: =osk= finds =oskar=.  =@slug= targets a channel and
+=#tag= a tag; use quotes, =or= and =-= for a web search, such as =jazz
+-blues=.
+
+** Downloads
+=d=, =D= and =r4-download-channel= download the best audio available,
+without re-encoding: often Opus or AAC from YouTube.  They use the same
+folders and file names as =r4 download=, so the command line, Emacs
+and the radio4000.com import share them:
+
+#+begin_example
+~/Music/radio4000/ko002/
+├── ko002.txt          the channel
+├── ko002.json         a local copy of the channel, if saved
+├── ko002.m3u          playlist of the downloaded files
+├── tracks.m3u         playlist of the track URLs
+├── image.url          the channel image
+├── failures.jsonl     the downloads that failed
+└── tracks/
+    ├── Artist - Title [youtube-id].opus
+    └── Artist - Title [youtube-id].txt
+#+end_example
+
+Files get the artist, title, album (the channel), description and
+comment (the radio4000.com URL) of the track, and the date it was added
+to the channel.  Failed downloads are skipped next time, like the
+command line: retry them with =C-u d=, or =R= in =r4-downloads=.
+
+Set =r4-download-video= to download videos instead, in
+=r4-download-video-quality= and =r4-download-video-container=; audio and
+video files of a track live side by side.  =V= shows videos while
+playing.
+
+Downloads of r4.el 0.2 were outside =tracks/=: =M-x r4-files-migrate=
+moves them.
+
+** Auto-radio and broadcasts
+=R= tunes in to the auto-radio of a channel, like the infinity button
+of radio4000.com: everyone listening hears the same track at the same
+second, without a broadcaster.  =r4-broadcasts= lists the channels
+broadcasting live; =RET= follows one, until you play something else.
 
 ** Configuration
 =M-x customize-group RET r4=. For example:
@@ -150,19 +214,18 @@ channel.
 
 ** Local channels
 A local channel is a file in the radio4000.com backup format
-(version 2), stored with its downloads:
-
-#+begin_example
-~/Music/radio4000/my-radio/
-├── my-radio.json   ; the channel and its tracks
-├── my-radio.m3u    ; playlist of the downloaded tracks
-└── Artist - Title [media-id].opus
-#+end_example
+(version 2), =~/Music/radio4000/SLUG/SLUG.json=, next to its downloads.
+=r4-local-create-channel= creates one, =c= copies tracks to it from any
+list, and =C= saves a copy of a channel to browse it offline.
 
 It can be imported into radio4000.com, versioned with git, or synced
 between machines like any other file.
 
 ** Account and sync
+Signed in, you can follow channels (=f=), read your feed (=r4-feed=),
+and add, edit and delete your channels and tracks (=A=, =e=, =x=).
+Set =r4-my-channel= if your account has several channels.
+
 =r4-login= signs in with a code sent by email, like radio4000.com, or
 with a password. A password stored in =auth-source= is used without
 asking, for example in =~/.authinfo.gpg=:
