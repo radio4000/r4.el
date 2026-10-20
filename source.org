@@ -32,6 +32,10 @@ Downloading tracks with yt-dlp, as the best audio or as videos.
 The list of downloads.
 #+INCLUDE: "r4-downloads.el" src emacs-lisp
 
+** r4-mpv.el
+Controlling mpv over its JSON IPC socket.
+#+INCLUDE: "r4-mpv.el" src emacs-lisp
+
 ** r4-player.el
 Playing tracks with mpv, from disk when downloaded.
 #+INCLUDE: "r4-player.el" src emacs-lisp

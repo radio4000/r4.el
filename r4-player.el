@@ -16,6 +16,7 @@
 (require 'tabulated-list)
 (require 'r4-models)
 (require 'r4-files)
+(require 'r4-mpv)
 
 (defcustom r4-player-program "mpv"
   "Program used to play tracks."
@@ -80,104 +81,43 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defvar r4-player-queue-changed-hook nil
   "Hook run after tracks were added to or removed from the queue.")
 
-(defvar r4-player--process nil "The mpv process.")
-(defvar r4-player--ipc nil "The network process connected to mpv.")
 (defvar r4-player--history nil "Indexes of the previously played tracks.")
 (defvar r4-player--start-at nil "Position in seconds to seek to, once loaded.")
-(defvar r4-player--requests (make-hash-table) "Callbacks of mpv requests, by id.")
-(defvar r4-player--request-id 0 "Id of the last mpv request.")
 
-(defun r4-player--socket ()
-  "Return the file name of the mpv IPC socket."
-  (expand-file-name (format "r4-mpv-%d.sock" (emacs-pid)) temporary-file-directory))
-
-;;;; mpv process
+;;;; mpv
 
 (defun r4-player-live-p ()
   "Return non-nil if the player is running."
-  (and (process-live-p r4-player--process) (process-live-p r4-player--ipc)))
-
-(defun r4-player--start ()
-  "Start mpv and connect to its IPC socket."
-  (unless (executable-find r4-player-program)
-    (user-error "Cannot find `%s', please install it" r4-player-program))
-  (r4-player--kill)
-  (let ((socket (r4-player--socket)))
-    (ignore-errors (delete-file socket))
-    (setq r4-player--process
-          (make-process
-           :name "r4-player"
-           :buffer " *r4-player*"
-           :command `(,r4-player-program "--idle=yes" "--no-terminal"
-                                         ,(concat "--input-ipc-server=" socket)
-                                         ,@r4-player-arguments)
-           :noquery t
-           :sentinel #'r4-player--sentinel))
-    (with-timeout (5 (r4-player--kill) (error "Timeout waiting for mpv to start"))
-      (while (not (file-exists-p socket))
-        (accept-process-output r4-player--process 0.05)))
-    (setq r4-player--ipc
-          (make-network-process
-           :name "r4-player-ipc"
-           :family 'local
-           :service socket
-           :coding 'utf-8
-           :noquery t
-           :filter #'r4-player--filter))
-    (r4-player--send "observe_property" 1 "pause")
-    (r4-player--apply-video)
-    (r4-player--mode-line-setup)))
-
-(defun r4-player--apply-video ()
-  "Show or hide videos, according to `r4-player-video'."
-  (when (r4-player-live-p)
-    (r4-player--send "set_property" "vid" (if r4-player-video "auto" "no"))
-    (r4-player--send "set_property" "ytdl-format"
-                     (if r4-player-video r4-player-video-quality r4-player-audio-quality))))
-
-(defun r4-player--kill ()
-  "Stop mpv and forget the connection."
-  (dolist (process (list r4-player--ipc r4-player--process))
-    (when (process-live-p process) (delete-process process)))
-  (setq r4-player--ipc nil r4-player--process nil r4-player-paused nil))
-
-(defun r4-player--sentinel (process _event)
-  "Clean up when the mpv PROCESS exits."
-  (unless (process-live-p process)
-    (when (eq process r4-player--process)
-      (r4-player--kill)
-      (force-mode-line-update t))))
+  (r4-mpv-live-p))
 
 (defun r4-player--send (&rest command)
-  "Send COMMAND, a list of arguments, to mpv."
-  (unless (r4-player-live-p) (r4-player--start))
-  (process-send-string r4-player--ipc
-                       (concat (json-serialize `((command . ,(vconcat command)))) "\n")))
-
-(defun r4-player--filter (process output)
-  "Handle the JSON events in OUTPUT sent by mpv on PROCESS."
-  (let ((lines (split-string (concat (process-get process 'r4-pending) output) "\n")))
-    (process-put process 'r4-pending (car (last lines)))
-    (dolist (line (butlast lines))
-      (unless (string-empty-p line)
-        (r4-player--handle-event
-         (json-parse-string line :object-type 'alist :null-object nil :false-object nil))))))
+  "Send COMMAND, a list of arguments, to mpv, starting it if needed."
+  (unless (r4-mpv-live-p)
+    (r4-mpv-start r4-player-program r4-player-arguments)
+    (r4-mpv-send "observe_property" 1 "pause")
+    (r4-player--apply-video)
+    (r4-player--mode-line-setup))
+  (apply #'r4-mpv-send command))
 
 (defun r4-player-get-property (name callback)
   "Call CALLBACK with the value of the mpv property NAME, or nil."
-  (when (r4-player-live-p)
-    (let ((id (cl-incf r4-player--request-id)))
-      (puthash id callback r4-player--requests)
-      (process-send-string
-       r4-player--ipc
-       (concat (json-serialize `((command . ["get_property" ,name]) (request_id . ,id))) "\n")))))
+  (r4-mpv-get-property name callback))
+
+(defun r4-player--apply-video ()
+  "Show or hide videos, according to `r4-player-video'."
+  (when (r4-mpv-live-p)
+    (r4-mpv-send "set_property" "vid" (if r4-player-video "auto" "no"))
+    (r4-mpv-send "set_property" "ytdl-format"
+                 (if r4-player-video r4-player-video-quality r4-player-audio-quality))))
+
+(defun r4-player--kill ()
+  "Stop mpv."
+  (r4-mpv-kill)
+  (setq r4-player-paused nil))
 
 (defun r4-player--handle-event (event)
   "Handle the mpv EVENT, an alist."
   (let-alist event
-    (when-let* ((callback (and .request_id (gethash .request_id r4-player--requests))))
-      (remhash .request_id r4-player--requests)
-      (funcall callback (and (equal .error "success") .data)))
     (pcase .event
       ("end-file"
        (pcase .reason
@@ -187,12 +127,17 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
           (r4-player-next))))
       ("file-loaded"
        (when r4-player--start-at
-         (r4-player--send "seek" r4-player--start-at "absolute")
+         (r4-mpv-send "seek" r4-player--start-at "absolute")
          (setq r4-player--start-at nil)))
       ("property-change"
        (when (equal .name "pause")
          (setq r4-player-paused .data)
          (force-mode-line-update t))))))
+
+(add-hook 'r4-mpv-event-functions #'r4-player--handle-event)
+(add-hook 'r4-mpv-exit-hook (lambda ()
+                              (setq r4-player-paused nil)
+                              (force-mode-line-update t)))
 
 ;;;; Queue
 

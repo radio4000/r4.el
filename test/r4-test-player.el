@@ -1,0 +1,177 @@
+;;; r4-test-player.el --- Tests of r4: Player, queue, history, menus, auto-radio and broadcasts  -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Run with: make test
+
+;;; Code:
+
+(require 'r4-test-helpers)
+
+(ert-deftest r4-test-player-advances-on-end-of-file ()
+  (skip-unless (and (executable-find "mpv") (executable-find "ffmpeg")))
+  (let* ((r4-download-directory (make-temp-file "r4-test" t))
+         (directory (r4-files-tracks-directory "test"))
+         (tracks (list (r4-test--track :id "11111111-a" :title "one" :provider "youtube" :media-id "1")
+                       (r4-test--track :id "22222222-b" :title "two" :provider "youtube" :media-id "2")))
+         (r4-player-arguments '("--ao=null"))
+         (r4-player-shuffle nil))
+    (unwind-protect
+        (progn
+          (make-directory directory t)
+          (dolist (name '("one [1]" "two [2]"))
+            (call-process "ffmpeg" nil nil nil "-loglevel" "quiet" "-f" "lavfi"
+                          "-i" "sine=duration=0.5" (expand-file-name (concat name ".ogg") directory)))
+          (r4-player-play tracks)
+          (should (equal (r4-track-title (r4-player-current)) "one"))
+          (with-timeout (10 (ert-fail "Player did not advance"))
+            (while (equal (r4-track-title (r4-player-current)) "one")
+              (accept-process-output nil 0.1)))
+          (should (equal (r4-track-title (r4-player-current)) "two"))
+          ;; Start a track at a position, once loaded.
+          (r4-player-play tracks 0 0.3 "test")
+          (should (equal r4-player-label "test"))
+          (with-timeout (5 (ert-fail "No seek"))
+            (while r4-player--start-at (accept-process-output nil 0.05)))
+          (r4-player-toggle-video)
+          (r4-player-toggle-video)
+          (r4-player-copy-url)
+          (should (equal (current-kill 0) "https://www.youtube.com/watch?v=pmpXABDFMyE"))
+          (r4-player-copy-web-url)
+          (should (equal (current-kill 0) "https://radio4000.com/test/tracks/22222222-b")))
+      (r4-player-stop)
+      (delete-directory r4-download-directory t))))
+
+(ert-deftest r4-test-player-queue ()
+  (let ((r4-player-queue nil) (r4-player-index nil) (r4-player--history nil)
+        (r4-player-queue-changed-hook nil)
+        (one (r4-test--track :id "1" :title "one"))
+        (two (r4-test--track :id "2" :title "two"))
+        (three (r4-test--track :id "3" :title "three")))
+    (r4-player-enqueue (list one two))
+    (should (equal (mapcar #'r4-track-title r4-player-queue) '("one" "two")))
+    (setq r4-player-index 0)
+    (r4-player-play-next (list three))
+    (should (equal (mapcar #'r4-track-title r4-player-queue) '("one" "three" "two")))
+    (should-error (r4-player-remove 0) :type 'user-error)
+    (setq r4-player-index 2)
+    (r4-player-remove 1)
+    (should (equal (mapcar #'r4-track-title r4-player-queue) '("one" "two")))
+    ;; The index follows the playing track.
+    (should (equal r4-player-index 1))
+    (r4-player-clear)
+    (should (equal (mapcar #'r4-track-title r4-player-queue) '("two")))
+    (should (equal r4-player-index 0))))
+
+(ert-deftest r4-test-history ()
+  (let* ((r4-history-file (make-temp-file "r4-history"))
+         (r4-history--entries nil) (r4-history--loaded t)
+         (one (r4-test--track :id "1" :title "one"))
+         (r4-player-queue (vector one)) (r4-player-index 0))
+    (unwind-protect
+        (cl-letf (((symbol-function 'r4-player-live-p) #'always))
+          (r4-history--record)
+          (r4-history--record)
+          (should (equal (length r4-history--entries) 1))
+          ;; It is saved, and loaded back.
+          (setq r4-history--entries nil r4-history--loaded nil)
+          (r4-history--load)
+          (should (equal (r4-track-title (cdar r4-history--entries)) "one"))
+          (r4-history)
+          (with-current-buffer "*r4 history*"
+            (should (equal (car (aref tabulated-list-format 1)) "Played"))
+            (should (equal (r4-track-title (tabulated-list-get-id (point-min))) "one")))
+          (kill-buffer "*r4 history*"))
+      (delete-file r4-history-file))))
+
+(ert-deftest r4-test-menus ()
+  (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))
+    (should (commandp menu)))
+  (should (eq (keymap-lookup r4-tracks-mode-map "?") 'r4-tracks-menu))
+  ;; The player keys work in every list.
+  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
+    (should (eq (keymap-lookup map ">") 'r4-player-next))
+    (should (eq (keymap-lookup map "S") 'tabulated-list-sort))
+    (should (eq (keymap-lookup map "n") 'next-line))))
+
+(ert-deftest r4-test-auto-radio ()
+  ;; Expected values computed by src/lib/player/auto-radio.ts of
+  ;; radio4000.com, so everyone hears the same track at the same second.
+  (let* ((tracks (mapcar (lambda (spec)
+                           (r4-test--track :id (nth 0 spec) :created-at (nth 1 spec)
+                                           :duration (nth 2 spec)))
+                         '(("e1" "2020-01-01T00:00:00.000+00:00" 200)
+                           ("a2" "2019-06-15T10:20:30.123+00:00" 150)
+                           ("c3" "2021-03-03T03:03:03+00:00" 300)
+                           ("b4" "2022-02-02T02:02:02+00:00" 95)
+                           ("d5" "2023-05-05T05:05:05+00:00" 410)
+                           ("f6" "2024-01-01T00:00:00+00:00" 0))))
+         (playable (r4-auto-radio-tracks tracks))
+         (epoch (r4-auto-radio-epoch playable)))
+    (should (equal (length playable) 5))
+    (pcase-dolist (`(,now ,seed ,ids ,index ,offset)
+                   '((1792530000000 "@test" ("b4" "e1" "d5" "c3" "a2") 2 125)
+                     (1792530000000 nil ("b4" "a2" "e1" "c3" "d5") 2 175)
+                     (1700000123456 "@test" ("b4" "a2" "e1" "c3" "d5") 4 313.456)))
+      (let* ((schedule (r4-auto-radio-schedule playable epoch now seed))
+             (position (r4-auto-radio-position schedule epoch now)))
+        (should (equal (mapcar #'r4-track-id schedule) ids))
+        (should (equal (car position) index))
+        (should (< (abs (- (cdr position) offset)) 0.001))))
+    (should (equal (r4-auto-radio--hash-string "@oskar") 2772611237))))
+
+(ert-deftest r4-test-broadcast-position ()
+  ;; Like calculateSeekTime of radio4000.com.
+  (let* ((now 1000000.0)
+         (ago (lambda (seconds) (format-time-string "%FT%T.%3NZ" (- now seconds) t))))
+    (should (equal (r4-broadcast-position
+                    `((seek_position . 10) (seeked_at . ,(funcall ago 5)) (is_playing . t))
+                    nil now)
+                   15))
+    (should (equal (r4-broadcast-position
+                    `((seek_position . 10) (seeked_at . ,(funcall ago 5)) (is_playing . nil))
+                    nil now)
+                   10))
+    (should (equal (r4-broadcast-position
+                    `((track_played_at . ,(funcall ago 30)) (speed . 2)) nil now)
+                   60))
+    (should-not (r4-broadcast-position `((track_played_at . ,(funcall ago 300))) 200 now))
+    (should-not (r4-broadcast-position `((track_played_at . ,(funcall ago -10))) nil now))
+    ;; The first deck of the broadcaster wins over the row.
+    (should (equal (r4-broadcast-deck '((track_id . "row") (decks ((track_id . "deck")))))
+                   '((track_id . "deck"))))))
+
+(ert-deftest r4-test-broadcast-listen ()
+  (let ((r4-broadcast--listening nil) (r4-broadcast--timer nil)
+        (r4-player-label nil) (r4-player-index nil) (r4-player-next-function nil)
+        (row `((channel_id . "c1") (track_id . "t1")
+               (track_played_at . ,(format-time-string "%FT%T.%3NZ" (- (float-time) 42) t))))
+        played)
+    (cl-letf (((symbol-function 'run-with-timer) #'ignore)
+              ((symbol-function 'r4-broadcast--fetch) (lambda (_id callback) (funcall callback row)))
+              ((symbol-function 'r4-broadcast--fetch-track)
+               (lambda (id callback) (funcall callback (r4-test--track :id id :duration 300))))
+              ((symbol-function 'r4-player-live-p) #'ignore)
+              ((symbol-function 'r4-player-play)
+               (lambda (tracks _index start label)
+                 (setq played (list (r4-track-id (car tracks)) start label)
+                       r4-player-label label r4-player-index 0))))
+      (r4-broadcast-listen "c1" "dj")
+      (r4-broadcast--check)
+      (should (equal (car played) "t1"))
+      (should (<= 42 (nth 1 played) 43))
+      (should (equal (nth 2 played) "broadcast @dj"))
+      (should (eq r4-player-next-function #'r4-broadcast--next))
+      ;; Playing something else leaves the broadcast.
+      (setq r4-player-label nil)
+      (r4-broadcast--check)
+      (should-not r4-broadcast--listening)
+      ;; So does the end of the broadcast.
+      (r4-broadcast-listen "c1" "dj")
+      (setq row nil)
+      (r4-broadcast--check)
+      (should-not r4-broadcast--listening))))
+
+(provide 'r4-test-player)
+
+;;; r4-test-player.el ends here

@@ -12,8 +12,10 @@ compile:
 	  $(BATCH) --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile $$f || exit 1; \
 	done
 
+TESTS = $(wildcard test/r4-test-*.el)
+
 test:
-	$(BATCH) -L test -l test/r4-test.el -f ert-run-tests-batch-and-exit
+	$(BATCH) -L test $(foreach f,$(TESTS),-l $(f)) -f ert-run-tests-batch-and-exit
 
 lint:
 	$(BATCH) $(foreach f,$(SOURCES),--eval '(checkdoc-file "$(f)")')
