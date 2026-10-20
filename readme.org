@@ -166,10 +166,15 @@ it. Local and remote channels and tracks share the same ids, so
 syncing again is safe. To work on an existing channel of yours, start
 with =r4-sync-pull-channel=.
 
+** Source code
+Read the source code, file by file, on the website:
+[[https://radio4000.github.io/r4.el/source.html][radio4000.github.io/r4.el/source.html]] (or [[file:source.org][source.org]]).
+
 ** Development
 #+begin_src sh
 make compile   # byte-compile, warnings are errors
 make test      # ERT tests
 make lint      # checkdoc
+make site      # website in ./public
 #+end_src
 

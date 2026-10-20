@@ -1,0 +1,52 @@
+#+TITLE: r4.el source code
+#+OPTIONS: toc:2
+
+The complete source code of [[file:readme.org][r4.el]], file by file, in reading
+order: from the data models and the API client, up to the user
+interface and the =r4= menu. Each file starts with its own
+commentary.
+
+* Data
+** r4-models.el
+Channels and tracks, built from the rows of the Radio4000 API.
+#+INCLUDE: "r4-models.el" src emacs-lisp
+
+** r4-api.el
+The Radio4000 Supabase REST API client.
+#+INCLUDE: "r4-api.el" src emacs-lisp
+
+** r4-auth.el
+Signing in to radio4000.com.
+#+INCLUDE: "r4-auth.el" src emacs-lisp
+
+* Media
+** r4-download.el
+Downloading tracks as high quality audio with yt-dlp.
+#+INCLUDE: "r4-download.el" src emacs-lisp
+
+** r4-player.el
+Playing tracks with mpv.
+#+INCLUDE: "r4-player.el" src emacs-lisp
+
+* Interface
+** r4-tracks.el
+The list of tracks.
+#+INCLUDE: "r4-tracks.el" src emacs-lisp
+
+** r4-channels.el
+The list of channels.
+#+INCLUDE: "r4-channels.el" src emacs-lisp
+
+* Local first
+** r4-local.el
+Local channels, stored in files.
+#+INCLUDE: "r4-local.el" src emacs-lisp
+
+** r4-sync.el
+Syncing local channels with radio4000.com.
+#+INCLUDE: "r4-sync.el" src emacs-lisp
+
+* Entry point
+** r4.el
+The package entry point and the =r4= menu.
+#+INCLUDE: "r4.el" src emacs-lisp

@@ -2,7 +2,7 @@ EMACS ?= emacs
 BATCH = $(EMACS) -Q --batch -L .
 SOURCES = $(wildcard r4*.el)
 
-.PHONY: all compile test lint clean
+.PHONY: all compile test lint site clean
 
 all: compile test
 
@@ -18,5 +18,8 @@ test:
 lint:
 	$(BATCH) $(foreach f,$(SOURCES),--eval '(checkdoc-file "$(f)")')
 
+site:
+	$(EMACS) -Q --batch -l publish.el
+
 clean:
-	rm -f *.elc test/*.elc
+	rm -rf *.elc test/*.elc public
