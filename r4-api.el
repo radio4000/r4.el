@@ -158,6 +158,26 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
        (funcall callback image)))
    nil t t))
 
+(defconst r4-api-oembed-endpoints
+  '(("youtube\\.com\\|youtu\\.be" . "https://www.youtube.com/oembed?format=json&url=")
+    ("soundcloud\\.com" . "https://soundcloud.com/oembed?format=json&url=")
+    ("vimeo\\.com" . "https://vimeo.com/api/oembed.json?url="))
+  "Alist of media URL regexps and their oEmbed endpoint, to get titles.")
+
+(defun r4-api-media-title (url)
+  "Return the title of the media at URL, from its oEmbed endpoint, or nil."
+  (when-let* ((endpoint (cdr (cl-find-if (lambda (entry) (string-match-p (car entry) url))
+                                         r4-api-oembed-endpoints))))
+    (ignore-errors
+      (let ((buffer (url-retrieve-synchronously
+                     (concat endpoint (url-hexify-string url)) t t 10)))
+        (unwind-protect
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (when (search-forward "\n\n" nil t)
+                (alist-get 'title (json-parse-buffer :object-type 'alist :null-object nil))))
+          (kill-buffer buffer))))))
+
 ;;;; Queries
 
 (defun r4-api-search-filter (query)

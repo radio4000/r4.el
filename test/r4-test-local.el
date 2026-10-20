@@ -44,6 +44,23 @@
             (should (equal (length (alist-get 'tracks data)) 2))))
       (delete-directory r4-download-directory t))))
 
+(ert-deftest r4-test-local-add-track-in-list ()
+  (let ((r4-download-directory (make-temp-file "r4-test" t)))
+    (unwind-protect
+        (progn
+          (r4-local-create-channel "Mine")
+          (with-current-buffer (r4-tracks-buffer '(:slug "mine" :local t))
+            ;; A asks for the URL, and fetches the title, in this local channel.
+            (cl-letf (((symbol-function 'r4-api-media-title) (lambda (_) "Fetched title")))
+              (r4-test--with-answers (list "https://youtu.be/aaaaaaaaaaa" :default "#tag")
+                (call-interactively #'r4-tracks-create)))
+            (let ((track (car (cdr (r4-local-read "mine")))))
+              (should (equal (r4-track-title track) "Fetched title"))
+              (should (equal (r4-track-tags track) '("tag")))
+              (should (equal (r4-track-media-id track) "aaaaaaaaaaa")))
+            (kill-buffer)))
+      (delete-directory r4-download-directory t))))
+
 (provide 'r4-test-local)
 
 ;;; r4-test-local.el ends here

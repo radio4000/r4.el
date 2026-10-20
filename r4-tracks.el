@@ -182,6 +182,23 @@ downloading.")
 
 ;;;; Commands
 
+(defun r4-tracks-read-fields (&optional track)
+  "Read the URL, title and description of a track, from TRACK if non-nil.
+For a new track, the title is fetched from the URL, if possible, see
+`r4-api-media-title'.  Return a plist of :url, :title and :description."
+  (let* ((url (read-string "URL: " (if track (r4-track-url track) (thing-at-point 'url))))
+         (_ (when (string-blank-p url) (user-error "Missing URL")))
+         (title (read-string "Title: " (if track
+                                           (r4-track-title track)
+                                         (progn (message "Fetching the title…")
+                                                (r4-api-media-title url)))))
+         (description (read-string "Description (#tags, @mentions): "
+                                   (and track (r4-track-description track)))))
+    (when (string-blank-p title) (user-error "Missing title"))
+    (list :url (string-trim url) :title (string-trim title)
+          :description (string-trim description))))
+
+
 (defun r4-tracks--at-point ()
   "Return the track at point, or signal an error."
   (or (tabulated-list-get-id) (user-error "No track at point")))

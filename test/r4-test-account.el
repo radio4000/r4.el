@@ -101,7 +101,7 @@
         (unwind-protect
             (progn
               ;; Add a track, with its title from oEmbed.
-              (cl-letf (((symbol-function 'r4-edit-media-title) (lambda (_) "From oEmbed")))
+              (cl-letf (((symbol-function 'r4-api-media-title) (lambda (_) "From oEmbed")))
                 (r4-test--with-answers (list "https://youtu.be/aaaaaaaaaaa" "Song" "#tag")
                   (r4-add-track "me")))
               (let ((track (car (alist-get 'tracks r4-test--db))))

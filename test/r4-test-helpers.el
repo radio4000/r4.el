@@ -103,11 +103,14 @@
          (delete-directory r4-download-directory t)))))
 
 (defmacro r4-test--with-answers (answers &rest body)
-  "Run BODY, answering the minibuffer prompts with ANSWERS, in order."
+  "Run BODY, answering the minibuffer prompts with ANSWERS, in order.
+The answer :default accepts the initial input of the prompt."
   (declare (indent 1))
   `(let ((answers ,answers))
      (cl-letf (((symbol-function 'read-string)
-                (lambda (&rest _) (or (pop answers) (error "No more answers")))))
+                (lambda (_prompt &optional initial &rest _)
+                  (let ((answer (or (pop answers) (error "No more answers"))))
+                    (if (eq answer :default) (or initial "") answer)))))
        ,@body)))
 
 (provide 'r4-test-helpers)

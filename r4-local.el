@@ -223,11 +223,17 @@ Return the new `r4-channel'."
 
 ;;;###autoload
 (defun r4-local-add-track (slug url title &optional description)
-  "Add the track URL with TITLE and DESCRIPTION to the local channel SLUG."
+  "Add the track URL with TITLE and DESCRIPTION to the local channel SLUG.
+Interactively, SLUG is the local channel of the list, or else asked,
+and the title is fetched from the URL, if possible."
   (interactive
-   (let ((slug (r4-read-local-channel "Add track to local channel: @" t))
-         (url (read-string "Track URL: " (thing-at-point 'url))))
-     (list slug url (read-string "Title: ") (read-string "Description: "))))
+   (let ((slug (or (and (derived-mode-p 'r4-tracks-mode)
+                        (plist-get r4-tracks--source :local)
+                        (plist-get r4-tracks--source :slug))
+                   (r4-read-local-channel "Add track to local channel: @" t)))
+         (fields (r4-tracks-read-fields)))
+     (list slug (plist-get fields :url) (plist-get fields :title)
+           (plist-get fields :description))))
   (when (string-blank-p url) (user-error "Missing URL"))
   (let ((media-id (r4-local-media-id url)))
     (r4-local--add slug (list (r4-track-create

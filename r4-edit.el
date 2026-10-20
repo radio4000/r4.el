@@ -13,7 +13,6 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'url-util)
 (require 'r4-models)
 (require 'r4-api)
 (require 'r4-auth)
@@ -21,26 +20,6 @@
 (require 'r4-local)
 (require 'r4-tracks)
 (require 'r4-channels)
-
-(defconst r4-edit-oembed-endpoints
-  '(("youtube\\.com\\|youtu\\.be" . "https://www.youtube.com/oembed?format=json&url=")
-    ("soundcloud\\.com" . "https://soundcloud.com/oembed?format=json&url=")
-    ("vimeo\\.com" . "https://vimeo.com/api/oembed.json?url="))
-  "Alist of media URL regexps and their oEmbed endpoint, to get titles.")
-
-(defun r4-edit-media-title (url)
-  "Return the title of the media at URL, from its oEmbed endpoint, or nil."
-  (when-let* ((endpoint (cdr (cl-find-if (lambda (entry) (string-match-p (car entry) url))
-                                         r4-edit-oembed-endpoints))))
-    (ignore-errors
-      (let ((buffer (url-retrieve-synchronously
-                     (concat endpoint (url-hexify-string url)) t t 10)))
-        (unwind-protect
-            (with-current-buffer buffer
-              (goto-char (point-min))
-              (when (search-forward "\n\n" nil t)
-                (alist-get 'title (json-parse-buffer :object-type 'alist :null-object nil))))
-          (kill-buffer buffer))))))
 
 ;;;; Your channels
 
@@ -66,21 +45,6 @@
         (completing-read prompt slugs nil t)
       (or (car slugs) (user-error "Your account has no channel")))))
 
-(defun r4-edit--read-track-fields (&optional track)
-  "Read the URL, title and description of a track, from TRACK if non-nil.
-Return a plist of :url, :title and :description."
-  (let* ((url (read-string "URL: " (if track (r4-track-url track) (thing-at-point 'url))))
-         (_ (when (string-blank-p url) (user-error "Missing URL")))
-         (title (read-string "Title: " (if track
-                                           (r4-track-title track)
-                                         (progn (message "Fetching the title…")
-                                                (r4-edit-media-title url)))))
-         (description (read-string "Description (#tags, @mentions): "
-                                   (and track (r4-track-description track)))))
-    (when (string-blank-p title) (user-error "Missing title"))
-    (list :url (string-trim url) :title (string-trim title)
-          :description (string-trim description))))
-
 ;;;; Tracks
 
 ;;;###autoload
@@ -88,7 +52,7 @@ Return a plist of :url, :title and :description."
   "Add a track to your radio4000.com channel SLUG."
   (interactive (list (r4-edit--read-my-channel "Add a track to your channel: @")))
   (let* ((channel (r4-edit-my-channel slug))
-         (fields (r4-edit--read-track-fields))
+         (fields (r4-tracks-read-fields))
          (track (r4-track-create :id (r4-local-uuid) :slug slug
                                  :url (plist-get fields :url)
                                  :title (plist-get fields :title)
@@ -127,7 +91,7 @@ Return a plist of :url, :title and :description."
   (let* ((track (r4-tracks--at-point))
          (local (plist-get r4-tracks--source :local))
          (slug (if local (r4-track-slug track) (r4-edit--remote-slug)))
-         (fields (r4-edit--read-track-fields track)))
+         (fields (r4-tracks-read-fields track)))
     (if local
         (let ((data (r4-local-read slug)))
           (dolist (each (cdr data))
