@@ -52,7 +52,8 @@
   ;; Used to hang, see `r4-download--sanitize'.
   (should (equal (r4-download--sanitize "Molam International Band - ลำสั้นดิสโก้")
                  "Molam International Band - ลำสั้นดิสโก้"))
-  (should (<= (string-bytes (r4-download--sanitize (apply #'concat (make-list 50 "ลำสั้น")))) 180)))
+  (should (<= (string-bytes (r4-download--sanitize (apply #'concat (make-list 50 "ลำสั้น")))) 180))
+  (should (equal (r4-download--sanitize "Shekarchi (شکارچی) - توله") "Shekarchi (شکارچی) - توله")))
 
 (ert-deftest r4-test-download-command-escapes-percent ()
   (let ((r4-download-directory "/music/")

@@ -87,7 +87,7 @@ gives the highest quality.  A format such as \"flac\", \"mp3\",
                 (replace-regexp-in-string "[/\\:*?\"<>|[:cntrl:]]+" "_" (or name "")))))
     ;; Limit the length in bytes, the file name limit of most file
     ;; systems.  `string-limit' with a coding system hangs on some
-    ;; scripts, such as Thai, in Emacs 31.
+    ;; scripts, such as Thai or Persian, in Emacs 31.
     (while (> (string-bytes clean) 180)
       (setq clean (substring clean 0 -1)))
     (if (string-empty-p clean) "untitled" clean)))
