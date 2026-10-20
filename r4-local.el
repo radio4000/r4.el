@@ -22,6 +22,7 @@
 (require 'r4-api)
 (require 'r4-download)
 (require 'r4-tracks)
+(require 'r4-channels)
 
 ;;;; Files
 
