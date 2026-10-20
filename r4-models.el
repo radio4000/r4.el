@@ -36,7 +36,7 @@
                         (:copier nil))
   "A Radio4000 track, belonging to the channel SLUG."
   id slug title description url tags duration provider media-id
-  discogs-url created-at)
+  discogs-url created-at updated-at)
 
 (defun r4-channel-from-json (row)
   "Return an `r4-channel' from the alist ROW."
@@ -54,7 +54,7 @@
      :id .id :slug .slug :title .title :description .description
      :url .url :tags .tags :duration .duration :provider .provider
      :media-id .media_id :discogs-url .discogs_url
-     :created-at .created_at)))
+     :created-at .created_at :updated-at .updated_at)))
 
 (defun r4-channel-web-url (channel)
   "Return the radio4000.com URL of CHANNEL."
@@ -66,9 +66,12 @@
 
 (defun r4-format-duration (seconds)
   "Format SECONDS as M:SS or H:MM:SS, or an empty string if nil."
-  (cond ((not (numberp seconds)) "")
-        ((>= seconds 3600) (format-seconds "%h:%.2m:%.2s" seconds))
-        (t (format-seconds "%m:%.2s" seconds))))
+  (if (numberp seconds)
+      (let ((seconds (floor seconds)))
+        (if (>= seconds 3600)
+            (format "%d:%02d:%02d" (/ seconds 3600) (% (/ seconds 60) 60) (% seconds 60))
+          (format "%d:%02d" (/ seconds 60) (% seconds 60))))
+    ""))
 
 (defun r4-format-date (timestamp)
   "Return the YYYY-MM-DD part of the ISO TIMESTAMP, or an empty string."

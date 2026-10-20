@@ -32,6 +32,7 @@
 (ert-deftest r4-test-format ()
   (should (equal (r4-format-duration 213) "3:33"))
   (should (equal (r4-format-duration 3725) "1:02:05"))
+  (should (equal (r4-format-duration 59.7) "0:59"))
   (should (equal (r4-format-duration nil) ""))
   (should (equal (r4-format-date "2026-10-18T12:13:17Z") "2026-10-18"))
   (should (equal (r4-one-line " a\n\tb ") "a b")))
@@ -51,6 +52,20 @@
   ;; Characters breaking the PostgREST syntax are removed.
   (should (equal (r4-api-search-filter "a,b(c)") "(fts.wfts.a b c,fts.fts.a:* & b:* & c:*)"))
   (should-not (r4-api-search-filter " , ")))
+
+(ert-deftest r4-test-columns-sort ()
+  (let* ((specs r4-channels-column-specs)
+         (format (r4-columns-list-format '(slug tracks) specs))
+         (sort-tracks (nth 2 (aref format 1)))
+         (entry (lambda (count) (list (r4-channel-create :slug "x" :track-count count) nil))))
+    ;; Numbers sort by value, not by text.
+    (should (funcall sort-tracks (funcall entry 9) (funcall entry 10)))
+    (should-not (funcall sort-tracks (funcall entry 10) (funcall entry 9)))
+    (should (funcall sort-tracks (funcall entry nil) (funcall entry 0)))
+    ;; The last column takes the remaining width.
+    (should (equal (nth 1 (aref format 1)) 0))
+    (should (r4-columns-less-p "abc" "ABD"))
+    (should (equal (r4-columns-valid '(slug nope tracks) specs) '(slug tracks)))))
 
 (ert-deftest r4-test-download-basename ()
   (should (equal (r4-download-basename (r4-test--track :title "AC/DC: \"Live\"" :media-id "xyz"))
@@ -114,6 +129,25 @@
               (accept-process-output nil 0.1)))
           (should (equal (r4-track-title (r4-player-current)) "two")))
       (r4-player-stop)
+      (delete-directory r4-download-directory t))))
+
+(ert-deftest r4-test-tracks-status-update ()
+  (let ((buffer (generate-new-buffer "r4-test"))
+        (r4-download-directory (make-temp-file "r4-test" t))
+        (one (r4-test--track :id "11111111-a" :title "one"))
+        (two (r4-test--track :id "22222222-b" :title "two")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (r4-tracks-mode)
+          (r4-tracks--set buffer (list one two))
+          (let ((r4-tracks--playing-id "22222222-b"))
+            (r4-tracks-update-status '("22222222-b")))
+          (goto-char (point-min))
+          (should (equal (aref (tabulated-list-get-entry) 0) ""))
+          (forward-line 1)
+          (should (equal (aref (tabulated-list-get-entry) 0) "▶"))
+          (should (looking-at "  ▶")))
+      (kill-buffer buffer)
       (delete-directory r4-download-directory t))))
 
 (ert-deftest r4-test-tracks-buffer ()

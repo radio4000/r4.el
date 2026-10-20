@@ -17,6 +17,7 @@
 (require 'r4-api)
 (require 'r4-tracks)
 (require 'r4-download)
+(require 'r4-columns)
 
 (defvar r4-channels--cache nil
   "List of all `r4-channel', filled by the last full channel listing.")
@@ -24,21 +25,37 @@
 (defvar-local r4-channels--query nil
   "Full-text search of the channels buffer, or nil for all channels.")
 
+(defconst r4-channels-column-specs
+  `((slug . ,(r4-column-create :name "Slug" :width 24 :key #'r4-channel-slug))
+    (name . ,(r4-column-create :name "Name" :width 30 :key #'r4-channel-name))
+    (tracks . ,(r4-column-create :name "Tracks" :width 7 :key #'r4-channel-track-count
+                                 :right-align t))
+    (latest . ,(r4-column-create :name "Active" :width 10 :key #'r4-channel-latest-track-at
+                                 :format #'r4-format-date))
+    (created . ,(r4-column-create :name "Created" :width 10 :key #'r4-channel-created-at
+                                  :format #'r4-format-date))
+    (updated . ,(r4-column-create :name "Updated" :width 10 :key #'r4-channel-updated-at
+                                  :format #'r4-format-date))
+    (description . ,(r4-column-create :name "Description" :width 40
+                                      :key #'r4-channel-description))
+    (url . ,(r4-column-create :name "Link" :width 30 :key #'r4-channel-url)))
+  "Columns available in channel lists, see `r4-channels-columns'.
+The Active column is the date of the latest track.")
+
+(defcustom r4-channels-columns '(slug name tracks latest created updated description)
+  "Columns of the channel lists, among `r4-channels-column-specs'."
+  :type (r4-columns-custom-type r4-channels-column-specs)
+  :group 'r4)
+
+(defvar-local r4-channels--columns nil
+  "Columns of the buffer, from `r4-channels-columns'.")
+
 (defun r4-channels--entries (channels)
   "Return the `tabulated-list-entries' of CHANNELS."
   (mapcar (lambda (channel)
-            (list channel
-                  (vector (r4-channel-slug channel)
-                          (r4-one-line (r4-channel-name channel))
-                          (number-to-string (or (r4-channel-track-count channel) 0))
-                          (r4-format-date (r4-channel-latest-track-at channel))
-                          (r4-one-line (r4-channel-description channel)))))
+            (list channel (r4-columns-row channel r4-channels--columns
+                                          r4-channels-column-specs)))
           channels))
-
-(defun r4-channels--sort-by-tracks (a b)
-  "Return non-nil if the channel entry A has fewer tracks than B."
-  (< (or (r4-channel-track-count (car a)) 0)
-     (or (r4-channel-track-count (car b)) 0)))
 
 (defun r4-channels-revert (&rest _)
   "Fetch the channels of the buffer again."
@@ -133,8 +150,8 @@
   "s" #'r4-search-channels
   "t" #'r4-search-tracks
   "SPC" #'r4-player-toggle-pause
-  "n" #'r4-player-next
-  "p" #'r4-player-previous
+  ">" #'r4-player-next
+  "<" #'r4-player-previous
   "k" #'r4-player-stop
   "Q" #'r4-queue
   "L" #'r4-downloads)
@@ -142,12 +159,14 @@
 (define-derived-mode r4-channels-mode tabulated-list-mode "r4 channels"
   "Major mode listing Radio4000 channels.
 
+Sort by the column at point with \\[tabulated-list-sort], or by
+clicking a column header.  Choose the columns with
+`r4-channels-columns'.
+
 \\{r4-channels-mode-map}"
-  (setq tabulated-list-format `[("Slug" 24 t)
-                                ("Name" 30 t)
-                                ("Tracks" 7 ,#'r4-channels--sort-by-tracks :right-align t)
-                                ("Active" 10 t)
-                                ("Description" 0 nil)]
+  (setq r4-channels--columns (r4-columns-valid r4-channels-columns r4-channels-column-specs)
+        tabulated-list-format (r4-columns-list-format r4-channels--columns
+                                                      r4-channels-column-specs)
         tabulated-list-padding 2)
   (setq-local revert-buffer-function #'r4-channels-revert)
   (tabulated-list-init-header))
@@ -216,6 +235,7 @@
           (insert description "\n\n"))
         (insert (format "Tracks:      %s\n" (or (r4-channel-track-count channel) 0))
                 (format "Created:     %s\n" (r4-format-date (r4-channel-created-at channel)))
+                (format "Updated:     %s\n" (r4-format-date (r4-channel-updated-at channel)))
                 (format "Last track:  %s\n" (r4-format-date (r4-channel-latest-track-at channel))))
         (unless (string-empty-p (or (r4-channel-url channel) ""))
           (insert "Link:        ")

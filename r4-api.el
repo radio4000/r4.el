@@ -52,7 +52,7 @@ The default hides the many empty channels."
   "Columns selected from the `channels_with_tracks' view.")
 
 (defconst r4-api--track-columns
-  "id,slug,title,description,url,tags,duration,provider,media_id,discogs_url,created_at"
+  "id,slug,title,description,url,tags,duration,provider,media_id,discogs_url,created_at,updated_at"
   "Columns selected from the `channel_tracks' view.")
 
 (defun r4-api--url (table params)
@@ -135,8 +135,6 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
 (defun r4-api-get-sync (table params)
   "Fetch and return the rows of TABLE with PARAMS, blocking Emacs."
   (r4-api-request "GET" (concat "/rest/v1/" table) :params params))
-
-;;;; Queries
 
 (defun r4-api-search-filter (query)
   "Return the PostgREST `or' filter matching QUERY, or nil if empty.

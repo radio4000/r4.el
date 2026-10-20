@@ -17,6 +17,7 @@
 (require 'r4-api)
 (require 'r4-player)
 (require 'r4-download)
+(require 'r4-columns)
 
 (defvar-local r4-tracks--source nil
   "Plist describing the tracks of the buffer.
@@ -31,29 +32,49 @@ non-nil for a local channel.")
 Each function is called with the source and a callback, and returns
 non-nil if it handles the source.")
 
-(defun r4-tracks--status (track index)
-  "Return the status column of TRACK, using the download INDEX."
-  (cond ((equal (r4-track-id track) (and (r4-player-current) (r4-track-id (r4-player-current))))
-         "▶")
-        ((r4-download-file track index) "✓")
+(defvar r4-tracks--playing-id nil
+  "Id of the track shown as playing in the track lists.")
+
+(defun r4-tracks--status (track)
+  "Return the status of TRACK: ▶ playing, ↓ downloading, ✓ downloaded."
+  (cond ((equal (r4-track-id track) r4-tracks--playing-id) "▶")
         ((r4-download-pending-p track) "↓")
+        ((r4-download-file track) "✓")
         (t "")))
+
+(defconst r4-tracks-column-specs
+  `((status . ,(r4-column-create :name " " :width 1 :key #'r4-tracks--status
+                                 :format #'identity))
+    (created . ,(r4-column-create :name "Added" :width 10 :key #'r4-track-created-at
+                                  :format #'r4-format-date))
+    (updated . ,(r4-column-create :name "Updated" :width 10 :key #'r4-track-updated-at
+                                  :format #'r4-format-date))
+    (channel . ,(r4-column-create :name "Channel" :width 16 :key #'r4-track-slug
+                                  :format (lambda (slug) (concat "@" slug))))
+    (title . ,(r4-column-create :name "Title" :width 50 :key #'r4-track-title))
+    (duration . ,(r4-column-create :name "Time" :width 8 :key #'r4-track-duration
+                                   :format #'r4-format-duration :right-align t))
+    (tags . ,(r4-column-create :name "Tags" :width 16
+                               :key (lambda (track) (string-join (r4-track-tags track) " "))))
+    (description . ,(r4-column-create :name "Description" :width 40
+                                      :key #'r4-track-description))
+    (provider . ,(r4-column-create :name "Provider" :width 10 :key #'r4-track-provider))
+    (url . ,(r4-column-create :name "URL" :width 45 :key #'r4-track-url)))
+  "Columns available in track lists, see `r4-tracks-columns'.")
+
+(defcustom r4-tracks-columns '(status created channel title duration tags description)
+  "Columns of the track lists, among `r4-tracks-column-specs'."
+  :type (r4-columns-custom-type r4-tracks-column-specs)
+  :group 'r4)
+
+(defvar-local r4-tracks--columns nil
+  "Columns of the buffer, from `r4-tracks-columns'.")
 
 (defun r4-tracks--entries ()
   "Return the `tabulated-list-entries' of the buffer tracks."
-  (let ((indexes (make-hash-table :test #'equal)))
+  (r4-download-with-index-cache
     (mapcar (lambda (track)
-              (let* ((slug (r4-track-slug track))
-                     (index (or (gethash slug indexes)
-                                (puthash slug (r4-download-index slug) indexes))))
-                (list track
-                      (vector (r4-tracks--status track index)
-                              (r4-format-date (r4-track-created-at track))
-                              (concat "@" slug)
-                              (r4-one-line (r4-track-title track))
-                              (r4-format-duration (r4-track-duration track))
-                              (string-join (r4-track-tags track) " ")
-                              (r4-one-line (r4-track-description track))))))
+              (list track (r4-columns-row track r4-tracks--columns r4-tracks-column-specs)))
             r4-tracks--tracks)))
 
 (defun r4-tracks--describe-source (source)
@@ -82,10 +103,36 @@ non-nil if it handles the source.")
       (unless (run-hook-with-args-until-success 'r4-tracks-fetch-functions source callback)
         (apply #'r4-api-tracks callback source)))))
 
-(defun r4-tracks-refresh ()
-  "Redisplay the tracks without fetching them."
-  (setq tabulated-list-entries (r4-tracks--entries))
-  (tabulated-list-print t))
+(defun r4-tracks-update-status (ids)
+  "Update the status of the tracks with IDS in all track lists."
+  (when ids
+    (r4-download-with-index-cache
+      (r4-tracks--update-status ids))))
+
+(defun r4-tracks--update-status (ids)
+  "Update the status of the tracks with IDS, see `r4-tracks-update-status'."
+  (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when-let* (((derived-mode-p 'r4-tracks-mode))
+                    (column (cl-position 'status r4-tracks--columns)))
+          (save-excursion
+            (goto-char (point-min))
+            (while (not (eobp))
+              (let ((track (tabulated-list-get-id)))
+                (when (and track (member (r4-track-id track) ids))
+                  (tabulated-list-set-col column (r4-tracks--status track) t)))
+              (forward-line 1)))))))
+
+(defun r4-tracks--track-changed ()
+  "Show the new playing track in the track lists."
+  (let ((previous r4-tracks--playing-id)
+        (current (and (r4-player-live-p) (r4-player-current))))
+    (setq r4-tracks--playing-id (and current (r4-track-id current)))
+    (r4-tracks-update-status (delq nil (list previous r4-tracks--playing-id)))))
+
+(defun r4-tracks--downloads-changed (tracks)
+  "Show the new download status of TRACKS in the track lists."
+  (r4-tracks-update-status (mapcar #'r4-track-id tracks)))
 
 ;;;; Commands
 
@@ -119,14 +166,12 @@ non-nil if it handles the source.")
   (interactive)
   (let ((track (r4-tracks--at-point))
         (tracks (r4-tracks--displayed)))
-    (r4-player-play tracks (cl-position track tracks))
-    (r4-tracks-refresh)))
+    (r4-player-play tracks (cl-position track tracks))))
 
 (defun r4-tracks-play-all ()
   "Play all the tracks of the buffer, in random order when shuffling."
   (interactive)
-  (r4-player-play (r4-tracks--displayed))
-  (r4-tracks-refresh))
+  (r4-player-play (r4-tracks--displayed)))
 
 (defun r4-tracks-shuffle ()
   "Turn shuffle on and play the tracks of the buffer."
@@ -167,16 +212,14 @@ non-nil if it handles the source.")
   (r4-download-tracks (r4-tracks--marked)
                       (when (plist-get r4-tracks--source :slug)
                         (unless (plist-get r4-tracks--source :query) r4-tracks--tracks)))
-  (tabulated-list-clear-all-tags)
-  (r4-tracks-refresh))
+  (tabulated-list-clear-all-tags))
 
 (defun r4-tracks-download-all ()
   "Download all the tracks of the buffer."
   (interactive)
   (when (yes-or-no-p (format "Download %d tracks? " (length r4-tracks--tracks)))
     (r4-download-tracks r4-tracks--tracks
-                        (when (plist-get r4-tracks--source :slug) r4-tracks--tracks))
-    (r4-tracks-refresh)))
+                        (when (plist-get r4-tracks--source :slug) r4-tracks--tracks))))
 
 (defun r4-tracks-browse ()
   "Open the track at point on radio4000.com."
@@ -221,8 +264,8 @@ non-nil if it handles the source.")
   "P" #'r4-tracks-play-all
   "z" #'r4-tracks-shuffle
   "SPC" #'r4-player-toggle-pause
-  "n" #'r4-player-next
-  "p" #'r4-player-previous
+  ">" #'r4-player-next
+  "<" #'r4-player-previous
   "k" #'r4-player-stop
   "Q" #'r4-queue
   "m" #'r4-tracks-mark
@@ -242,17 +285,15 @@ non-nil if it handles the source.")
 (define-derived-mode r4-tracks-mode tabulated-list-mode "r4 tracks"
   "Major mode listing Radio4000 tracks.
 
-The first column shows ▶ for the playing track, ✓ for downloaded
-tracks and ↓ for queued downloads.
+The status column shows ▶ for the playing track, ✓ for downloaded
+tracks and ↓ for queued downloads.  Sort by the column at point with
+\\[tabulated-list-sort], or by clicking a column header.  Choose the
+columns with `r4-tracks-columns'.
 
 \\{r4-tracks-mode-map}"
-  (setq tabulated-list-format [(" " 1 nil)
-                               ("Added" 10 t)
-                               ("Channel" 16 t)
-                               ("Title" 50 t)
-                               ("Time" 8 nil :right-align t)
-                               ("Tags" 16 t)
-                               ("Description" 0 nil)]
+  (setq r4-tracks--columns (r4-columns-valid r4-tracks-columns r4-tracks-column-specs)
+        tabulated-list-format (r4-columns-list-format r4-tracks--columns
+                                                      r4-tracks-column-specs)
         tabulated-list-padding 2)
   (setq-local revert-buffer-function #'r4-tracks-revert)
   (tabulated-list-init-header))
@@ -270,15 +311,8 @@ tracks and ↓ for queued downloads.
     (revert-buffer)
     (pop-to-buffer-same-window (current-buffer))))
 
-(defun r4-tracks--refresh-all (&rest _)
-  "Refresh the status column of all track buffers."
-  (dolist (buffer (buffer-list))
-    (with-current-buffer buffer
-      (when (derived-mode-p 'r4-tracks-mode)
-        (r4-tracks-refresh)))))
-
-(add-hook 'r4-player-track-changed-hook #'r4-tracks--refresh-all)
-(add-hook 'r4-download-finished-hook #'r4-tracks--refresh-all)
+(add-hook 'r4-player-track-changed-hook #'r4-tracks--track-changed)
+(add-hook 'r4-download-changed-functions #'r4-tracks--downloads-changed)
 
 ;;;###autoload
 (defun r4-search-tracks (query)

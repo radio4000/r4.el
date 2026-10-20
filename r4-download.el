@@ -69,8 +69,16 @@ gives the highest quality.  A format such as \"flac\", \"mp3\",
 (defvar r4-download--playlists (make-hash-table :test #'equal)
   "Hash table of channel slug to its ordered tracks, used for playlists.")
 
-(defvar r4-download-finished-hook nil
-  "Hook run with the finished `r4-download' job as argument.")
+(defvar r4-download--pending (make-hash-table :test #'equal)
+  "Hash table of the ids of queued or running tracks, to their job.")
+
+(defvar r4-download--indexes (make-hash-table :test #'equal)
+  "Cache of `r4-download-index', by channel slug.
+Values are a cons of the modification time of the channel directory
+and its index.")
+
+(defvar r4-download-changed-functions nil
+  "Functions called with a list of tracks whose download status changed.")
 
 (defconst r4-download-log-buffer "*r4 download log*"
   "Name of the buffer logging the output of downloads.")
@@ -99,18 +107,42 @@ gives the highest quality.  A format such as \"flac\", \"mp3\",
           (or (r4-track-media-id track)
               (substring (r4-track-id track) 0 8))))
 
+(defvar r4-download--index-cache nil
+  "Cache of `r4-download-index' by slug.
+Bound by `r4-download-with-index-cache'.")
+
+(defmacro r4-download-with-index-cache (&rest body)
+  "Run BODY, checking the download directories at most once per channel.
+Use it around code calling `r4-download-file' for many tracks."
+  (declare (indent 0) (debug t))
+  `(let ((r4-download--index-cache (make-hash-table :test #'equal)))
+     ,@body))
+
 (defun r4-download-index (slug)
   "Return a hash table of the downloaded files of the channel SLUG.
-Keys are file names without extension, values are absolute file names."
-  (let ((index (make-hash-table :test #'equal))
-        (directory (r4-download-channel-directory slug)))
-    (when (file-directory-p directory)
-      (dolist (file (directory-files
-                     directory t
-                     (concat "\\." (regexp-opt r4-download--audio-extensions) "\\'")
-                     t))
-        (puthash (file-name-base file) file index)))
-    index))
+Keys are file names without extension, values are absolute file names.
+The index is cached until the channel directory changes."
+  (if r4-download--index-cache
+      (or (gethash slug r4-download--index-cache)
+          (puthash slug (r4-download--index slug) r4-download--index-cache))
+    (r4-download--index slug)))
+
+(defun r4-download--index (slug)
+  "Return the index of the downloaded files of SLUG, see `r4-download-index'."
+  (let* ((directory (r4-download-channel-directory slug))
+         (modified (file-attribute-modification-time (file-attributes directory)))
+         (cached (gethash slug r4-download--indexes)))
+    (if (and cached (equal (car cached) modified))
+        (cdr cached)
+      (let ((index (make-hash-table :test #'equal)))
+        (when modified
+          (dolist (file (directory-files
+                         directory t
+                         (concat "\\." (regexp-opt r4-download--audio-extensions) "\\'")
+                         t))
+            (puthash (file-name-base file) file index)))
+        (puthash slug (cons modified index) r4-download--indexes)
+        index))))
 
 (defun r4-download-file (track &optional index)
   "Return the downloaded file of TRACK, or nil.
@@ -154,16 +186,18 @@ INDEX is the result of `r4-download-index' for the track channel."
   "Return non-nil if JOB is queued or running."
   (memq (r4-download-status job) '(queued running)))
 
-(defun r4-download--job (track)
-  "Return the queued or running job of TRACK, or nil."
-  (cl-find-if (lambda (job)
-                (and (r4-download--active-p job)
-                     (equal (r4-track-id (r4-download-track job)) (r4-track-id track))))
-              r4-download--jobs))
-
 (defun r4-download-pending-p (track)
   "Return non-nil if TRACK is queued or being downloaded."
-  (and (r4-download--job track) t))
+  (and (gethash (r4-track-id track) r4-download--pending) t))
+
+(defun r4-download--set-status (job status)
+  "Set the STATUS of JOB and notify `r4-download-changed-functions'."
+  (let ((track (r4-download-track job)))
+    (setf (r4-download-status job) status)
+    (if (r4-download--active-p job)
+        (puthash (r4-track-id track) job r4-download--pending)
+      (remhash (r4-track-id track) r4-download--pending))
+    (run-hook-with-args 'r4-download-changed-functions (list track))))
 
 (defun r4-download--log (format-string &rest args)
   "Append FORMAT-STRING formatted with ARGS to the download log."
@@ -193,14 +227,13 @@ INDEX is the result of `r4-download-index' for the track channel."
            (ok (and (eq (process-status process) 'exit)
                     (zerop (process-exit-status process)))))
       (unless (eq (r4-download-status job) 'cancelled)
-        (setf (r4-download-status job) (if ok 'done 'failed))
+        (r4-download--set-status job (if ok 'done 'failed))
         (when ok (setf (r4-download-progress job) 100))
         (message (if ok "Downloaded: %s" "Download failed (see %s): %s")
                  (if ok (r4-track-title track) r4-download-log-buffer)
                  (r4-track-title track)))
       (when (and ok r4-download-write-playlist)
         (r4-download-write-playlist (r4-track-slug track)))
-      (run-hook-with-args 'r4-download-finished-hook job)
       (r4-download--start-next)
       (r4-download--refresh))))
 
@@ -218,8 +251,8 @@ INDEX is the result of `r4-download-index' for the track channel."
                     :filter #'r4-download--filter
                     :sentinel #'r4-download--sentinel)))
       (process-put process 'r4-download job)
-      (setf (r4-download-process job) process
-            (r4-download-status job) 'running))))
+      (setf (r4-download-process job) process)
+      (r4-download--set-status job 'running))))
 
 (defun r4-download--start-next ()
   "Start queued downloads, up to `r4-download-max-processes'."
@@ -238,25 +271,25 @@ the channel playlist."
     (user-error "Cannot find `%s', please install it" r4-download-program))
   (when channel-tracks
     (puthash (r4-track-slug (car channel-tracks)) channel-tracks r4-download--playlists))
-  (let ((indexes (make-hash-table :test #'equal))
-        (count 0))
+  (let ((queued nil))
     (dolist (track tracks)
-      (let* ((slug (r4-track-slug track))
-             (index (or (gethash slug indexes)
-                        (puthash slug (r4-download-index slug) indexes))))
-        (unless (or (r4-download-file track index) (r4-download-pending-p track))
-          (setq r4-download--jobs
-                (nconc r4-download--jobs (list (r4-download-create :track track))))
-          (cl-incf count))))
+      (unless (or (r4-download-file track) (r4-download-pending-p track))
+        (let ((job (r4-download-create :track track)))
+          (puthash (r4-track-id track) job r4-download--pending)
+          (push job queued))))
+    (setq r4-download--jobs (nconc r4-download--jobs (nreverse queued)))
     (message "Queued %d track%s for download (%d already downloaded or queued)"
-             count (if (= count 1) "" "s") (- (length tracks) count))
+             (length queued) (if (= (length queued) 1) "" "s")
+             (- (length tracks) (length queued)))
+    (run-hook-with-args 'r4-download-changed-functions
+                        (mapcar #'r4-download-track queued))
     (r4-download--start-next)
     (r4-download--refresh)))
 
 (defun r4-download-cancel (job)
   "Cancel the download JOB."
   (when (r4-download--active-p job)
-    (setf (r4-download-status job) 'cancelled)
+    (r4-download--set-status job 'cancelled)
     (when-let* ((process (r4-download-process job)))
       (delete-process process))))
 
@@ -321,8 +354,8 @@ the channel playlist."
   (let ((job (or (tabulated-list-get-id) (user-error "No download at point"))))
     (when (r4-download--active-p job)
       (user-error "Already downloading"))
-    (setf (r4-download-status job) 'queued
-          (r4-download-progress job) 0)
+    (setf (r4-download-progress job) 0)
+    (r4-download--set-status job 'queued)
     (r4-download--start-next)
     (revert-buffer)))
 

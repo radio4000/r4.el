@@ -99,7 +99,8 @@
                                      (provider . r4-track-provider)
                                      (media_id . r4-track-media-id)
                                      (discogs_url . r4-track-discogs-url)
-                                     (created_at . r4-track-created-at))
+                                     (created_at . r4-track-created-at)
+                                     (updated_at . r4-track-updated-at))
            collect (cons key (if (eq key 'tags)
                                  (vconcat (funcall accessor track))
                                (r4-local--json-value (funcall accessor track))))))
@@ -202,7 +203,7 @@ Return the new `r4-channel'."
                             :provider (r4-track-provider track)
                             :media-id (r4-track-media-id track)
                             :discogs-url (r4-track-discogs-url track)
-                            :created-at now))
+                            :created-at now :updated-at now))
                          tracks)))
     (r4-local-write (car local) (append copies (cdr local)))
     (r4-local--refresh slug)
@@ -281,7 +282,7 @@ An existing local channel SLUG is replaced."
 
 (keymap-set r4-tracks-mode-map "a" #'r4-tracks-add-to-local)
 (keymap-set r4-tracks-mode-map "x" #'r4-tracks-remove-from-local)
-(keymap-set r4-tracks-mode-map "S" #'r4-tracks-save-local)
+(keymap-set r4-tracks-mode-map "A" #'r4-tracks-save-local)
 
 (provide 'r4-local)
 

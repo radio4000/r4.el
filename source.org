@@ -29,6 +29,10 @@ Playing tracks with mpv.
 #+INCLUDE: "r4-player.el" src emacs-lisp
 
 * Interface
+** r4-columns.el
+Sortable and configurable columns, shared by the lists.
+#+INCLUDE: "r4-columns.el" src emacs-lisp
+
 ** r4-tracks.el
 The list of tracks.
 #+INCLUDE: "r4-tracks.el" src emacs-lisp
