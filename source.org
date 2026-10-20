@@ -70,6 +70,10 @@ Local channels, stored in files.
 Syncing local channels with radio4000.com.
 #+INCLUDE: "r4-sync.el" src emacs-lisp
 
+** r4-edit.el
+Creating, editing and deleting your channels and tracks.
+#+INCLUDE: "r4-edit.el" src emacs-lisp
+
 ** r4-follows.el
 Following channels, and the feed of followed channels.
 #+INCLUDE: "r4-follows.el" src emacs-lisp

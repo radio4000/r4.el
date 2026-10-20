@@ -398,6 +398,16 @@
   (when-let* ((value (cadr (assoc key params))))
     (string-remove-prefix "eq." value)))
 
+(defun r4-test--row-match-p (row params)
+  "Return non-nil if ROW matches the eq. and in. filters of PARAMS."
+  (cl-every (lambda (param)
+              (let ((value (alist-get (intern (car param)) row))
+                    (filter (cadr param)))
+                (if (string-match "\\`in\\.(\\(.*\\))\\'" filter)
+                    (member value (split-string (match-string 1 filter) ","))
+                  (equal value (string-remove-prefix "eq." filter)))))
+            params))
+
 (cl-defun r4-test--fake-request (method path &key params body token _prefer)
   "Answer the request METHOD PATH like Supabase, from `r4-test--db'."
   (push (list method path params body token) r4-test--requests)
@@ -427,12 +437,15 @@
      (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
      (let ((key (intern table)))
        (setf (alist-get key r4-test--db)
-             (cl-remove-if (lambda (row)
-                             (cl-every (lambda (param)
-                                         (equal (alist-get (intern (car param)) row)
-                                                (string-remove-prefix "eq." (cadr param))))
-                                       params))
+             (cl-remove-if (lambda (row) (r4-test--row-match-p row params))
                            (alist-get key r4-test--db))))
+     nil)
+    (`("PATCH" ,(rx "/rest/v1/" (let table (+ anychar))))
+     (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
+     (dolist (row (alist-get (intern table) r4-test--db))
+       (when (r4-test--row-match-p row params)
+         (pcase-dolist (`(,field . ,value) body)
+           (setf (alist-get field row) value))))
      nil)
     (`("POST" ,(rx "/rest/v1/" (let table (+ anychar))))
      (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
@@ -537,6 +550,60 @@
                                (("follower_id" "eq.mine") ("channel_id" "eq.other"))
                                nil "token-1"))))
           (kill-buffer buffer))))))
+
+(defmacro r4-test--with-answers (answers &rest body)
+  "Run BODY, answering the minibuffer prompts with ANSWERS, in order."
+  (declare (indent 1))
+  `(let ((answers ,answers))
+     (cl-letf (((symbol-function 'read-string)
+                (lambda (&rest _) (or (pop answers) (error "No more answers")))))
+       ,@body)))
+
+(ert-deftest r4-test-edit ()
+  (r4-test--with-backend
+    (push '((id . "mine") (slug . "me") (name . "Me")) (alist-get 'channels r4-test--db))
+    (cl-letf (((symbol-function 'r4-sync-my-channels)
+               (lambda () (list (r4-channel-create :id "mine" :slug "me" :name "Me")))))
+      (let ((r4-edit--my-channels nil)
+            (buffer (generate-new-buffer "r4-test")))
+        (unwind-protect
+            (progn
+              ;; Add a track, with its title from oEmbed.
+              (cl-letf (((symbol-function 'r4-edit-media-title) (lambda (_) "From oEmbed")))
+                (r4-test--with-answers (list "https://youtu.be/aaaaaaaaaaa" "Song" "#tag")
+                  (r4-add-track "me")))
+              (let ((track (car (alist-get 'tracks r4-test--db))))
+                (should (equal (alist-get 'title track) "Song"))
+                (should (equal (alist-get 'channel_id (car (alist-get 'channel_track r4-test--db)))
+                               "mine"))
+                ;; Edit it in a list of the channel.
+                (with-current-buffer buffer
+                  (r4-tracks-mode)
+                  (setq r4-tracks--source '(:slug "me"))
+                  (r4-tracks--set buffer (list (r4-test--track :id (alist-get 'id track)
+                                                               :slug "me" :title "Song")))
+                  (goto-char (point-min))
+                  (cl-letf (((symbol-function 'revert-buffer) #'ignore))
+                    (r4-test--with-answers (list "https://youtu.be/bbbbbbbbbbb" "New title" "")
+                      (r4-tracks-edit))
+                    (should (equal (alist-get 'title (car (alist-get 'tracks r4-test--db)))
+                                   "New title"))
+                    (r4-tracks-delete)
+                    (should-not (alist-get 'tracks r4-test--db))))))
+          (kill-buffer buffer))
+        ;; Channels.
+        (r4-test--with-answers (list "Me Too" "me" "Hello" "")
+          (r4-edit-channel "me"))
+        (should (equal (alist-get 'name (car (alist-get 'channels r4-test--db))) "Me Too"))
+        (should-error (r4-create-channel "Taken" "me") :type 'user-error)
+        (r4-create-channel "New" "new")
+        (should (alist-get 'user_channel r4-test--db))
+        (r4-test--with-answers (list "nope")
+          (should-error (r4-delete-channel "me") :type 'user-error))
+        (r4-test--with-answers (list "me")
+          (r4-delete-channel "me"))
+        (should-not (cl-find "mine" (alist-get 'channels r4-test--db)
+                             :key (lambda (row) (alist-get 'id row)) :test #'equal))))))
 
 (ert-deftest r4-test-sync-refuses-other-accounts ()
   (r4-test--with-backend
