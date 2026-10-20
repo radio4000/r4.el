@@ -55,23 +55,26 @@ It is called with a callback, to call with the list of channels.")
   "Name of the channels of the buffer, such as \"following @oskar\".")
 
 (defconst r4-channels-column-specs
-  `((slug . ,(r4-column-create :name "Slug" :width 24 :key #'r4-channel-slug))
-    (name . ,(r4-column-create :name "Name" :width 30 :key #'r4-channel-name))
-    (tracks . ,(r4-column-create :name "Tracks" :width 7 :key #'r4-channel-track-count
-                                 :right-align t))
-    (latest . ,(r4-column-create :name "Active" :width 10 :key #'r4-channel-latest-track-at
-                                 :format #'r4-format-date))
-    (created . ,(r4-column-create :name "Created" :width 10 :key #'r4-channel-created-at
-                                  :format #'r4-format-date))
-    (updated . ,(r4-column-create :name "Updated" :width 10 :key #'r4-channel-updated-at
-                                  :format #'r4-format-date))
-    (description . ,(r4-column-create :name "Description" :width 40
+  `((slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug))
+    (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name))
+    (track_count . ,(r4-column-create :name "track_count" :width 11
+                                      :key #'r4-channel-track-count :right-align t))
+    (latest_track_at . ,(r4-column-create :name "latest_track_at" :width 15
+                                          :key #'r4-channel-latest-track-at
+                                          :format #'r4-format-date))
+    (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-channel-created-at
+                                     :format #'r4-format-date))
+    (updated_at . ,(r4-column-create :name "updated_at" :width 10 :key #'r4-channel-updated-at
+                                     :format #'r4-format-date))
+    (description . ,(r4-column-create :name "description" :width 40
                                       :key #'r4-channel-description))
-    (url . ,(r4-column-create :name "Link" :width 30 :key #'r4-channel-url)))
+    (url . ,(r4-column-create :name "url" :width 30 :key #'r4-channel-url))
+    (image . ,(r4-column-create :name "image" :width 20 :key #'r4-channel-image)))
   "Columns available in channel lists, see `r4-channels-columns'.
-The Active column is the date of the latest track.")
+They are named after the fields of the channels of radio4000.com.")
 
-(defcustom r4-channels-columns '(slug name tracks latest created updated description)
+(defcustom r4-channels-columns
+  '(slug name track_count latest_track_at created_at updated_at description)
   "Columns of the channel lists, among `r4-channels-column-specs'."
   :type (r4-columns-custom-type r4-channels-column-specs)
   :group 'r4)

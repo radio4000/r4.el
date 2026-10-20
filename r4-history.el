@@ -67,8 +67,8 @@ TIME is an ISO 8601 timestamp.")
 (add-hook 'r4-player-track-changed-hook #'r4-history--record)
 
 (add-to-list 'r4-tracks-column-specs
-             `(played . ,(r4-column-create
-                          :name "Played" :width 16
+             `(time . ,(r4-column-create
+                          :name "time" :width 16
                           :key (lambda (track) (gethash track r4-history--times))
                           :format (lambda (time)
                                     (if time
@@ -93,7 +93,7 @@ TIME is an ISO 8601 timestamp.")
   "List the played tracks, newest first."
   (interactive)
   (r4-tracks-show '(:history t :name "history"
-                    :columns (status played channel title duration))))
+                    :columns (status time slug title duration))))
 
 (defun r4-history-clear ()
   "Forget all the played tracks."

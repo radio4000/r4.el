@@ -171,7 +171,7 @@ Everyone listening hears the same track at the same second."
   (interactive (list (r4-read-channel "Auto-radio of channel: @")))
   (message "Fetching @%s…" slug)
   (r4-api-tracks (lambda (tracks)
-                   (r4-auto-radio-play tracks (concat "@" slug) (concat "auto-radio @" slug)))
+                   (r4-auto-radio-play tracks (concat "@" slug) (concat "auto radio @" slug)))
                  :slug slug))
 
 (defun r4-tracks-auto-radio ()
@@ -186,7 +186,7 @@ For a whole channel, it is the same as on radio4000.com."
          (name (r4-tracks--describe-source source)))
     (r4-auto-radio-play (r4-tracks--visible)
                         (if whole-channel (concat "@" (plist-get source :slug)) name)
-                        (concat "auto-radio " name))))
+                        (concat "auto radio " name))))
 
 (defun r4-channels-auto-radio ()
   "Tune in to the auto-radio of the channel at point."

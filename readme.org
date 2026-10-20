@@ -1,6 +1,7 @@
 * r4.el
 Browse, play and download [[https://radio4000.com][radio4000.com]] channels from Emacs: everything
-radio4000.com and the =r4= command line do, in Emacs lists and menus.
+radio4000.com and the =r4= command line do, with the same words, in
+Emacs lists and menus.
 
 - Browse, explore and search channels and tracks, with the search
   language of radio4000.com: =@ko002 #jazz miles=.
@@ -200,17 +201,19 @@ broadcasting live; =RET= follows one, until you play something else.
       r4-channels-min-tracks 10)                 ; hide small channels
 #+end_src
 
-Choose the columns of the lists, and sort them with =S= or by clicking
-a column header:
+Choose the columns of the lists, named after the fields of the
+channels and tracks of radio4000.com, and sort them with =S= or by
+clicking a column header:
 
 #+begin_src emacs-lisp
-(setq r4-channels-columns '(slug name tracks latest created updated description)
-      r4-tracks-columns '(status created updated channel title duration tags description))
+(setq r4-channels-columns
+      '(slug name track_count latest_track_at created_at updated_at description)
+      r4-tracks-columns
+      '(status created_at updated_at slug title duration tags description))
 #+end_src
 
-All the available columns are listed in =r4-channels-column-specs= and
-=r4-tracks-column-specs=; =latest= is the date of the latest track of a
-channel.
+The other columns are =url= and =image= for channels, and =provider=,
+=media_id=, =url= and =discogs_url= for tracks.
 
 ** Local channels
 A local channel is a file in the radio4000.com backup format

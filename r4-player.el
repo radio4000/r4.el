@@ -67,7 +67,7 @@ Toggle it with `r4-player-toggle-video'."
   "Non-nil when the player is paused.")
 
 (defvar r4-player-label nil
-  "What the player plays, such as \"auto-radio @slug\", or nil.
+  "What the player plays, such as \"auto radio @slug\", or nil.
 When non-nil, the queue plays in order, without shuffle.")
 
 (defvar r4-player-next-function nil

@@ -9,6 +9,9 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 - One command per action, named after what it acts on: =r4-tracks-…=
   for the tracks of a list, =r4-channels-…= for channel lists,
   =r4-player-…= for the player.
+- Names come from radio4000.com: the columns are the fields of its
+  channels and tracks, such as =created_at= and =track_count=, and the
+  menus use the words of its interface.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
   sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.
 - The same key does the same thing in every list, and the player keys
@@ -34,7 +37,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Open the channel of a track              | link                                   | =r4-tracks-open-channel=  | =@=        |
 | Open on radio4000.com, the media         | share                                  | =r4-tracks-browse=, =r4-tracks-browse-media= | =o= =O= |
 | Copy links                               | share                                  | =r4-tracks-copy-url=, =r4-tracks-copy-web-url= | =w= =W= |
-| Sort by any column, choose columns       | sort menu                              | =tabulated-list-sort=, =r4-tracks-columns= | =S= |
+| Sort by any field, choose the fields shown | sort menu                            | =tabulated-list-sort=, =r4-tracks-columns= | =S= |
 
 * Play
 | Feature                          | Web                         | Emacs                         | Key           |
@@ -47,7 +50,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Pause, next, previous, stop      | =k=, =N=, =P=               | =r4-player-toggle-pause=, =r4-player-next=… | =SPC= =>= =<= =k= |
 | Seek, volume                     | player                      | =r4-player-seek-forward=…     | =]= =[= =+= =-= |
 | Shuffle, video                   | player                      | =r4-player-toggle-shuffle=, =r4-player-toggle-video= | =Z= =V= |
-| Play next, add to the queue      | track menu                  | =r4-tracks-play-next=, =r4-tracks-enqueue= | =N= =a= |
+| Play next, add to the queue      | track menu                  | =r4-tracks-play-next=, =r4-tracks-add-to-queue= | =N= =a= |
 | Queue: show, remove, clear       | queue panel                 | =r4-queue=, =r4-queue-remove=, =r4-player-clear= | =Q=, =x=, =C= |
 | Play history                     | /history                    | =r4-history=                  | menu =h=      |
 | Current track links              | player                      | =r4-player-copy-url=, =r4-player-copy-web-url= | menu =w= =W= |

@@ -50,24 +50,31 @@ non-nil if it handles the source.")
 (defvar r4-tracks-column-specs
   `((status . ,(r4-column-create :name " " :width 1 :key #'r4-tracks--status
                                  :format #'identity))
-    (created . ,(r4-column-create :name "Added" :width 10 :key #'r4-track-created-at
-                                  :format #'r4-format-date))
-    (updated . ,(r4-column-create :name "Updated" :width 10 :key #'r4-track-updated-at
-                                  :format #'r4-format-date))
-    (channel . ,(r4-column-create :name "Channel" :width 16 :key #'r4-track-slug
-                                  :format (lambda (slug) (concat "@" slug))))
-    (title . ,(r4-column-create :name "Title" :width 50 :key #'r4-track-title))
-    (duration . ,(r4-column-create :name "Time" :width 8 :key #'r4-track-duration
+    (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-track-created-at
+                                     :format #'r4-format-date))
+    (updated_at . ,(r4-column-create :name "updated_at" :width 10 :key #'r4-track-updated-at
+                                     :format #'r4-format-date))
+    (slug . ,(r4-column-create :name "slug" :width 16 :key #'r4-track-slug
+                               :format (lambda (slug) (concat "@" slug))))
+    (title . ,(r4-column-create :name "title" :width 50 :key #'r4-track-title))
+    (duration . ,(r4-column-create :name "duration" :width 8 :key #'r4-track-duration
                                    :format #'r4-format-duration :right-align t))
-    (tags . ,(r4-column-create :name "Tags" :width 16
+    (tags . ,(r4-column-create :name "tags" :width 16
                                :key (lambda (track) (string-join (r4-track-tags track) " "))))
-    (description . ,(r4-column-create :name "Description" :width 40
+    (description . ,(r4-column-create :name "description" :width 40
                                       :key #'r4-track-description))
-    (provider . ,(r4-column-create :name "Provider" :width 10 :key #'r4-track-provider))
-    (url . ,(r4-column-create :name "URL" :width 45 :key #'r4-track-url)))
-  "Columns available in track lists, see `r4-tracks-columns'.")
+    (provider . ,(r4-column-create :name "provider" :width 10 :key #'r4-track-provider))
+    (media_id . ,(r4-column-create :name "media_id" :width 12 :key #'r4-track-media-id))
+    (url . ,(r4-column-create :name "url" :width 45 :key #'r4-track-url))
+    (discogs_url . ,(r4-column-create :name "discogs_url" :width 30
+                                      :key #'r4-track-discogs-url)))
+  "Columns available in track lists, see `r4-tracks-columns'.
+They are named after the fields of the tracks of radio4000.com, and
+status shows ▶ for the playing track, ✓ when downloaded and ↓ when
+downloading.")
 
-(defcustom r4-tracks-columns '(status created channel title duration tags description)
+(defcustom r4-tracks-columns
+  '(status created_at updated_at slug title duration tags description)
   "Columns of the track lists, among `r4-tracks-column-specs'."
   :type (r4-columns-custom-type r4-tracks-column-specs)
   :group 'r4)

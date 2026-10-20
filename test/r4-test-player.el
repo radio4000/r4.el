@@ -79,10 +79,20 @@
           (should (equal (r4-track-title (cdar r4-history--entries)) "one"))
           (r4-history)
           (with-current-buffer "*r4 history*"
-            (should (equal (car (aref tabulated-list-format 1)) "Played"))
+            (should (equal (car (aref tabulated-list-format 1)) "time"))
             (should (equal (r4-track-title (tabulated-list-get-id (point-min))) "one")))
           (kill-buffer "*r4 history*"))
       (delete-file r4-history-file))))
+
+(ert-deftest r4-test-mode-line ()
+  (let ((r4-player-queue (vector (r4-test--track :title "Song")))
+        (r4-player-index 0) (r4-player-paused nil) (r4-player-label "auto radio @x"))
+    (cl-letf (((symbol-function 'r4-player-live-p) #'always))
+      (let ((string (r4-player-mode-line-string)))
+        (should (string-match-p "▶ \\[auto radio @x\\] Song" string))
+        (should (eq (get-text-property 1 'local-map string) r4-player-mode-line-map))
+        (should (eq (keymap-lookup r4-player-mode-line-map "<mode-line> <mouse-1>")
+                    'r4-player-toggle-pause))))))
 
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))

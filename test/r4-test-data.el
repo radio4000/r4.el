@@ -63,7 +63,7 @@
 
 (ert-deftest r4-test-columns-sort ()
   (let* ((specs r4-channels-column-specs)
-         (format (r4-columns-list-format '(slug tracks) specs))
+         (format (r4-columns-list-format '(slug track_count) specs))
          (sort-tracks (nth 2 (aref format 1)))
          (entry (lambda (count) (list (r4-channel-create :slug "x" :track-count count) nil))))
     ;; Numbers sort by value, not by text.
@@ -73,7 +73,7 @@
     ;; The last column takes the remaining width.
     (should (equal (nth 1 (aref format 1)) 0))
     (should (r4-columns-less-p "abc" "ABD"))
-    (should (equal (r4-columns-valid '(slug nope tracks) specs) '(slug tracks)))))
+    (should (equal (r4-columns-valid '(slug nope track_count) specs) '(slug track_count)))))
 
 (ert-deftest r4-test-channel-image-url ()
   (should (equal (r4-channel-image-url (r4-channel-create :image "abc") 100)
