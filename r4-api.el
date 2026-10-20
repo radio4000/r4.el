@@ -138,10 +138,29 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
 
 ;;;; Queries
 
+(defun r4-api-search-filter (query)
+  "Return the PostgREST `or' filter matching QUERY, or nil if empty.
+Like radio4000.com, match QUERY as a web search, with operators such
+as \"quotes\", or and -, and also each of its words as a prefix, so
+\"osk\" matches \"oskar\"."
+  (let ((safe (string-trim (replace-regexp-in-string
+                            "[ \t\n]+" " "
+                            (replace-regexp-in-string "[,()&|!*\"]" " " query)))))
+    (unless (string-empty-p safe)
+      (let ((words (unless (string-match-p "\\_<or\\_>\\|\\`-\\|[ ]-" (downcase safe))
+                     (delete "" (mapcar (lambda (word)
+                                          (replace-regexp-in-string "[^[:alnum:]]" "" word))
+                                        (split-string safe " "))))))
+        (format "(fts.wfts.%s%s)" safe
+                (if words
+                    (concat ",fts.fts." (mapconcat (lambda (word) (concat word ":*")) words " & "))
+                  ""))))))
+
 (defun r4-api--channels-params (&optional query)
   "Return the query params to list channels, optionally matching QUERY."
   `(("select" ,r4-api--channel-columns)
-    ,@(when query `(("fts" ,(concat "wfts." query))))
+    ,@(when-let* ((filter (and query (r4-api-search-filter query))))
+        `(("or" ,filter)))
     ,@(when (> r4-channels-min-tracks 0)
         `(("track_count" ,(format "gte.%d" r4-channels-min-tracks))))
     ("order" "latest_track_at.desc.nullslast")))
@@ -174,7 +193,8 @@ FILTERS is a plist with the optional keys :slug, a channel slug, and
     (r4-api-get "channel_tracks"
                 `(("select" ,r4-api--track-columns)
                   ,@(when slug `(("slug" ,(concat "eq." slug))))
-                  ,@(when query `(("fts" ,(concat "wfts." query))))
+                  ,@(when-let* ((filter (and query (r4-api-search-filter query))))
+                      `(("or" ,filter)))
                   ("order" "created_at.desc")
                   ("limit" ,(number-to-string
                              (if (and query (not slug))

@@ -37,11 +37,20 @@
   (should (equal (r4-one-line " a\n\tb ") "a b")))
 
 (ert-deftest r4-test-api-params ()
-  (should (equal (assoc "fts" (r4-api--channels-params "jazz blues"))
-                 '("fts" "wfts.jazz blues")))
-  (should-not (assoc "fts" (r4-api--channels-params)))
-  (should (string-match-p "fts=wfts.jazz%20blues"
+  (should (equal (assoc "or" (r4-api--channels-params "jazz blues"))
+                 '("or" "(fts.wfts.jazz blues,fts.fts.jazz:* & blues:*)")))
+  (should-not (assoc "or" (r4-api--channels-params)))
+  (should (string-match-p (regexp-quote "or=(fts.wfts.jazz%20blues,fts.fts.jazz:*%20%26%20blues:*)")
                           (r4-api--url "x" (r4-api--channels-params "jazz blues")))))
+
+(ert-deftest r4-test-search-filter ()
+  (should (equal (r4-api-search-filter "osk") "(fts.wfts.osk,fts.fts.osk:*)"))
+  ;; Web search operators disable the prefix search.
+  (should (equal (r4-api-search-filter "jazz -blues") "(fts.wfts.jazz -blues)"))
+  (should (equal (r4-api-search-filter "jazz or blues") "(fts.wfts.jazz or blues)"))
+  ;; Characters breaking the PostgREST syntax are removed.
+  (should (equal (r4-api-search-filter "a,b(c)") "(fts.wfts.a b c,fts.fts.a:* & b:* & c:*)"))
+  (should-not (r4-api-search-filter " , ")))
 
 (ert-deftest r4-test-download-basename ()
   (should (equal (r4-download-basename (r4-test--track :title "AC/DC: \"Live\"" :media-id "xyz"))
