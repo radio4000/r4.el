@@ -133,7 +133,11 @@
           (with-timeout (10 (ert-fail "Player did not advance"))
             (while (equal (r4-track-title (r4-player-current)) "one")
               (accept-process-output nil 0.1)))
-          (should (equal (r4-track-title (r4-player-current)) "two")))
+          (should (equal (r4-track-title (r4-player-current)) "two"))
+          (r4-player-copy-url)
+          (should (equal (current-kill 0) "https://www.youtube.com/watch?v=pmpXABDFMyE"))
+          (r4-player-copy-web-url)
+          (should (equal (current-kill 0) "https://radio4000.com/test/tracks/22222222-b")))
       (r4-player-stop)
       (delete-directory r4-download-directory t))))
 

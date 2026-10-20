@@ -116,6 +116,7 @@ In channel and track lists, =C-h m= shows all the keys. The main ones:
 | =i=       |                                    | Describe channel, with its image |
 | =s=       | Search tracks                      | Search channels       |
 | =o=       | Open on radio4000.com              | Open on radio4000.com |
+| =w= =W=   | Copy the media / radio4000.com URL |                       |
 | =g=       | Refresh                            | Refresh               |
 
 The status column of a tracks list shows =▶= for the playing track,

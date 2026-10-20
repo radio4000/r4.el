@@ -244,10 +244,30 @@ If INDEX is nil, play the first track, or a random one when shuffling."
   (force-mode-line-update t)
   (message "r4: stopped"))
 
+(defun r4-player--current-or-error ()
+  "Return the current track, or signal an error if nothing is playing."
+  (or (and r4-player-index (r4-player-current))
+      (user-error "Nothing is playing")))
+
 (defun r4-player-browse-current ()
   "Open the current track on radio4000.com."
   (interactive)
-  (browse-url (r4-track-web-url (or (r4-player-current) (user-error "Nothing is playing")))))
+  (browse-url (r4-track-web-url (r4-player--current-or-error))))
+
+(defun r4-player--copy (url)
+  "Copy URL to the kill ring and say so."
+  (kill-new url)
+  (message "Copied %s" url))
+
+(defun r4-player-copy-url ()
+  "Copy the media URL of the current track, such as its YouTube link."
+  (interactive)
+  (r4-player--copy (r4-track-url (r4-player--current-or-error))))
+
+(defun r4-player-copy-web-url ()
+  "Copy the radio4000.com URL of the current track."
+  (interactive)
+  (r4-player--copy (r4-track-web-url (r4-player--current-or-error))))
 
 ;;;; Mode line
 
@@ -304,6 +324,9 @@ If INDEX is nil, play the first track, or a random one when shuffling."
   "b" #'r4-player-seek-backward
   "+" #'r4-player-volume-up
   "-" #'r4-player-volume-down
+  "w" #'r4-player-copy-url
+  "W" #'r4-player-copy-web-url
+  "o" #'r4-player-browse-current
   "k" #'r4-player-stop)
 
 (define-derived-mode r4-queue-mode tabulated-list-mode "r4 queue"

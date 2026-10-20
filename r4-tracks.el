@@ -238,6 +238,13 @@ non-nil if it handles the source.")
     (kill-new url)
     (message "Copied %s" url)))
 
+(defun r4-tracks-copy-web-url ()
+  "Copy the radio4000.com URL of the track at point."
+  (interactive)
+  (let ((url (r4-track-web-url (r4-tracks--at-point))))
+    (kill-new url)
+    (message "Copied %s" url)))
+
 (defun r4-tracks-open-file ()
   "Visit the downloaded file of the track at point in Dired."
   (interactive)
@@ -279,6 +286,7 @@ non-nil if it handles the source.")
   "o" #'r4-tracks-browse
   "O" #'r4-tracks-browse-media
   "w" #'r4-tracks-copy-url
+  "W" #'r4-tracks-copy-web-url
   "s" #'r4-tracks-search
   "c" #'r4-tracks-open-channel)
 

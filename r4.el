@@ -58,7 +58,9 @@
     ("-" "Volume down" r4-player-volume-down :transient t)
     ("z" "Toggle shuffle" r4-player-toggle-shuffle :transient t)
     ("Q" "Queue" r4-queue)
-    ("w" "Open current track on the web" r4-player-browse-current)
+    ("w" "Copy current track media URL" r4-player-copy-url)
+    ("W" "Copy current track radio4000.com URL" r4-player-copy-web-url)
+    ("e" "Open current track on radio4000.com" r4-player-browse-current)
     ("k" "Stop" r4-player-stop)]
    ["Download"
     ("D" "Download channel" r4-download-channel)
@@ -75,7 +77,7 @@
     ("G" "Get one of my channels" r4-sync-pull-channel)
     ("I" "Sign in" r4-login)
     ("O" "Sign out" r4-logout)
-    ("W" "Who am I" r4-whoami)]])
+    ("M" "Who am I" r4-whoami)]])
 
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")
 (define-obsolete-function-alias 'list-r4-channels #'r4-channels "0.2.0")
