@@ -1,11 +1,17 @@
-# test
-GET https://httpbin.org/get
+# Radio4000 Supabase REST API (PostgREST), as used by r4-api.el.
+# The apikey header is the public anon key, see `r4-api-key'.
 
-# r4
-GET https://api.radio4000.com
+# channels, most recently active first
+GET https://oupgudlkspsmzkmeovlh.supabase.co/rest/v1/channels_with_tracks?select=*&track_count=gte.1&order=latest_track_at.desc.nullslast
 
-# channels
-GET https://radio4000.firebaseio.com/channels.json
+# search channels
+GET https://oupgudlkspsmzkmeovlh.supabase.co/rest/v1/channels_with_tracks?select=*&fts=wfts.jazz
 
 # a channel
-GET https://radio4000.firebaseio.com/channels/-MUtFVq4220A23P7xsr9s.json?key=AIzaSyDu8ksQyO7t1hEAPjejIoA_xbMN7iiMakE2
+GET https://oupgudlkspsmzkmeovlh.supabase.co/rest/v1/channels_with_tracks?select=*&slug=eq.oskar
+
+# a channel tracks
+GET https://oupgudlkspsmzkmeovlh.supabase.co/rest/v1/channel_tracks?select=*&slug=eq.oskar&order=created_at.desc
+
+# search tracks
+GET https://oupgudlkspsmzkmeovlh.supabase.co/rest/v1/channel_tracks?select=*&fts=wfts.jazz&limit=100
