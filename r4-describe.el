@@ -131,7 +131,7 @@
       (r4-describe--buttons
        `(("Play" . ,(lambda () (r4-player-play (list track))))
          ("Play next" . ,(lambda () (r4-player-play-next (list track))))
-         ("Add to queue" . ,(lambda () (r4-player-enqueue (list track))))
+         ("Add to queue" . ,(lambda () (r4-player-add-to-queue (list track))))
          ("Download" . ,(lambda () (r4-download-tracks (list track))))
          ("Open channel" . ,(lambda () (r4-open-channel (r4-track-slug track))))
          ("Copy media URL" . ,(lambda () (kill-new (r4-track-url track)))))))))

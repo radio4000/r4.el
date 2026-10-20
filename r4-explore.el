@@ -76,7 +76,8 @@ Followers count most, then the tracks, then the recent activity."
     ("broadcasting" (r4-broadcasts))
     (_ (r4-channels-show (concat filter " channels")
                          (or (cdr (assoc filter r4-explore-filters))
-                             (user-error "Unknown filter %s" filter))))))
+                             (user-error "Unknown filter %s" filter))
+                         (list 'r4-explore filter)))))
 
 (provide 'r4-explore)
 

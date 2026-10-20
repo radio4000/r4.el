@@ -48,6 +48,9 @@ It is called with a callback, to call with the list of channels.")
           (when r4-channels--filter
             (format " %d/%d" (length channels) (length r4-channels--channels))))))
 
+(defvar-local r4-channels--command nil
+  "Command and arguments showing the channels of the buffer, for bookmarks.")
+
 (defvar-local r4-channels--name nil
   "Name of the channels of the buffer, such as \"following @oskar\".")
 
@@ -92,24 +95,55 @@ The Active column is the date of the latest track.")
                    (if query (format "channels matching \"%s\"" query) "channels")))
          (callback
           (lambda (channels)
-            (unless (or query fetch) (setq r4-channels--cache channels))
+            (unless (or query fetch) (r4-channels--set-cache channels))
             (when (buffer-live-p buffer)
               (with-current-buffer buffer
                 (setq r4-channels--channels channels)
                 (r4-channels-redisplay)
                 (message "%d %s" (length channels) name))))))
-    (message "Fetching %s…" name)
-    (if fetch
-        (funcall fetch callback)
-      (r4-api-channels callback query))))
+    (setq mode-line-process " loading…")
+    (force-mode-line-update)
+    (let ((r4-api-error-function (lambda (error) (r4-list-fetch-failed buffer error))))
+      (condition-case err
+          (if fetch
+              (funcall fetch callback)
+            (r4-api-channels callback query))
+        ((error user-error) (r4-list-fetch-failed buffer (error-message-string err)))))))
 
 ;;;; Completion
 
+(defcustom r4-channels-cache-file (locate-user-emacs-file "r4-channels.eld")
+  "File caching the list of channels, for instant completion, or nil."
+  :type '(choice (file :tag "File") (const :tag "No cache" nil))
+  :group 'r4)
+
+(defun r4-channels--set-cache (channels)
+  "Remember CHANNELS, the list of all channels, in memory and on disk."
+  (setq r4-channels--cache channels)
+  (when r4-channels-cache-file
+    (let ((print-length nil) (print-level nil))
+      (with-temp-file r4-channels-cache-file
+        (prin1 channels (current-buffer)))))
+  channels)
+
+(defun r4-channels--load-cache ()
+  "Load the channels of `r4-channels-cache-file', and refresh them soon."
+  (when (and r4-channels-cache-file (file-readable-p r4-channels-cache-file))
+    (when-let* ((channels (ignore-errors
+                            (with-temp-buffer
+                              (insert-file-contents r4-channels-cache-file)
+                              (read (current-buffer))))))
+      (setq r4-channels--cache channels)
+      (let ((r4-api-error-function #'ignore))
+        (r4-api-channels #'r4-channels--set-cache))
+      channels)))
+
 (defun r4-channels--all ()
-  "Return all channels, fetching them if needed."
+  "Return all channels, from the cache, or else fetching them."
   (or r4-channels--cache
+      (r4-channels--load-cache)
       (progn (message "Fetching channels…")
-             (setq r4-channels--cache (r4-api-channels-sync)))))
+             (r4-channels--set-cache (r4-api-channels-sync)))))
 
 (defvar r4-channel-history nil
   "Minibuffer history of channel slugs.")
@@ -213,12 +247,14 @@ clicking a column header.  Choose the columns with
   (setq-local revert-buffer-function #'r4-channels-revert)
   (tabulated-list-init-header))
 
-(defun r4-channels-show (name fetch)
-  "Show the channels NAME, fetched by FETCH, see `r4-channels--fetch'."
+(defun r4-channels-show (name fetch &optional command)
+  "Show the channels NAME, fetched by FETCH, see `r4-channels--fetch'.
+COMMAND, a list of a command and its arguments, shows them again."
   (with-current-buffer (get-buffer-create (format "*r4 %s*" name))
     (unless (derived-mode-p 'r4-channels-mode) (r4-channels-mode))
     (setq r4-channels--name name
-          r4-channels--fetch fetch)
+          r4-channels--fetch fetch
+          r4-channels--command command)
     (revert-buffer)
     (pop-to-buffer-same-window (current-buffer))))
 
@@ -227,7 +263,8 @@ clicking a column header.  Choose the columns with
   (with-current-buffer (get-buffer-create
                         (if query (format "*r4 channels \"%s\"*" query) "*r4 channels*"))
     (unless (derived-mode-p 'r4-channels-mode) (r4-channels-mode))
-    (setq r4-channels--query query)
+    (setq r4-channels--query query
+          r4-channels--command (if query (list 'r4-search-channels query) (list 'r4-channels)))
     (revert-buffer)
     (pop-to-buffer-same-window (current-buffer))))
 

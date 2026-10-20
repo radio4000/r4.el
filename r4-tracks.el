@@ -121,14 +121,26 @@ non-nil if it handles the source.")
       (r4-tracks-redisplay)
       (message "%d tracks for %s" (length tracks) (r4-tracks--describe-source r4-tracks--source)))))
 
+(defun r4-list-fetch-failed (buffer error)
+  "Show in BUFFER, a list, that fetching it failed with ERROR."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq mode-line-process (propertize " failed" 'face 'error))
+      (force-mode-line-update)))
+  (message "%s (g to retry)" error))
+
 (defun r4-tracks-revert (&rest _)
   "Fetch the tracks of the buffer again."
-  (let ((buffer (current-buffer))
-        (source r4-tracks--source))
-    (message "Fetching tracks for %s…" (r4-tracks--describe-source source))
-    (let ((callback (lambda (tracks) (r4-tracks--set buffer tracks))))
-      (unless (run-hook-with-args-until-success 'r4-tracks-fetch-functions source callback)
-        (apply #'r4-api-tracks callback source)))))
+  (let* ((buffer (current-buffer))
+         (source r4-tracks--source)
+         (callback (lambda (tracks) (r4-tracks--set buffer tracks)))
+         (r4-api-error-function (lambda (error) (r4-list-fetch-failed buffer error))))
+    (setq mode-line-process " loading…")
+    (force-mode-line-update)
+    (condition-case err
+        (unless (run-hook-with-args-until-success 'r4-tracks-fetch-functions source callback)
+          (apply #'r4-api-tracks callback source))
+      ((error user-error) (r4-list-fetch-failed buffer (error-message-string err))))))
 
 (defun r4-tracks-update-status (ids)
   "Update the status of the tracks with IDS in all track lists."
@@ -200,10 +212,10 @@ non-nil if it handles the source.")
   (interactive)
   (r4-player-play (r4-tracks--displayed)))
 
-(defun r4-tracks-enqueue ()
+(defun r4-tracks-add-to-queue ()
   "Add the marked tracks, or the track at point, to the end of the queue."
   (interactive)
-  (r4-player-enqueue (r4-tracks--marked))
+  (r4-player-add-to-queue (r4-tracks--marked))
   (tabulated-list-clear-all-tags))
 
 (defun r4-tracks-play-next ()
@@ -309,7 +321,7 @@ With prefix argument RETRY, also retry the tracks that failed before."
   "RET" #'r4-tracks-play
   "P" #'r4-tracks-play-all
   "z" #'r4-tracks-shuffle
-  "a" #'r4-tracks-enqueue
+  "a" #'r4-tracks-add-to-queue
   "N" #'r4-tracks-play-next
   "m" #'r4-tracks-mark
   "u" #'r4-tracks-unmark
@@ -350,14 +362,19 @@ columns with `r4-tracks-columns'.
   (format "*r4 %s*" (r4-tracks--describe-source source)))
 
 ;;;###autoload
-(defun r4-tracks-show (source)
-  "Show the tracks of SOURCE, a plist with the keys :slug and :query."
+(defun r4-tracks-buffer (source)
+  "Return the buffer listing the tracks of SOURCE, fetching them.
+SOURCE is a plist, see `r4-tracks--source'."
   (with-current-buffer (get-buffer-create (r4-tracks-buffer-name source))
     (unless (derived-mode-p 'r4-tracks-mode) (r4-tracks-mode))
     (setq r4-tracks--source source)
     (r4-tracks--set-columns (or (plist-get source :columns) r4-tracks-columns))
     (revert-buffer)
-    (pop-to-buffer-same-window (current-buffer))))
+    (current-buffer)))
+
+(defun r4-tracks-show (source)
+  "Show the tracks of SOURCE, a plist, see `r4-tracks--source'."
+  (pop-to-buffer-same-window (r4-tracks-buffer source)))
 
 (add-hook 'r4-player-track-changed-hook #'r4-tracks--track-changed)
 (add-hook 'r4-download-changed-functions #'r4-tracks--downloads-changed)

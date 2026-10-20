@@ -229,7 +229,8 @@ In a local channel, remove them from the local channel."
   (setq r4-edit--my-channels nil)
   (let ((ids (mapcar #'r4-channel-id (r4-edit-my-channels))))
     (r4-channels-show "my channels"
-                      (lambda (callback) (r4-api-channels-by-id ids callback)))))
+                      (lambda (callback) (r4-api-channels-by-id ids callback))
+                      (list 'r4-my-channels))))
 
 (keymap-set r4-tracks-mode-map "A" #'r4-tracks-create)
 (keymap-set r4-tracks-mode-map "e" #'r4-tracks-edit)

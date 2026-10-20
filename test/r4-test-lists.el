@@ -107,6 +107,58 @@
           (kill-buffer "*r4 track Song*"))
       (delete-directory r4-download-directory t))))
 
+(ert-deftest r4-test-bookmark-tracks ()
+  (let ((r4-history-file nil) (r4-history--entries nil) (r4-history--loaded t))
+    (with-current-buffer (r4-tracks-buffer '(:history t :name "history"))
+      (r4-tracks-filter "#jazz")
+      (let ((record (r4-bookmark-make-tracks-record)))
+        (should (equal (car record) "r4 history"))
+        (kill-buffer)
+        (r4-bookmark-jump-tracks record)
+        (should (equal r4-tracks--source '(:history t :name "history")))
+        (should (equal r4-search--filter-text "#jazz"))
+        (should r4-tracks--filter)
+        (kill-buffer)))))
+
+(ert-deftest r4-test-bookmark-channels ()
+  (let (called)
+    (cl-letf (((symbol-function 'r4-following)
+               (lambda (slug) (setq called slug) (set-buffer (get-buffer-create "r4-test-following")))))
+      (r4-bookmark-jump-channels '("x" (r4-command r4-following "oskar")))
+      (should (equal called "oskar"))
+      (should (equal (buffer-name) "r4-test-following"))
+      (kill-buffer)
+      ;; Only r4 commands run.
+      (should-error (r4-bookmark-jump-channels '("x" (r4-command delete-file "/tmp/x")))
+                    :type 'user-error))))
+
+(ert-deftest r4-test-list-fetch-failed ()
+  (let ((r4-tracks-fetch-functions
+         (list (lambda (_source _callback) (error "Network down")))))
+    (with-current-buffer (r4-tracks-buffer '(:test t :name "failing"))
+      (should (string-match-p "failed" mode-line-process))
+      (kill-buffer)))
+  ;; Errors of asynchronous requests reach the function bound at the call.
+  (let (failure)
+    (cl-letf (((symbol-function 'url-retrieve)
+               (lambda (_url callback &rest _)
+                 (with-temp-buffer
+                   (setq-local url-http-end-of-headers (point-min))
+                   (funcall callback '(:error (error http 500)))))))
+      (let ((r4-api-error-function (lambda (error) (setq failure error))))
+        (r4-api-get "channels" nil #'ignore))
+      (should (string-match-p "http 500" failure)))))
+
+(ert-deftest r4-test-channels-cache ()
+  (let ((r4-channels-cache-file (make-temp-file "r4-channels"))
+        (r4-channels--cache nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'r4-api-channels) #'ignore))
+          (r4-channels--set-cache (list (r4-channel-create :slug "oskar")))
+          (setq r4-channels--cache nil)
+          (should (equal (mapcar #'r4-channel-slug (r4-channels--all)) '("oskar"))))
+      (delete-file r4-channels-cache-file))))
+
 (provide 'r4-test-lists)
 
 ;;; r4-test-lists.el ends here

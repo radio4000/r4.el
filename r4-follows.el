@@ -121,7 +121,8 @@ With a prefix argument, ask for the channel."
                     (lambda (callback)
                       (r4-api-channels-by-id
                        (r4-follows-following-ids (r4-follows--channel-id slug))
-                       callback))))
+                       callback))
+                    (list 'r4-following slug)))
 
 ;;;###autoload
 (defun r4-followers (slug)
@@ -132,7 +133,8 @@ With a prefix argument, ask for the channel."
                     (lambda (callback)
                       (r4-api-channels-by-id
                        (r4-follows-follower-ids (r4-follows--channel-id slug))
-                       callback))))
+                       callback))
+                    (list 'r4-followers slug)))
 
 (defun r4-follows--fetch-feed (source callback)
   "Call CALLBACK with the latest tracks of the channels SOURCE follows.

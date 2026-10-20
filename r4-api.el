@@ -83,11 +83,17 @@ The default hides the many empty channels."
   "Return a readable error message from the `url-retrieve' STATUS and body."
   (format "Radio4000 API error: %s" (or (r4-api--body-message) (plist-get status :error))))
 
+(defvar r4-api-error-function (lambda (error) (message "%s" error))
+  "Function called with the error message of a failed `r4-api-get'.
+Bind it around a call to `r4-api-get' to handle its errors.")
+
 (defun r4-api-get (table params callback)
   "Fetch rows of TABLE with PARAMS and call CALLBACK with the parsed rows.
-On failure, report the error with `message'."
+On failure, call `r4-api-error-function', as bound at the time of
+the call, with the error message."
   (let ((url-request-method "GET")
-        (url-request-extra-headers (r4-api--headers)))
+        (url-request-extra-headers (r4-api--headers))
+        (on-error r4-api-error-function))
     (url-retrieve
      (r4-api--url table params)
      (lambda (status)
@@ -99,7 +105,7 @@ On failure, report the error with `message'."
                          (error (list :error (error-message-string err)))))))
          (kill-buffer buffer)
          (if-let* ((error-message (plist-get result :error)))
-             (message "%s" error-message)
+             (funcall on-error error-message)
            (funcall callback (plist-get result :data)))))
      nil t t)))
 

@@ -222,7 +222,7 @@ plays the queue in order."
 
 ;;;; Queue operations
 
-(defun r4-player-enqueue (tracks)
+(defun r4-player-add-to-queue (tracks)
   "Add TRACKS at the end of the queue."
   (setq r4-player-queue (vconcat r4-player-queue tracks))
   (run-hooks 'r4-player-queue-changed-hook)
@@ -333,13 +333,22 @@ plays the queue in order."
 
 ;;;; Mode line
 
+(defvar-keymap r4-player-mode-line-map
+  :doc "Mouse keys of the player in the mode line."
+  "<mode-line> <mouse-1>" #'r4-player-toggle-pause
+  "<mode-line> <mouse-2>" #'r4-player-next
+  "<mode-line> <mouse-3>" #'r4-queue)
+
 (defun r4-player-mode-line-string ()
   "Return the mode line string of the player."
   (when-let* ((track (and r4-player-mode-line (r4-player-live-p) (r4-player-current))))
     (propertize (format " %s %s%s " (if r4-player-paused "⏸" "▶")
                         (if r4-player-label (format "[%s] " r4-player-label) "")
                         (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…"))
-                'help-echo (format "@%s: %s" (r4-track-slug track) (r4-track-title track)))))
+                'help-echo (format "@%s: %s\nmouse-1: pause or resume\nmouse-2: next track\nmouse-3: queue"
+                                   (r4-track-slug track) (r4-track-title track))
+                'mouse-face 'mode-line-highlight
+                'local-map r4-player-mode-line-map)))
 
 (defvar r4-player--mode-line-construct '(:eval (r4-player-mode-line-string))
   "Mode line construct of the player.")
