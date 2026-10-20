@@ -227,6 +227,10 @@ A local channel is a file in the radio4000.com backup format
 =r4-local-create-channel= creates one, =c= copies tracks to it from any
 list, and =C= saves a copy of a channel to browse it offline.
 
+A local channel is only on your computer: its tracks have no
+radio4000.com links, =s= searches the channel itself, and its menu
+offers to sync it instead, with =Y=.
+
 It can be imported into radio4000.com, versioned with git, or synced
 between machines like any other file.
 

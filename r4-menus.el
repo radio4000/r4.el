@@ -59,6 +59,18 @@
   "Return non-nil if a track is playing."
   (and (r4-player-live-p) (r4-player-current)))
 
+(defun r4-menus--local-list-p ()
+  "Return non-nil in the list of a local channel."
+  (plist-get r4-tracks--source :local))
+
+(defun r4-menus--remote-list-p ()
+  "Return non-nil in a list of tracks of radio4000.com."
+  (not (r4-menus--local-list-p)))
+
+(defun r4-menus--playing-remote-p ()
+  "Return non-nil if the playing track is on radio4000.com."
+  (and (r4-menus--playing-p) (not (r4-track-local-p (r4-player-current)))))
+
 (defun r4-menus--filter ()
   "Return the description of the filter of the track list."
   (if r4-search--filter-text
@@ -126,8 +138,8 @@
   ["Share the playing track"
    :if r4-menus--playing-p
    ("w" "Copy media URL" r4-player-copy-url)
-   ("W" "Copy radio4000.com URL" r4-player-copy-web-url)
-   ("e" "Open on radio4000.com" r4-player-browse-current)])
+   ("W" "Copy radio4000.com URL" r4-player-copy-web-url :if r4-menus--playing-remote-p)
+   ("e" "Open on radio4000.com" r4-player-browse-current :if r4-menus--playing-remote-p)])
 
 ;;;###autoload (autoload 'r4-local-menu "r4-menus" nil t)
 (r4-menus--define r4-local-menu
@@ -176,7 +188,7 @@
     ("/" r4-tracks-filter :description r4-menus--filter)
     ("#" "Filter by tags" r4-tracks-filter-tag)
     ("i" "Describe track" r4-tracks-describe)
-    ("@" "Go to channel" r4-tracks-open-channel)
+    ("@" "Go to channel" r4-tracks-open-channel :if r4-menus--remote-list-p)
     ("S" "Sort by column" tabulated-list-sort)
     ("g" "Refresh" revert-buffer)]
    ["Select"
@@ -195,13 +207,13 @@
     ("x" "Delete track" r4-tracks-delete)]
    ["Local"
     ("c" "Add to local channel" r4-tracks-copy-to-local)
-    ("C" "Backup channel" r4-tracks-save-local)
-    ("Y" "Sync local channel" r4-tracks-sync)]
+    ("C" "Backup channel" r4-tracks-save-local :if r4-menus--remote-list-p)
+    ("Y" "Sync local channel" r4-tracks-sync :if r4-menus--local-list-p)]
    ["Share"
-    ("o" "Open on radio4000.com" r4-tracks-browse)
+    ("o" "Open on radio4000.com" r4-tracks-browse :if r4-menus--remote-list-p)
     ("O" "Open media" r4-tracks-browse-media)
     ("w" "Copy media URL" r4-tracks-copy-url)
-    ("W" "Copy radio4000.com URL" r4-tracks-copy-web-url)]])
+    ("W" "Copy radio4000.com URL" r4-tracks-copy-web-url :if r4-menus--remote-list-p)]])
 
 ;;;###autoload (autoload 'r4-channels-menu "r4-menus" nil t)
 (r4-menus--define r4-channels-menu

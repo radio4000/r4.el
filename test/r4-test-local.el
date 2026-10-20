@@ -61,6 +61,31 @@
             (kill-buffer)))
       (delete-directory r4-download-directory t))))
 
+(ert-deftest r4-test-local-tracks-not-on-radio4000 ()
+  (let ((r4-download-directory (make-temp-file "r4-test" t)))
+    (unwind-protect
+        (progn
+          (r4-local-create-channel "Mine")
+          (r4-local-add-track "mine" "https://youtu.be/aaaaaaaaaaa" "Song" "")
+          (let ((track (car (cdr (r4-local-read "mine")))))
+            (should (r4-track-local-p track))
+            (should-error (r4-track-web-url track) :type 'user-error)
+            ;; No radio4000.com URL in the metadata of its download.
+            (let ((job (r4-download-create :track track :album "Mine")))
+              (should-not (cl-find-if (lambda (arg) (string-match-p "meta_comment" arg))
+                                      (r4-download--command job))))
+            (r4-describe-track track)
+            (with-current-buffer "*r4 track Song*"
+              (should-not (string-match-p "Web:" (buffer-string)))
+              (kill-buffer)))
+          (with-current-buffer (r4-tracks-buffer '(:slug "mine" :local t))
+            ;; s filters the local channel, and C cannot replace it.
+            (r4-tracks-search "song")
+            (should (equal r4-search--filter-text "song"))
+            (should-error (r4-tracks-save-local) :type 'user-error)
+            (kill-buffer)))
+      (delete-directory r4-download-directory t))))
+
 (provide 'r4-test-local)
 
 ;;; r4-test-local.el ends here

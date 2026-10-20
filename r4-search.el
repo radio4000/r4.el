@@ -50,16 +50,25 @@ titles and descriptions."
 
 (define-obsolete-function-alias 'r4-search-tracks #'r4-search "0.3.0")
 
+(defvar-local r4-search--filter-text nil
+  "Text of the filter of the tracks shown.")
+
 (defun r4-tracks-search (text)
-  "Search tracks with TEXT, in the channel of the buffer unless it has @slug."
-  (interactive (list (read-string "Search tracks (#tag words): " nil 'r4-search-history)))
-  (let ((slug (plist-get r4-tracks--source :slug))
-        (source (r4-search-parse text)))
-    (unless source (user-error "Empty search"))
-    (when (and slug (not (plist-get source :slugs)))
-      (setq text (format "@%s %s" slug text)
-            source (append (list :slugs (list slug)) source)))
-    (r4-tracks-show (append (list :name (string-trim text)) source))))
+  "Search tracks with TEXT, in the channel of the buffer unless it has @slug.
+In a local channel, filter its tracks instead, see `r4-tracks-filter'."
+  (interactive (list (read-string "Search tracks (#tag words): "
+                                  (and (plist-get r4-tracks--source :local)
+                                       r4-search--filter-text)
+                                  'r4-search-history)))
+  (if (plist-get r4-tracks--source :local)
+      (r4-tracks-filter text)
+    (let ((slug (plist-get r4-tracks--source :slug))
+          (source (r4-search-parse text)))
+      (unless source (user-error "Empty search"))
+      (when (and slug (not (plist-get source :slugs)))
+        (setq text (format "@%s %s" slug text)
+              source (append (list :slugs (list slug)) source)))
+      (r4-tracks-show (append (list :name (string-trim text)) source)))))
 
 ;;;###autoload
 (defun r4-mentions (slug)
@@ -91,9 +100,6 @@ Every @slug, #tag and word must match."
                                                (r4-track-description track) " @"
                                                (r4-track-slug track)))))
                (cl-every (lambda (word) (string-search word haystack)) words)))))))
-
-(defvar-local r4-search--filter-text nil
-  "Text of the filter of the tracks shown.")
 
 (defun r4-tracks-filter (text)
   "Only show the tracks matching TEXT, such as \"#jazz miles\".

@@ -115,7 +115,8 @@
                 (json-parse-buffer :object-type 'alist :array-type 'list
                                    :null-object nil :false-object nil))))
     (cons (r4-channel-from-json (alist-get 'channel data))
-          (mapcar #'r4-track-from-json (alist-get 'tracks data)))))
+          (mapcar (lambda (row) (r4-track-mark-local (r4-track-from-json row)))
+                  (alist-get 'tracks data)))))
 
 (defun r4-local-write (channel tracks)
   "Write the local CHANNEL with its TRACKS, newest first."
@@ -286,6 +287,8 @@ An existing local channel SLUG is replaced."
 (defun r4-tracks-save-local ()
   "Save a local copy of the channel of this buffer."
   (interactive)
+  (when (plist-get r4-tracks--source :local)
+    (user-error "This is already a local channel"))
   (r4-local-save-channel (or (plist-get r4-tracks--source :slug)
                              (user-error "Not a channel"))))
 

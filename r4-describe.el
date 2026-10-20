@@ -124,7 +124,8 @@
       (r4-describe--field "Provider" (r4-track-provider track))
       (r4-describe--link "Media" (r4-track-url track))
       (r4-describe--link "Discogs" (r4-track-discogs-url track))
-      (r4-describe--link "Web" (r4-track-web-url track))
+      (unless (r4-track-local-p track)
+        (r4-describe--link "Web" (r4-track-web-url track)))
       (dolist (file (r4-files-track-files track))
         (r4-describe--field "File" file))
       (insert "\n")
@@ -133,7 +134,7 @@
          ("Play next" . ,(lambda () (r4-player-play-next (list track))))
          ("Add to queue" . ,(lambda () (r4-player-add-to-queue (list track))))
          ("Download" . ,(lambda () (r4-download-tracks (list track))))
-         ("Open channel" . ,(lambda () (r4-open-channel (r4-track-slug track))))
+         ("Open channel" . ,(lambda () (r4-tracks--visit-channel track)))
          ("Copy media URL" . ,(lambda () (kill-new (r4-track-url track)))))))))
 
 (defun r4-tracks-describe ()

@@ -77,8 +77,25 @@
             (r4-channel-latitude channel) (r4-channel-longitude channel)
             (r4-channel-latitude channel) (r4-channel-longitude channel))))
 
+(defvar r4-track--local (make-hash-table :test #'eq :weakness 'key)
+  "Tracks read from local channels, see r4-local.el.")
+
+(defun r4-track-mark-local (track)
+  "Mark TRACK as a track of a local channel, and return it."
+  (puthash track t r4-track--local)
+  track)
+
+(defun r4-track-local-p (track)
+  "Return non-nil if TRACK is a track of a local channel.
+Local tracks are not on radio4000.com."
+  (gethash track r4-track--local))
+
 (defun r4-track-web-url (track)
-  "Return the radio4000.com URL of TRACK."
+  "Return the radio4000.com URL of TRACK.
+Signal an error for a track of a local channel, not on radio4000.com."
+  (when (r4-track-local-p track)
+    (user-error "\"%s\" is in a local channel, not on radio4000.com"
+                (r4-track-title track)))
   (format "%s/%s/tracks/%s" r4-web-url (r4-track-slug track) (r4-track-id track)))
 
 (defun r4-channel-image-url (channel &optional size)

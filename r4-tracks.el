@@ -334,10 +334,16 @@ With prefix argument RETRY, also retry the tracks that failed before."
                   (user-error "Track not downloaded"))))
     (dired-jump nil file)))
 
+(defun r4-tracks--visit-channel (track)
+  "Show the tracks of the channel of TRACK, local or on radio4000.com."
+  (r4-tracks-show (if (r4-track-local-p track)
+                      (list :slug (r4-track-slug track) :local t)
+                    (list :slug (r4-track-slug track)))))
+
 (defun r4-tracks-open-channel ()
   "Open the channel of the track at point."
   (interactive)
-  (r4-tracks-show (list :slug (r4-track-slug (r4-tracks--at-point)))))
+  (r4-tracks--visit-channel (r4-tracks--at-point)))
 
 (defvar-keymap r4-tracks-mode-map
   :doc "Keymap for `r4-tracks-mode'."

@@ -106,8 +106,9 @@ CHANNEL-TRACKS are all the tracks of the channel, for its playlist."
       `("--parse-metadata" ,(concat (r4-download--literal (r4-track-title track)) ":%(title)s")
         "--parse-metadata" "title:(?P<artist>.+?) - (?P<title>.+)"
         "--parse-metadata" ,(concat (r4-download--literal (r4-download-album job)) ":%(album)s")
-        "--parse-metadata" ,(concat (r4-download--literal (r4-track-web-url track))
-                                    ":%(meta_comment)s")
+        ,@(unless (r4-track-local-p track)
+            (list "--parse-metadata"
+                  (concat (r4-download--literal (r4-track-web-url track)) ":%(meta_comment)s")))
         ,@(when-let* ((description (r4-track-description track))
                       ((not (string-blank-p description))))
             (list "--parse-metadata"
