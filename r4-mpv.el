@@ -33,12 +33,25 @@
   "Return non-nil if mpv is running."
   (and (process-live-p r4-mpv--process) (process-live-p r4-mpv--ipc)))
 
-(defun r4-mpv-start (program arguments)
-  "Start PROGRAM, mpv, with ARGUMENTS, and connect to its IPC socket."
+(defun r4-mpv--environment (changes)
+  "Return `process-environment' with CHANGES.
+CHANGES are \"NAME=VALUE\" to set, or \"NAME\" to unset."
+  (append (cl-remove-if-not (lambda (change) (string-search "=" change)) changes)
+          (cl-remove-if (lambda (entry)
+                          (cl-some (lambda (change)
+                                     (string-prefix-p (concat (car (split-string change "=")) "=")
+                                                      entry))
+                                   changes))
+                        process-environment)))
+
+(defun r4-mpv-start (program arguments &optional environment)
+  "Start PROGRAM, mpv, with ARGUMENTS, and connect to its IPC socket.
+ENVIRONMENT changes its environment, see `r4-mpv--environment'."
   (unless (executable-find program)
     (user-error "Cannot find `%s', please install it" program))
   (r4-mpv-kill)
-  (let ((socket (r4-mpv--socket)))
+  (let ((socket (r4-mpv--socket))
+        (process-environment (r4-mpv--environment environment)))
     (ignore-errors (delete-file socket))
     (setq r4-mpv--process
           (make-process

@@ -216,6 +216,12 @@
       (r4-broadcast--check)
       (should-not r4-broadcast--listening))))
 
+(ert-deftest r4-test-mpv-environment ()
+  (let ((process-environment '("LIBGL_ALWAYS_SOFTWARE=1" "HOME=/home/x" "LANG=C")))
+    (should (equal (r4-mpv--environment '("LIBGL_ALWAYS_SOFTWARE" "LANG=fr_FR.UTF-8"))
+                   '("LANG=fr_FR.UTF-8" "HOME=/home/x")))
+    (should (equal (r4-mpv--environment nil) process-environment))))
+
 (provide 'r4-test-player)
 
 ;;; r4-test-player.el ends here

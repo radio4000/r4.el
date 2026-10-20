@@ -28,6 +28,14 @@
   :type '(repeat string)
   :group 'r4)
 
+(defcustom r4-player-environment '("LIBGL_ALWAYS_SOFTWARE")
+  "Changes to the environment of `r4-player-program'.
+Each is \"NAME=VALUE\" to set a variable, or \"NAME\" to unset it.
+The default unsets LIBGL_ALWAYS_SOFTWARE, set by the Emacs snap, with
+which mpv crashes when it shows a video."
+  :type '(repeat string)
+  :group 'r4)
+
 (defcustom r4-player-video nil
   "When non-nil, play videos in a window, else only audio.
 Toggle it with `r4-player-toggle-video'."
@@ -93,7 +101,7 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defun r4-player--send (&rest command)
   "Send COMMAND, a list of arguments, to mpv, starting it if needed."
   (unless (r4-mpv-live-p)
-    (r4-mpv-start r4-player-program r4-player-arguments)
+    (r4-mpv-start r4-player-program r4-player-arguments r4-player-environment)
     (r4-mpv-send "observe_property" 1 "pause")
     (r4-player--apply-video)
     (r4-player--mode-line-setup))
