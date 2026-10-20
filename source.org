@@ -44,6 +44,10 @@ The play queue.
 Auto-radio: a live radio without a broadcaster, the same for everyone.
 #+INCLUDE: "r4-auto-radio.el" src emacs-lisp
 
+** r4-broadcast.el
+Listening to live broadcasts.
+#+INCLUDE: "r4-broadcast.el" src emacs-lisp
+
 ** r4-history.el
 The tracks played, kept on this computer.
 #+INCLUDE: "r4-history.el" src emacs-lisp

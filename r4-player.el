@@ -72,7 +72,7 @@ When non-nil, the queue plays in order, without shuffle.")
 (defvar r4-player-next-function nil
   "Function choosing the next track, or nil to play the queue.
 It returns a cons of the queue index and the start position in
-seconds.  Playing new tracks resets it.")
+seconds, or nil to play nothing.  Playing new tracks resets it.")
 
 (defvar r4-player-track-changed-hook nil
   "Hook run after the current track changed.")
@@ -84,6 +84,8 @@ seconds.  Playing new tracks resets it.")
 (defvar r4-player--ipc nil "The network process connected to mpv.")
 (defvar r4-player--history nil "Indexes of the previously played tracks.")
 (defvar r4-player--start-at nil "Position in seconds to seek to, once loaded.")
+(defvar r4-player--requests (make-hash-table) "Callbacks of mpv requests, by id.")
+(defvar r4-player--request-id 0 "Id of the last mpv request.")
 
 (defun r4-player--socket ()
   "Return the file name of the mpv IPC socket."
@@ -161,9 +163,21 @@ seconds.  Playing new tracks resets it.")
         (r4-player--handle-event
          (json-parse-string line :object-type 'alist :null-object nil :false-object nil))))))
 
+(defun r4-player-get-property (name callback)
+  "Call CALLBACK with the value of the mpv property NAME, or nil."
+  (when (r4-player-live-p)
+    (let ((id (cl-incf r4-player--request-id)))
+      (puthash id callback r4-player--requests)
+      (process-send-string
+       r4-player--ipc
+       (concat (json-serialize `((command . ["get_property" ,name]) (request_id . ,id))) "\n")))))
+
 (defun r4-player--handle-event (event)
   "Handle the mpv EVENT, an alist."
   (let-alist event
+    (when-let* ((callback (and .request_id (gethash .request_id r4-player--requests))))
+      (remhash .request_id r4-player--requests)
+      (funcall callback (and (equal .error "success") .data)))
     (pcase .event
       ("end-file"
        (pcase .reason
@@ -232,9 +246,10 @@ plays the queue in order."
   (interactive)
   (unless r4-player-index (user-error "Nothing is playing"))
   (push r4-player-index r4-player--history)
-  (let ((next (and r4-player-next-function (funcall r4-player-next-function)))
-        (size (length r4-player-queue)))
-    (cond (next (r4-player--play-index (car next) (cdr next)))
+  (let ((size (length r4-player-queue)))
+    (cond (r4-player-next-function
+           (when-let* ((next (funcall r4-player-next-function)))
+             (r4-player--play-index (car next) (cdr next))))
           ((and (r4-player--shuffling-p) (> size 1))
            (r4-player--play-index (mod (+ r4-player-index 1 (random (1- size))) size)))
           (t (r4-player--play-index (mod (1+ r4-player-index) size))))))

@@ -345,6 +345,58 @@
         (should (< (abs (- (cdr position) offset)) 0.001))))
     (should (equal (r4-auto-radio--hash-string "@oskar") 2772611237))))
 
+(ert-deftest r4-test-broadcast-position ()
+  ;; Like calculateSeekTime of radio4000.com.
+  (let* ((now 1000000.0)
+         (ago (lambda (seconds) (format-time-string "%FT%T.%3NZ" (- now seconds) t))))
+    (should (equal (r4-broadcast-position
+                    `((seek_position . 10) (seeked_at . ,(funcall ago 5)) (is_playing . t))
+                    nil now)
+                   15))
+    (should (equal (r4-broadcast-position
+                    `((seek_position . 10) (seeked_at . ,(funcall ago 5)) (is_playing . nil))
+                    nil now)
+                   10))
+    (should (equal (r4-broadcast-position
+                    `((track_played_at . ,(funcall ago 30)) (speed . 2)) nil now)
+                   60))
+    (should-not (r4-broadcast-position `((track_played_at . ,(funcall ago 300))) 200 now))
+    (should-not (r4-broadcast-position `((track_played_at . ,(funcall ago -10))) nil now))
+    ;; The first deck of the broadcaster wins over the row.
+    (should (equal (r4-broadcast-deck '((track_id . "row") (decks ((track_id . "deck")))))
+                   '((track_id . "deck"))))))
+
+(ert-deftest r4-test-broadcast-listen ()
+  (let ((r4-broadcast--listening nil) (r4-broadcast--timer nil)
+        (r4-player-label nil) (r4-player-index nil) (r4-player-next-function nil)
+        (row `((channel_id . "c1") (track_id . "t1")
+               (track_played_at . ,(format-time-string "%FT%T.%3NZ" (- (float-time) 42) t))))
+        played)
+    (cl-letf (((symbol-function 'run-with-timer) #'ignore)
+              ((symbol-function 'r4-broadcast--fetch) (lambda (_id callback) (funcall callback row)))
+              ((symbol-function 'r4-broadcast--fetch-track)
+               (lambda (id callback) (funcall callback (r4-test--track :id id :duration 300))))
+              ((symbol-function 'r4-player-live-p) #'ignore)
+              ((symbol-function 'r4-player-play)
+               (lambda (tracks _index start label)
+                 (setq played (list (r4-track-id (car tracks)) start label)
+                       r4-player-label label r4-player-index 0))))
+      (r4-broadcast-listen "c1" "dj")
+      (r4-broadcast--check)
+      (should (equal (car played) "t1"))
+      (should (<= 42 (nth 1 played) 43))
+      (should (equal (nth 2 played) "broadcast @dj"))
+      (should (eq r4-player-next-function #'r4-broadcast--next))
+      ;; Playing something else leaves the broadcast.
+      (setq r4-player-label nil)
+      (r4-broadcast--check)
+      (should-not r4-broadcast--listening)
+      ;; So does the end of the broadcast.
+      (r4-broadcast-listen "c1" "dj")
+      (setq row nil)
+      (r4-broadcast--check)
+      (should-not r4-broadcast--listening))))
+
 (ert-deftest r4-test-tracks-status-update ()
   (let ((buffer (generate-new-buffer "r4-test"))
         (r4-download-directory (make-temp-file "r4-test" t))

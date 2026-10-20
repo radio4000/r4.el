@@ -26,6 +26,7 @@
 (require 'r4-follows)
 (require 'r4-edit)
 (require 'r4-auto-radio)
+(require 'r4-broadcast)
 
 (eval-and-compile
   (defconst r4-menus--player
@@ -65,6 +66,7 @@
    ["Current track"
     ("P" "Play channel" r4-play-channel)
     ("R" "Auto-radio of channel" r4-auto-radio)
+    ("b" "Live broadcasts" r4-broadcasts)
     ("w" "Copy media URL" r4-player-copy-url)
     ("W" "Copy radio4000.com URL" r4-player-copy-web-url)
     ("e" "Open on radio4000.com" r4-player-browse-current)]]
