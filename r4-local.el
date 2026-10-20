@@ -88,7 +88,9 @@
                                      (track_count . r4-channel-track-count)
                                      (latest_track_at . r4-channel-latest-track-at)
                                      (created_at . r4-channel-created-at)
-                                     (updated_at . r4-channel-updated-at))
+                                     (updated_at . r4-channel-updated-at)
+                                     (latitude . r4-channel-latitude)
+                                     (longitude . r4-channel-longitude))
            collect (cons key (r4-local--json-value (funcall accessor channel)))))
 
 (defun r4-local--track-to-json (track)

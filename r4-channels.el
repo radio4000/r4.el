@@ -31,6 +31,23 @@
   "Function fetching the channels of the buffer, or nil for a search.
 It is called with a callback, to call with the list of channels.")
 
+(defvar-local r4-channels--channels nil
+  "List of the `r4-channel' of the buffer, as fetched.")
+
+(defvar-local r4-channels--filter nil
+  "Predicate of the channels shown, or nil to show all.")
+
+(defun r4-channels-redisplay ()
+  "Redisplay the channels of the buffer, without fetching them."
+  (let ((channels (if r4-channels--filter
+                      (seq-filter r4-channels--filter r4-channels--channels)
+                    r4-channels--channels)))
+    (setq tabulated-list-entries (r4-channels--entries channels))
+    (tabulated-list-print t)
+    (setq mode-line-process
+          (when r4-channels--filter
+            (format " %d/%d" (length channels) (length r4-channels--channels))))))
+
 (defvar-local r4-channels--name nil
   "Name of the channels of the buffer, such as \"following @oskar\".")
 
@@ -78,8 +95,8 @@ The Active column is the date of the latest track.")
             (unless (or query fetch) (setq r4-channels--cache channels))
             (when (buffer-live-p buffer)
               (with-current-buffer buffer
-                (setq tabulated-list-entries (r4-channels--entries channels))
-                (tabulated-list-print t)
+                (setq r4-channels--channels channels)
+                (r4-channels-redisplay)
                 (message "%d %s" (length channels) name))))))
     (message "Fetching %s…" name)
     (if fetch
@@ -160,6 +177,8 @@ The Active column is the date of the latest track.")
   "Open the channel at point on radio4000.com."
   (interactive)
   (browse-url (r4-channel-web-url (r4-channels--at-point))))
+
+(declare-function r4-describe-channel "r4-describe")
 
 (defun r4-channels-describe ()
   "Describe the channel at point."
@@ -256,69 +275,6 @@ With a prefix argument, also retry the tracks that failed before."
           (r4-download-tracks tracks :channel channel :channel-tracks tracks
                               :retry current-prefix-arg)))
       :slug slug))))
-
-(defcustom r4-channel-image-size 250
-  "Size in pixels of the channel image in channel descriptions.
-0 hides the image."
-  :type 'natnum
-  :group 'r4)
-
-(defun r4-channels--insert-image (channel)
-  "Insert the image of CHANNEL at point, once it is fetched."
-  (when-let* (((display-images-p))
-              ((> r4-channel-image-size 0))
-              (url (r4-channel-image-url channel r4-channel-image-size)))
-    (let ((buffer (current-buffer))
-          (marker (point-marker)))
-      (r4-api-fetch-image
-       url
-       (lambda (image)
-         (when (and image (buffer-live-p buffer))
-           (with-current-buffer buffer
-             (let ((inhibit-read-only t))
-               (save-excursion
-                 (goto-char marker)
-                 (insert-image image "[image]")
-                 (insert "\n\n"))))))))))
-
-;;;###autoload
-(defun r4-describe-channel (channel)
-  "Describe CHANNEL, an `r4-channel' or a slug."
-  (interactive (list (r4-read-channel "Describe channel: @")))
-  (if (stringp channel)
-      (r4-api-channel channel
-                      (lambda (found)
-                        (if found
-                            (r4-describe-channel found)
-                          (message "No channel @%s" channel))))
-    (with-help-window (format "*r4 @%s info*" (r4-channel-slug channel))
-      (with-current-buffer standard-output
-        (r4-channels--insert-image channel)
-        (insert (propertize (or (r4-channel-name channel) "") 'face 'bold)
-                "  @" (r4-channel-slug channel) "\n\n")
-        (when-let* ((description (r4-channel-description channel)))
-          (insert description "\n\n"))
-        (insert (format "Tracks:      %s\n" (or (r4-channel-track-count channel) 0))
-                (format "Created:     %s\n" (r4-format-date (r4-channel-created-at channel)))
-                (format "Updated:     %s\n" (r4-format-date (r4-channel-updated-at channel)))
-                (format "Last track:  %s\n" (r4-format-date (r4-channel-latest-track-at channel))))
-        (unless (string-empty-p (or (r4-channel-url channel) ""))
-          (insert "Link:        ")
-          (insert-button (r4-channel-url channel) 'type 'help-url
-                         'help-args (list (r4-channel-url channel)))
-          (insert "\n"))
-        (insert "Web:         ")
-        (insert-button (r4-channel-web-url channel) 'type 'help-url
-                       'help-args (list (r4-channel-web-url channel)))
-        (insert "\nDownloads:   " (r4-files-channel-directory (r4-channel-slug channel)) "\n\n")
-        (insert-text-button "[Open tracks]" 'action
-                            (lambda (_) (r4-open-channel (r4-channel-slug channel))))
-        (insert "  ")
-        (insert-text-button "[Play]" 'action
-                            (lambda (_) (r4-play-channel (r4-channel-slug channel))))
-        (insert "  ")
-        (insert-text-button "[Download]" 'action
-                            (lambda (_) (r4-download-channel (r4-channel-slug channel))))))))
 
 (provide 'r4-channels)
 

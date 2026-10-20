@@ -27,6 +27,8 @@
 (require 'r4-edit)
 (require 'r4-auto-radio)
 (require 'r4-broadcast)
+(require 'r4-describe)
+(require 'r4-explore)
 
 (eval-and-compile
   (defconst r4-menus--player
@@ -57,6 +59,7 @@
   "Radio4000 menu."
   [["Browse"
     ("c" "Channels" r4-channels)
+    ("x" "Explore: featured, with artwork…" r4-explore)
     ("C" "Search channels" r4-search-channels)
     ("s" "Search tracks: @channel #tag words" r4-search)
     ("@" "Tracks mentioning a channel" r4-mentions)
@@ -82,7 +85,7 @@
     ("S" "Save channel locally" r4-local-save-channel)]
    ["Account"
     ("y" "My channels" r4-my-channels)
-    ("+" "Add a track to my channel" r4-add-track)
+    ("A" "Add a track to my channel" r4-add-track)
     ("f" "Feed of followed channels" r4-feed)
     ("m" "Channels I follow" r4-following)
     ("M" "My followers" r4-followers)
@@ -116,11 +119,12 @@
     ("s" "Search: #tag words" r4-tracks-search)
     ("/" "Filter shown tracks" r4-tracks-filter)
     ("#" "Filter by tags" r4-tracks-filter-tag)
+    ("i" "Describe track" r4-tracks-describe)
     ("@" "Open channel of track" r4-tracks-open-channel)
     ("g" "Refresh" revert-buffer)
     ("S" "Sort by column" tabulated-list-sort)]
    ["Edit (your or local channel)"
-    ("+" "Add a track" r4-tracks-create)
+    ("A" "Add a track" r4-tracks-create)
     ("e" "Edit track" r4-tracks-edit)
     ("x" "Delete tracks" r4-tracks-delete)]
    ["Local channels"
@@ -145,11 +149,12 @@
     ("D" "Download" r4-channels-download)
     ("C" "Save locally" r4-channels-save-local)]
    ["Edit (yours)"
-    ("+" "Create a channel" r4-create-channel)
+    ("A" "Create a channel" r4-create-channel)
     ("e" "Edit" r4-channels-edit)
     ("x" "Delete" r4-channels-delete)]
    ["Find"
     ("s" "Search channels" r4-search-channels)
+    ("/" "Filter shown channels" r4-channels-filter)
     ("t" "Search tracks" r4-search)
     ("M" "Tracks mentioning it" r4-channels-mentions)]
    ["Follow"

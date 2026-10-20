@@ -63,6 +63,50 @@
           (should (equal (length (r4-tracks--marked)) 1)))
       (kill-buffer buffer))))
 
+(ert-deftest r4-test-channels-filter ()
+  (let ((buffer (generate-new-buffer "r4-test")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (r4-channels-mode)
+          (setq r4-channels--channels
+                (list (r4-channel-create :slug "oskar" :name "Radio Oskar" :description "perfume")
+                      (r4-channel-create :slug "ko002" :name "Ko" :description "house")))
+          (r4-channels-redisplay)
+          (r4-channels-filter "radio perfume")
+          (should (equal (mapcar (lambda (e) (r4-channel-slug (car e))) tabulated-list-entries)
+                         '("oskar")))
+          (should (equal mode-line-process " 1/2"))
+          (r4-channels-filter "")
+          (should (equal (length tabulated-list-entries) 2)))
+      (kill-buffer buffer))))
+
+(ert-deftest r4-test-explore-featured-score ()
+  ;; Like featuredScore of radio4000.com: followers, then tracks, then activity.
+  (let ((now (format-time-string "%FT%TZ" nil t)))
+    (should (> (r4-explore-featured-score
+                (r4-channel-create :followers '("a" "b" "c" "d" "e") :track-count 10
+                                   :latest-track-at now))
+               (r4-explore-featured-score
+                (r4-channel-create :followers nil :track-count 100 :latest-track-at now))))
+    (should (< (abs (- (r4-explore-featured-score
+                        (r4-channel-create :followers nil :track-count 9 :latest-track-at now))
+                       (+ (* 2 (log 10)) 3)))
+               0.0001))))
+
+(ert-deftest r4-test-describe-track ()
+  (let ((r4-download-directory (make-temp-file "r4-test" t)))
+    (unwind-protect
+        (progn
+          (r4-describe-track (r4-test--track :title "Song" :tags '("jazz") :duration 61
+                                             :description "via @oskar"))
+          (with-current-buffer "*r4 track Song*"
+            (let ((text (buffer-string)))
+              (should (string-match-p "Tags: +#jazz" text))
+              (should (string-match-p "Duration: +1:01" text))
+              (should (string-match-p "\\[Play next\\]" text))))
+          (kill-buffer "*r4 track Song*"))
+      (delete-directory r4-download-directory t))))
+
 (provide 'r4-test-lists)
 
 ;;; r4-test-lists.el ends here

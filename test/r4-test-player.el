@@ -92,7 +92,22 @@
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
     (should (eq (keymap-lookup map ">") 'r4-player-next))
     (should (eq (keymap-lookup map "S") 'tabulated-list-sort))
-    (should (eq (keymap-lookup map "n") 'next-line))))
+    (should (eq (keymap-lookup map "n") 'next-line)))
+  ;; No list key hides a player key, and no menu has the same key twice.
+  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
+    (map-keymap (lambda (key _)
+                  (when-let* ((player (lookup-key r4-player-map (vector key))))
+                    (should (eq player (lookup-key map (vector key))))))
+                map))
+  (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))
+    (let (keys)
+      (cl-labels ((collect (x)
+                    (cond ((and (consp x) (symbolp (car x)) (plist-member (cdr x) :key))
+                           (push (plist-get (cdr x) :key) keys))
+                          ((or (vectorp x) (consp x)) (mapc #'collect x)))))
+        (collect (get menu 'transient--layout)))
+      (should (> (length keys) 10))
+      (should (equal (length keys) (length (delete-dups (copy-sequence keys))))))))
 
 (ert-deftest r4-test-auto-radio ()
   ;; Expected values computed by src/lib/player/auto-radio.ts of

@@ -7,7 +7,7 @@
 ;;; Commentary:
 
 ;; Create, edit and delete your channels and their tracks, on
-;; radio4000.com or in local channels, with the same keys: + adds, e
+;; radio4000.com or in local channels, with the same keys: A adds, e
 ;; edits and x deletes, in track and channel lists.
 
 ;;; Code:
@@ -231,10 +231,10 @@ In a local channel, remove them from the local channel."
     (r4-channels-show "my channels"
                       (lambda (callback) (r4-api-channels-by-id ids callback)))))
 
-(keymap-set r4-tracks-mode-map "+" #'r4-tracks-create)
+(keymap-set r4-tracks-mode-map "A" #'r4-tracks-create)
 (keymap-set r4-tracks-mode-map "e" #'r4-tracks-edit)
 (keymap-set r4-tracks-mode-map "x" #'r4-tracks-delete)
-(keymap-set r4-channels-mode-map "+" #'r4-create-channel)
+(keymap-set r4-channels-mode-map "A" #'r4-create-channel)
 (keymap-set r4-channels-mode-map "e" #'r4-channels-edit)
 (keymap-set r4-channels-mode-map "x" #'r4-channels-delete)
 

@@ -35,7 +35,7 @@
                           (:copier nil))
   "A Radio4000 channel."
   id slug name description url image track-count latest-track-at
-  created-at updated-at)
+  created-at updated-at latitude longitude followers)
 
 (cl-defstruct (r4-track (:constructor r4-track-create)
                         (:copier nil))
@@ -50,7 +50,8 @@
      :id .id :slug .slug :name .name :description .description
      :url .url :image .image :track-count .track_count
      :latest-track-at .latest_track_at
-     :created-at .created_at :updated-at .updated_at)))
+     :created-at .created_at :updated-at .updated_at
+     :latitude .latitude :longitude .longitude :followers .followers)))
 
 (defun r4-track-from-json (row)
   "Return an `r4-track' from the alist ROW."
@@ -64,6 +65,17 @@
 (defun r4-channel-web-url (channel)
   "Return the radio4000.com URL of CHANNEL."
   (format "%s/%s" r4-web-url (r4-channel-slug channel)))
+
+(defun r4-channel-rss-url (channel)
+  "Return the RSS feed URL of CHANNEL."
+  (format "%s/%s.rss" r4-web-url (r4-channel-slug channel)))
+
+(defun r4-channel-map-url (channel)
+  "Return the URL of a map at the coordinates of CHANNEL, or nil."
+  (when (and (numberp (r4-channel-latitude channel)) (numberp (r4-channel-longitude channel)))
+    (format "https://www.openstreetmap.org/?mlat=%s&mlon=%s#map=6/%s/%s"
+            (r4-channel-latitude channel) (r4-channel-longitude channel)
+            (r4-channel-latitude channel) (r4-channel-longitude channel))))
 
 (defun r4-track-web-url (track)
   "Return the radio4000.com URL of TRACK."

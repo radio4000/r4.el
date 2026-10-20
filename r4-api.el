@@ -48,7 +48,7 @@ The default hides the many empty channels."
   :group 'r4)
 
 (defconst r4-api--channel-columns
-  "id,slug,name,description,url,image,track_count,latest_track_at,created_at,updated_at"
+  "id,slug,name,description,url,image,track_count,latest_track_at,created_at,updated_at,latitude,longitude"
   "Columns selected from the `channels_with_tracks' view.")
 
 (defconst r4-api--track-columns

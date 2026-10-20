@@ -139,7 +139,26 @@ An empty TEXT shows all the tracks."
                                        (mapcar (lambda (tag) (concat "#" tag)) tags))
                                  " ")))
 
+(defvar-local r4-search--channels-filter-text nil
+  "Text of the filter of the channels shown.")
+
+(defun r4-channels-filter (text)
+  "Only show the channels whose slug, name or description match TEXT.
+Every word of TEXT must match.  An empty TEXT shows all the channels."
+  (interactive (list (read-string "Filter channels: " r4-search--channels-filter-text)))
+  (let ((words (split-string (downcase text) "[ \t]+" t)))
+    (setq r4-search--channels-filter-text (and words (string-trim text))
+          r4-channels--filter
+          (and words
+               (lambda (channel)
+                 (let ((haystack (downcase (concat "@" (r4-channel-slug channel) " "
+                                                   (r4-channel-name channel) " "
+                                                   (r4-channel-description channel)))))
+                   (cl-every (lambda (word) (string-search word haystack)) words)))))
+    (r4-channels-redisplay)))
+
 (keymap-set r4-tracks-mode-map "s" #'r4-tracks-search)
+(keymap-set r4-channels-mode-map "/" #'r4-channels-filter)
 (keymap-set r4-tracks-mode-map "/" #'r4-tracks-filter)
 (keymap-set r4-tracks-mode-map "#" #'r4-tracks-filter-tag)
 (keymap-set r4-channels-mode-map "t" #'r4-search)
