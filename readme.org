@@ -97,26 +97,33 @@ package-vc-rebuild=, or by evaluating the edited buffers.
 
 In channel and track lists, =C-h m= shows all the keys. The main ones:
 
-| Key   | Tracks list                        | Channels list        |
-|-------+------------------------------------+----------------------|
-| =RET= | Play from this track               | Open channel         |
-| =P=   | Play all                           | Play channel         |
-| =z=   | Shuffle play                       |                      |
-| =SPC= | Pause/resume                       | Pause/resume         |
-| =n= =p= | Next/previous track              | Next/previous track  |
-| =m= =u= =U= =M= | Mark, unmark, unmark all, mark all |      |
-| =d=   | Download marked tracks or at point |                      |
-| =D=   | Download all                       | Download channel     |
-| =a=   | Add to a local channel             |                      |
-| =x=   | Remove from this local channel     |                      |
-| =S=   | Save channel locally               |                      |
-| =Y=   | Sync this local channel            |                      |
-| =s=   | Search tracks                      | Search channels      |
-| =o=   | Open on radio4000.com              | Open on radio4000.com |
-| =g=   | Refresh                            | Refresh              |
+| Key       | Tracks list                        | Channels list         |
+|-----------+------------------------------------+-----------------------|
+| =RET=     | Play from this track               | Open channel          |
+| =P=       | Play all                           | Play channel          |
+| =z=       | Shuffle play                       |                       |
+| =SPC=     | Pause/resume                       | Pause/resume          |
+| =>= =<=   | Next/previous track                | Next/previous track   |
+| =n= =p=   | Next/previous line                 | Next/previous line    |
+| =S=       | Sort by the column at point        | Sort by the column at point |
+| =m= =u= =U= =M= | Mark, unmark, unmark all, mark all |               |
+| =d=       | Download marked tracks or at point |                       |
+| =D=       | Download all                       | Download channel      |
+| =a=       | Add to a local channel             |                       |
+| =A=       | Save this channel locally          |                       |
+| =x=       | Remove from this local channel     |                       |
+| =Y=       | Sync this local channel            |                       |
+| =i=       |                                    | Describe channel, with its image |
+| =s=       | Search tracks                      | Search channels       |
+| =o=       | Open on radio4000.com              | Open on radio4000.com |
+| =g=       | Refresh                            | Refresh               |
 
-The first column of a tracks list shows =▶= for the playing track,
+The status column of a tracks list shows =▶= for the playing track,
 =✓= for downloaded tracks and =↓= for queued downloads.
+
+Searches match whole words, like on radio4000.com, and also the
+beginning of words: =osk= finds =oskar=. Use quotes, =or= and =-=
+for a web search, such as =jazz -blues=.
 
 ** Configuration
 =M-x customize-group RET r4=. For example:
@@ -127,6 +134,18 @@ The first column of a tracks list shows =▶= for the playing track,
       r4-download-max-processes 3
       r4-channels-min-tracks 10)                 ; hide small channels
 #+end_src
+
+Choose the columns of the lists, and sort them with =S= or by clicking
+a column header:
+
+#+begin_src emacs-lisp
+(setq r4-channels-columns '(slug name tracks latest created updated description)
+      r4-tracks-columns '(status created updated channel title duration tags description))
+#+end_src
+
+All the available columns are listed in =r4-channels-column-specs= and
+=r4-tracks-column-specs=; =latest= is the date of the latest track of a
+channel.
 
 ** Local channels
 A local channel is a file in the radio4000.com backup format
