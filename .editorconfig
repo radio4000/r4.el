@@ -20,3 +20,7 @@ trim_trailing_whitespace = false
 [{package.json,*.yml}]
 indent_style = space
 indent_size = 2
+
+[*.el]
+indent_style = space
+indent_size = 2
