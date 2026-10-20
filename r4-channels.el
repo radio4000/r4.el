@@ -27,6 +27,13 @@
 (defvar-local r4-channels--query nil
   "Full-text search of the channels buffer, or nil for all channels.")
 
+(defvar-local r4-channels--fetch nil
+  "Function fetching the channels of the buffer, or nil for a search.
+It is called with a callback, to call with the list of channels.")
+
+(defvar-local r4-channels--name nil
+  "Name of the channels of the buffer, such as \"following @oskar\".")
+
 (defconst r4-channels-column-specs
   `((slug . ,(r4-column-create :name "Slug" :width 24 :key #'r4-channel-slug))
     (name . ,(r4-column-create :name "Name" :width 30 :key #'r4-channel-name))
@@ -61,19 +68,23 @@ The Active column is the date of the latest track.")
 
 (defun r4-channels-revert (&rest _)
   "Fetch the channels of the buffer again."
-  (let ((buffer (current-buffer))
-        (query r4-channels--query))
-    (message "Fetching channels…")
-    (r4-api-channels
-     (lambda (channels)
-       (unless query (setq r4-channels--cache channels))
-       (when (buffer-live-p buffer)
-         (with-current-buffer buffer
-           (setq tabulated-list-entries (r4-channels--entries channels))
-           (tabulated-list-print t)
-           (message "%d channels%s" (length channels)
-                    (if query (format " matching \"%s\"" query) "")))))
-     query)))
+  (let* ((buffer (current-buffer))
+         (query r4-channels--query)
+         (fetch r4-channels--fetch)
+         (name (or r4-channels--name
+                   (if query (format "channels matching \"%s\"" query) "channels")))
+         (callback
+          (lambda (channels)
+            (unless (or query fetch) (setq r4-channels--cache channels))
+            (when (buffer-live-p buffer)
+              (with-current-buffer buffer
+                (setq tabulated-list-entries (r4-channels--entries channels))
+                (tabulated-list-print t)
+                (message "%d %s" (length channels) name))))))
+    (message "Fetching %s…" name)
+    (if fetch
+        (funcall fetch callback)
+      (r4-api-channels callback query))))
 
 ;;;; Completion
 
@@ -182,6 +193,15 @@ clicking a column header.  Choose the columns with
         tabulated-list-padding 2)
   (setq-local revert-buffer-function #'r4-channels-revert)
   (tabulated-list-init-header))
+
+(defun r4-channels-show (name fetch)
+  "Show the channels NAME, fetched by FETCH, see `r4-channels--fetch'."
+  (with-current-buffer (get-buffer-create (format "*r4 %s*" name))
+    (unless (derived-mode-p 'r4-channels-mode) (r4-channels-mode))
+    (setq r4-channels--name name
+          r4-channels--fetch fetch)
+    (revert-buffer)
+    (pop-to-buffer-same-window (current-buffer))))
 
 (defun r4-channels--show (query)
   "Show the channels matching QUERY, or all channels if nil."

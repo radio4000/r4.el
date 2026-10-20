@@ -70,6 +70,10 @@ Local channels, stored in files.
 Syncing local channels with radio4000.com.
 #+INCLUDE: "r4-sync.el" src emacs-lisp
 
+** r4-follows.el
+Following channels, and the feed of followed channels.
+#+INCLUDE: "r4-follows.el" src emacs-lisp
+
 * Entry point
 ** r4-menus.el
 The =r4= menu, and the =?= menu of each list.

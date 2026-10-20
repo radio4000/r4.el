@@ -414,14 +414,26 @@
        (signal 'r4-api-error '("Refresh token is not valid"))))
     (`("POST" "/auth/v1/logout") nil)
     (`("GET" ,(rx "/rest/v1/" (let table (+ (not "?")))))
-     (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
+     ;; Reads are public, like on radio4000.com.
+     (unless (member token '(nil "token-1")) (signal 'r4-api-error '("unauthorized")))
      (let ((rows (alist-get (intern table) r4-test--db)))
-       (dolist (column '("id" "slug" "channel_id" "user_id"))
+       (dolist (column '("id" "slug" "channel_id" "user_id" "follower_id"))
          (when-let* ((value (r4-test--param params column)))
            (setq rows (cl-remove-if-not
                        (lambda (row) (equal (alist-get (intern column) row) value))
                        rows))))
        rows))
+    (`("DELETE" ,(rx "/rest/v1/" (let table (+ anychar))))
+     (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
+     (let ((key (intern table)))
+       (setf (alist-get key r4-test--db)
+             (cl-remove-if (lambda (row)
+                             (cl-every (lambda (param)
+                                         (equal (alist-get (intern (car param)) row)
+                                                (string-remove-prefix "eq." (cadr param))))
+                                       params))
+                           (alist-get key r4-test--db))))
+     nil)
     (`("POST" ,(rx "/rest/v1/" (let table (+ anychar))))
      (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
      (let ((key (intern table)))
@@ -497,6 +509,34 @@
                      '("Two" "One" "Three")))
       (should (equal (mapcar #'r4-track-title (cdr (r4-local-read "my-radio")))
                      '("Three" "Two" "One" "Remote"))))))
+
+(ert-deftest r4-test-follows ()
+  (r4-test--with-backend
+    (push '((id . "mine") (slug . "me") (name . "Me")) (alist-get 'channels r4-test--db))
+    (push '((user_id . "user-1") (channel_id . "mine")) (alist-get 'user_channel r4-test--db))
+    (cl-letf (((symbol-function 'r4-sync-my-channels)
+               (lambda () (list (r4-channel-create :id "mine" :slug "me"))))
+              ((symbol-function 'y-or-n-p) #'always))
+      (let ((r4-follows--my-channel nil)
+            (other (r4-channel-create :id "other" :slug "other"))
+            (buffer (generate-new-buffer "r4-test")))
+        (unwind-protect
+            (with-current-buffer buffer
+              (r4-channels-mode)
+              (setq tabulated-list-entries (r4-channels--entries (list other)))
+              (tabulated-list-print)
+              (goto-char (point-min))
+              (r4-channels-follow)
+              (should (equal (alist-get 'followers r4-test--db)
+                             '(((follower_id . "mine") (channel_id . "other")))))
+              (should (equal (r4-follows-following-ids "mine") '("other")))
+              ;; Following again unfollows.
+              (r4-channels-follow)
+              (should (equal (car r4-test--requests)
+                             '("DELETE" "/rest/v1/followers"
+                               (("follower_id" "eq.mine") ("channel_id" "eq.other"))
+                               nil "token-1"))))
+          (kill-buffer buffer))))))
 
 (ert-deftest r4-test-sync-refuses-other-accounts ()
   (r4-test--with-backend

@@ -23,6 +23,7 @@
 (require 'r4-local)
 (require 'r4-auth)
 (require 'r4-sync)
+(require 'r4-follows)
 
 (eval-and-compile
   (defconst r4-menus--player
@@ -75,6 +76,9 @@
     ("a" "Add track by URL" r4-local-add-track)
     ("S" "Save channel locally" r4-local-save-channel)]
    ["Account"
+    ("f" "Feed of followed channels" r4-feed)
+    ("m" "Channels I follow" r4-following)
+    ("M" "My followers" r4-followers)
     ("Y" "Sync local channel" r4-sync-channel)
     ("G" "Get one of my channels" r4-sync-pull-channel)
     ("I" "Sign in" r4-login)
@@ -131,7 +135,11 @@
    ["Find"
     ("s" "Search channels" r4-search-channels)
     ("t" "Search tracks" r4-search)
-    ("M" "Tracks mentioning it" r4-channels-mentions)
+    ("M" "Tracks mentioning it" r4-channels-mentions)]
+   ["Follow"
+    ("f" "Follow or unfollow" r4-channels-follow)
+    ("F" "Channels it follows" r4-channels-following)
+    ("r" "Its followers" r4-channels-followers)
     ("g" "Refresh" revert-buffer)
     ("S" "Sort by column" tabulated-list-sort)]
    ["Links"

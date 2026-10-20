@@ -192,6 +192,16 @@ If QUERY is non-nil, only return channels matching that full-text search."
   (mapcar #'r4-channel-from-json
           (r4-api-get-sync "channels_with_tracks" (r4-api--channels-params))))
 
+(defun r4-api-channels-by-id (ids callback)
+  "Call CALLBACK with the list of `r4-channel' whose id is in IDS."
+  (if (null ids)
+      (funcall callback nil)
+    (r4-api-get "channels_with_tracks"
+                `(("select" ,r4-api--channel-columns)
+                  ("id" ,(format "in.(%s)" (string-join ids ",")))
+                  ("order" "latest_track_at.desc.nullslast"))
+                (lambda (rows) (funcall callback (mapcar #'r4-channel-from-json rows))))))
+
 (defun r4-api-channel (slug callback)
   "Call CALLBACK with the `r4-channel' SLUG, or nil if it does not exist."
   (r4-api-get "channels_with_tracks"

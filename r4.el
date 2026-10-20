@@ -42,6 +42,7 @@
 (require 'r4-local)
 (require 'r4-auth)
 (require 'r4-sync)
+(require 'r4-follows)
 (require 'r4-menus)
 
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")
