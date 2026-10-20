@@ -214,11 +214,21 @@ plays the queue in order."
         (t (user-error "Nothing to play"))))
 
 (defun r4-player-toggle-video ()
-  "Toggle showing videos, see `r4-player-video'."
+  "Toggle showing videos, see `r4-player-video'.
+The playing track plays again from the same position, from a source
+with a video when turning it on, such as the stream instead of a
+downloaded audio file."
   (interactive)
   (setq r4-player-video (not r4-player-video))
   (r4-player--apply-video)
-  (message "r4: video %s" (if r4-player-video "on" "off")))
+  (message "r4: video %s" (if r4-player-video "on" "off"))
+  (when (and (r4-player-live-p) r4-player-index)
+    (let ((index r4-player-index))
+      (r4-player-get-property
+       "time-pos"
+       (lambda (position)
+         (when (eql index r4-player-index)
+           (r4-player--play-index index position)))))))
 
 ;;;; Queue operations
 
