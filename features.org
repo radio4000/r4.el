@@ -37,6 +37,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Open the channel of a track              | link                                   | =r4-tracks-open-channel=  | =@=        |
 | Open on radio4000.com, the media         | share                                  | =r4-tracks-browse=, =r4-tracks-browse-media= | =o= =O= |
 | Copy links                               | share                                  | =r4-tracks-copy-url=, =r4-tracks-copy-web-url= | =w= =W= |
+| Saved views                              | saved and pinned views                 | =bookmark-set= in any list | =C-x r m= |
 | Sort by any field, choose the fields shown | sort menu                            | =tabulated-list-sort=, =r4-tracks-columns= | =S= |
 
 * Play
@@ -93,7 +94,6 @@ the keys are the ones of the r4 lists, where =?= shows them all.
   the web app.  Channel descriptions link to a map of the channel.
 - Broadcasting your own player: listening works, broadcasting needs a
   realtime connection.
-- Saved views: Emacs bookmarks, registers or commands do it.
 - Soulseek downloads (=r4 download --source soulseek=).
 - Track metadata from MusicBrainz and Discogs.
 - Uploading channel images.

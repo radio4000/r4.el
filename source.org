@@ -99,6 +99,14 @@ Following channels, and the feed of followed channels.
 #+INCLUDE: "r4-follows.el" src emacs-lisp
 
 * Entry point
+** r4-bookmark.el
+Bookmarks of the lists: the saved views of radio4000.com.
+#+INCLUDE: "r4-bookmark.el" src emacs-lisp
+
+** r4-embark.el
+Actions on channels, with Embark.
+#+INCLUDE: "r4-embark.el" src emacs-lisp
+
 ** r4-menus.el
 The =r4= menu, and the =?= menu of each list.
 #+INCLUDE: "r4-menus.el" src emacs-lisp
