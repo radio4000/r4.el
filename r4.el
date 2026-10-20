@@ -44,6 +44,7 @@
 (require 'r4-sync)
 (require 'r4-follows)
 (require 'r4-edit)
+(require 'r4-auto-radio)
 (require 'r4-menus)
 
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")

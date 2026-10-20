@@ -40,6 +40,10 @@ Playing tracks with mpv, from disk when downloaded.
 The play queue.
 #+INCLUDE: "r4-queue.el" src emacs-lisp
 
+** r4-auto-radio.el
+Auto-radio: a live radio without a broadcaster, the same for everyone.
+#+INCLUDE: "r4-auto-radio.el" src emacs-lisp
+
 ** r4-history.el
 The tracks played, kept on this computer.
 #+INCLUDE: "r4-history.el" src emacs-lisp

@@ -69,6 +69,11 @@ Toggle it with `r4-player-toggle-video'."
   "What the player plays, such as \"auto-radio @slug\", or nil.
 When non-nil, the queue plays in order, without shuffle.")
 
+(defvar r4-player-next-function nil
+  "Function choosing the next track, or nil to play the queue.
+It returns a cons of the queue index and the start position in
+seconds.  Playing new tracks resets it.")
+
 (defvar r4-player-track-changed-hook nil
   "Hook run after the current track changed.")
 
@@ -212,7 +217,8 @@ plays the queue in order."
   (when (null tracks) (user-error "No tracks to play"))
   (setq r4-player-queue (vconcat tracks)
         r4-player--history nil
-        r4-player-label label)
+        r4-player-label label
+        r4-player-next-function nil)
   (r4-player--play-index (or index
                              (if (and r4-player-shuffle (not label)) (random (length tracks)) 0))
                          start))
@@ -226,10 +232,12 @@ plays the queue in order."
   (interactive)
   (unless r4-player-index (user-error "Nothing is playing"))
   (push r4-player-index r4-player--history)
-  (let ((size (length r4-player-queue)))
-    (r4-player--play-index (if (and (r4-player--shuffling-p) (> size 1))
-                               (mod (+ r4-player-index 1 (random (1- size))) size)
-                             (mod (1+ r4-player-index) size)))))
+  (let ((next (and r4-player-next-function (funcall r4-player-next-function)))
+        (size (length r4-player-queue)))
+    (cond (next (r4-player--play-index (car next) (cdr next)))
+          ((and (r4-player--shuffling-p) (> size 1))
+           (r4-player--play-index (mod (+ r4-player-index 1 (random (1- size))) size)))
+          (t (r4-player--play-index (mod (1+ r4-player-index) size))))))
 
 (defun r4-player-previous ()
   "Play the previously played track."
@@ -332,7 +340,8 @@ plays the queue in order."
   (interactive)
   (r4-player--kill)
   (setq r4-player-index nil
-        r4-player-label nil)
+        r4-player-label nil
+        r4-player-next-function nil)
   (run-hooks 'r4-player-track-changed-hook)
   (force-mode-line-update t)
   (message "r4: stopped"))

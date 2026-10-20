@@ -25,6 +25,7 @@
 (require 'r4-sync)
 (require 'r4-follows)
 (require 'r4-edit)
+(require 'r4-auto-radio)
 
 (eval-and-compile
   (defconst r4-menus--player
@@ -63,6 +64,7 @@
     ("h" "History" r4-history)]
    ["Current track"
     ("P" "Play channel" r4-play-channel)
+    ("R" "Auto-radio of channel" r4-auto-radio)
     ("w" "Copy media URL" r4-player-copy-url)
     ("W" "Copy radio4000.com URL" r4-player-copy-web-url)
     ("e" "Open on radio4000.com" r4-player-browse-current)]]
@@ -95,6 +97,7 @@
     ("RET" "From this track" r4-tracks-play)
     ("P" "All" r4-tracks-play-all)
     ("z" "Shuffle" r4-tracks-shuffle)
+    ("R" "Auto-radio" r4-tracks-auto-radio)
     ("a" "Add to queue" r4-tracks-enqueue)
     ("N" "Play next" r4-tracks-play-next)]
    ["Select"
@@ -135,6 +138,7 @@
     ("RET" "Open" r4-channels-open)
     ("P" "Play" r4-channels-play)
     ("z" "Shuffle" r4-channels-shuffle)
+    ("R" "Auto-radio" r4-channels-auto-radio)
     ("i" "Describe" r4-channels-describe)
     ("D" "Download" r4-channels-download)
     ("C" "Save locally" r4-channels-save-local)]
