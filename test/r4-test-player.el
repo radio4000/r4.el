@@ -258,8 +258,14 @@
     (should (commandp menu)))
   (should (eq (keymap-lookup r4-tracks-mode-map "?") 'r4-tracks-menu))
   ;; The player keys work in every list.
-  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
+  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map
+                     r4-downloads-mode-map r4-broadcasts-mode-map r4-home-mode-map
+                     r4-channel-page-mode-map r4-player-window-mode-map))
     (should (eq (keymap-lookup map ">") 'r4-player-next))
+    ;; Like magit, the main views are a key away in every r4 buffer.
+    (should (eq (keymap-lookup map "h") 'r4))
+    (should (eq (keymap-lookup map "j") 'r4-channel-page)))
+  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
     (should (eq (keymap-lookup map "S") 'tabulated-list-sort))
     (should (eq (keymap-lookup map "n") 'next-line)))
   ;; No list key hides a player key, and no menu has the same key twice.

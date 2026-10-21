@@ -31,6 +31,8 @@
 (require 'r4-describe)
 (require 'r4-explore)
 (require 'r4-synced)
+(require 'r4-channel-page)
+(require 'r4-home)
 
 ;;;; Descriptions showing the state
 
@@ -128,14 +130,30 @@
       ("^" r4-player-toggle-video-pop-out :description r4-menus--pop-out :transient t)
       ("Q" "Queue" r4-queue)
       ("v" "Player window" r4-player-window)]]
-    "The player group of the r4 menus."))
+    "The player group of the r4 menus.")
+
+  (defconst r4-menus--go-to-group
+    ["Go to, also without this menu"
+     [("h" "Home" r4)
+      ("j" "Visit channel" r4-channel-page)]
+     [("E" "Explore" r4-explore)
+      ("B" "Broadcasts" r4-broadcasts)]
+     [("H" "History" r4-history)
+      ("." "All commands" r4-menu :if-not r4-menus--main-p)]]
+    "The group of the r4 menus going to the main views.
+Their keys work in every r4 buffer, see `r4-player-map'."))
+
+(defun r4-menus--main-p ()
+  "Return non-nil in the menu of all the commands."
+  (eq transient-current-command 'r4-menu))
 
 (defmacro r4-menus--define (name doc &rest groups)
-  "Define the transient menu NAME with DOC, GROUPS and the player."
+  "Define the transient menu NAME with DOC, GROUPS, going to and the player."
   (declare (indent 1) (doc-string 2))
   `(transient-define-prefix ,name ()
      ,doc
      ,@groups
+     ,r4-menus--go-to-group
      ,r4-menus--player-group))
 
 ;;;; Menus
@@ -145,17 +163,13 @@
   "Radio4000 menu, of all the commands."
   [["Channels"
     ("c" "Channels" r4-channels)
-    ("x" "Explore" r4-explore)
-    ("o" "Visit channel" r4-channel-page)
     ("t" "Channel tracks" r4-open-channel)
     ("@" "Mentions" r4-mentions)]
    ["Play"
     ("P" "Play channel" r4-play-channel)
-    ("R" "Auto radio" r4-auto-radio)
-    ("b" "Broadcasts" r4-broadcasts)]
+    ("R" "Auto radio" r4-auto-radio)]
    ["Tracks"
-    ("s" "Search tracks: @slug #tag" r4-search)
-    ("h" "Listening history" r4-history)]
+    ("s" "Search tracks: @slug #tag" r4-search)]
    ["Download"
     ("D" "Download channel" r4-download-channel)
     ("L" "Downloads" r4-downloads)
@@ -201,7 +215,7 @@
    ["Edit"
     ("A" "Add track" r4-add-track)
     ("C" "Create channel" r4-create-channel)
-    ("E" "Edit channel" r4-edit-channel)
+    ("e" "Edit channel" r4-edit-channel)
     ("X" "Delete channel" r4-delete-channel)]])
 
 ;;;###autoload (autoload 'r4-tracks-menu "r4-menus" nil t)
@@ -294,6 +308,13 @@
     ("o" "Open on radio4000.com" r4-queue-browse)
     ("w" "Copy media URL" r4-queue-copy-url)
     ("W" "Copy radio4000.com URL" r4-queue-copy-web-url)]])
+
+;; Like magit, the keys of the main views work in every r4 buffer.
+(keymap-set r4-player-map "h" #'r4)
+(keymap-set r4-player-map "H" #'r4-history)
+(keymap-set r4-player-map "j" #'r4-channel-page)
+(keymap-set r4-player-map "E" #'r4-explore)
+(keymap-set r4-player-map "B" #'r4-broadcasts)
 
 (keymap-set r4-tracks-mode-map "?" #'r4-tracks-menu)
 (keymap-set r4-channels-mode-map "?" #'r4-channels-menu)

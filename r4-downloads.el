@@ -16,6 +16,7 @@
 (require 'r4-files)
 (require 'r4-download)
 (require 'r4-columns)
+(require 'r4-player)
 
 (defconst r4-downloads-buffer "*r4 downloads*"
   "Name of the buffer listing downloads.")
@@ -114,6 +115,7 @@
 
 (defvar-keymap r4-downloads-mode-map
   :doc "Keymap for `r4-downloads-mode'."
+  :parent (r4-player-list-map)
   "x" #'r4-downloads-cancel
   "X" #'r4-download-cancel-all
   "r" #'r4-downloads-retry

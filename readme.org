@@ -104,7 +104,17 @@ Start with:
 
 Lists are =tabulated-list-mode= buffers: =n= =p= move, =S= sorts by the
 column at point (or click a header), =g= refreshes, =m= =u= mark, =q=
-quits.  The player keys work in every list:
+quits.  Like in magit, the main views are a key away in every r4
+buffer, and listed in each =?= menu:
+
+| Key           | Go to                          |
+|---------------+--------------------------------|
+| =h=           | Home                           |
+| =j=           | Visit a channel                |
+| =E= =B=       | Explore, broadcasts            |
+| =H=           | History                        |
+
+The player keys work in every r4 buffer too:
 
 | Key           | Player                         |
 |---------------+--------------------------------|

@@ -504,7 +504,8 @@ downloaded audio file."
 ;;;; Keys
 
 (defvar-keymap r4-player-map
-  :doc "Keys of the player, shared by the r4 lists."
+  :doc "Keys of the player, shared by the r4 buffers.
+The r4 menus add the keys going to the main views, such as h home."
   "SPC" #'r4-player-toggle-pause
   ">" #'r4-player-next
   "<" #'r4-player-previous

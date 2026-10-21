@@ -15,7 +15,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
   sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.
 - The same key does the same thing in every list, and the player keys
-  work in every list and in the =r4-menu=.
+  and the main views (=h= home, =j= visit a channel, =E= explore, =B=
+  broadcasts, =H= history) work in every r4 buffer, like in magit.
 - Downloads use the same folders and file names as =r4 download=, so
   the command line, Emacs and the radio4000.com import share them.
 
