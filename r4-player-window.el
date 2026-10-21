@@ -91,12 +91,37 @@ Fonts often draw its characters wider than a column."
                                  'keymap r4-player-window-bar-map))
                    (number-sequence 0 (1- width))))))
 
-(defun r4-player-window--options ()
-  "Return the options of the player shown in its window."
-  (string-join (delq nil (list (and r4-player-shuffle "shuffle")
-                               (and r4-player-video
-                                    (if (r4-video-window-p) "video" "video, popped out"))))
-               " "))
+(defconst r4-player-window-controls
+  '(("<" "previous" r4-player-previous)
+    ("SPC" "pause" r4-player-toggle-pause)
+    (">" "next" r4-player-next)
+    ("[" "-10s" r4-player-seek-backward)
+    ("]" "+10s" r4-player-seek-forward)
+    ("-" "quieter" r4-player-volume-down)
+    ("+" "louder" r4-player-volume-up)
+    ("Z" "shuffle" r4-player-toggle-shuffle r4-player-shuffle)
+    ("V" "video" r4-player-toggle-video r4-player-video)
+    ("Q" "queue" r4-queue)
+    ("k" "stop" r4-player-stop))
+  "Controls of the player: key, label, command, and the variable of a toggle.
+The keys work in every r4 buffer, see `r4-player-map'.")
+
+(defun r4-player-window--insert-key (key label command &optional on)
+  "Insert the button KEY LABEL running COMMAND, highlighted when ON."
+  (insert (propertize key 'face 'help-key-binding) " ")
+  (insert-text-button label
+                      'action (lambda (_) (call-interactively command))
+                      'follow-link t
+                      'face (if on 'success 'button)
+                      'help-echo (documentation command t)))
+
+(defun r4-player-window--insert-controls (controls)
+  "Insert CONTROLS, a list like `r4-player-window-controls'."
+  (pcase-dolist (`(,key ,label ,command ,variable) controls)
+    (r4-player-window--insert-key
+     key (if (and (eq command 'r4-player-toggle-pause) r4-player-paused) "play" label)
+     command (and variable (symbol-value variable)))
+    (insert "  ")))
 
 (defun r4-player-window--insert (width)
   "Insert the player, WIDTH characters wide."
@@ -108,19 +133,22 @@ Fonts often draw its characters wider than a column."
              (info (concat "@" (r4-track-slug track)
                            (if r4-player-label (format " [%s]" r4-player-label) "")))
              (time (r4-player-time-string))
-             (options (r4-player-window--options))
-             (bar-width (- width (string-width info) (string-width time)
-                           (string-width options) 5)))
+             (bar-width (- width (string-width info) (string-width time) 3)))
         (insert button " "
                 (propertize (truncate-string-to-width (r4-one-line (r4-track-title track))
                                                       (- width 2) nil nil "…")
                             'face 'bold)
                 "\n" info " " time " ")
         (when (> bar-width 4)
-          (insert (r4-player-window--bar bar-width) " "))
-        (insert options))
-    (insert "Nothing is playing\n"
-            (propertize "RET in a list plays a track, ? shows the keys" 'face 'shadow))))
+          (insert (r4-player-window--bar bar-width)))
+        (insert "\n")
+        (r4-player-window--insert-controls r4-player-window-controls))
+    (insert "Nothing is playing: RET in a list of tracks plays them\n")
+    (r4-player-window--insert-controls
+     (seq-filter (lambda (control) (memq (nth 2 control) '(r4-player-toggle-shuffle
+                                                           r4-player-toggle-video
+                                                           r4-queue)))
+                 r4-player-window-controls))))
 
 (defun r4-player-window--refresh ()
   "Redraw the player window, if shown."

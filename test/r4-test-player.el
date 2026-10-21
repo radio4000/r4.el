@@ -187,9 +187,13 @@
             (let ((window (get-buffer-window r4-player-window-buffer)))
               (should (eq (window-parameter window 'window-side) 'top))
               (with-current-buffer r4-player-window-buffer
-                (should (equal (count-lines (point-min) (point-max)) 2))
-                (should (string-match-p "\\`▶ Song\n@ko002 0:30/2:00 ━+─+ shuffle\\'"
+                (should (equal (count-lines (point-min) (point-max)) 3))
+                (should (string-match-p "\\`▶ Song\n@ko002 0:30/2:00 ━+─+\n< previous  SPC pause"
                                         (buffer-string)))
+                ;; The controls are buttons, shuffle shows it is on.
+                (save-excursion
+                  (search-forward "shuffle")
+                  (should (eq (button-get (button-at (1- (point))) 'face) 'success)))
                 ;; A quarter of the bar is played, clicking it seeks.
                 (search-forward "━")
                 (should (eq (get-text-property (point) 'keymap) r4-player-window-bar-map))
@@ -198,7 +202,8 @@
                 ;; It follows the player.
                 (setq r4-player-paused t r4-player-time-pos 60.0)
                 (r4-player--changed)
-                (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 " (buffer-string)))))
+                (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 .*\n< previous  SPC play"
+                                        (buffer-string)))))
             ;; v hides it.
             (r4-player-window)
             (should-not (get-buffer-window r4-player-window-buffer)))
@@ -226,7 +231,7 @@
                        (`(,area-window ,_ ,top ,_ ,bottom) (r4-player-window--video-area)))
             (should (eq area-window window))
             (should (= top (+ (nth 1 (window-inside-pixel-edges window))
-                              (* 2 (frame-char-height)))))
+                              (* 3 (frame-char-height)))))
             (should (<= top bottom)))
         (kill-buffer r4-player-window-buffer)))))
 

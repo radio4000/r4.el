@@ -65,10 +65,13 @@
                       'help-echo help))
 
 (defun r4-home--links (links)
-  "Insert LINKS, a list of (LABEL . COMMAND), on one line."
+  "Insert LINKS, a list of (LABEL . COMMAND), on one line.
+Their key in the home buffer shows before them, like in magit."
   (pcase-dolist (`(,label . ,command) links)
-    (r4-home--button label (lambda () (call-interactively command))
-                     (documentation command t))
+    (if-let* ((key (where-is-internal command (current-local-map) t)))
+        (r4-player-window--insert-key (key-description key) label command)
+      (r4-home--button label (lambda () (call-interactively command))
+                       (documentation command t)))
     (insert "  "))
   (insert "\n"))
 
@@ -146,11 +149,13 @@
   (r4-home--insert-player)
   (insert "\n")
   (r4-home--links '(("Channels" . r4-channels)
+                    ("Visit channel" . r4-channel-page)
                     ("Explore" . r4-explore)
                     ("Search" . r4-search)
                     ("Broadcasts" . r4-broadcasts)
+                    ("History" . r4-history)
                     ("Downloads" . r4-downloads)
-                    ("Menu" . r4-menu)))
+                    ("All commands" . r4-menu)))
   (r4-home--insert-my-channels)
   (r4-home--heading "Synced channels")
   (r4-home--channels r4-synced-channels #'r4-channel-page)
