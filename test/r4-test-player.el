@@ -154,8 +154,14 @@
         (r4-player-time-pos nil) (r4-player--duration nil))
     (cl-letf (((symbol-function 'r4-player-live-p) #'always))
       (let ((string (r4-player-mode-line-string)))
-        (should (string-match-p "▶ \\[auto radio @x\\] Song 0:00 " string))
+        (should (string-match-p "r4 ▶ \\[auto radio @x\\] Song 0:00 " string))
         (should (eq (get-text-property 1 'local-map string) r4-player-mode-line-map))
+        ;; A global minor mode shows it.
+        (unwind-protect
+            (progn (r4-player-mode-line-mode 1)
+                   (should (memq 'r4-player--mode-line-construct global-mode-string)))
+          (r4-player-mode-line-mode -1))
+        (should-not (memq 'r4-player--mode-line-construct global-mode-string))
         (should (eq (keymap-lookup r4-player-mode-line-map "<mode-line> <mouse-1>")
                     'r4-player-toggle-pause))
         ;; With the elapsed time and the duration, from mpv or radio4000.com.

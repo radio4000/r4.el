@@ -60,7 +60,8 @@ They show in the player window, or pop out, see
   :group 'r4)
 
 (defcustom r4-player-mode-line t
-  "When non-nil, show the current track in the mode line."
+  "When non-nil, show the player in the mode line once it plays.
+It turns `r4-player-mode-line-mode' on."
   :type 'boolean
   :group 'r4)
 
@@ -123,7 +124,7 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
     (r4-mpv-send "observe_property" 1 "pause")
     (r4-mpv-send "observe_property" 2 "duration")
     (r4-player--apply-video)
-    (r4-player--mode-line-setup)
+    (when r4-player-mode-line (r4-player-mode-line-mode 1))
     (r4-player--start-timer))
   (apply #'r4-mpv-send command))
 
@@ -483,8 +484,10 @@ downloaded audio file."
 
 (defun r4-player-mode-line-string ()
   "Return the mode line string of the player."
-  (when-let* ((track (and r4-player-mode-line (r4-player-live-p) (r4-player-current))))
-    (propertize (format " %s %s%s %s " (if r4-player-paused "⏸" "▶")
+  (when-let* ((track (and (r4-player-live-p) (r4-player-current))))
+    (propertize (format " %s %s %s%s %s "
+                        (propertize "r4" 'face 'bold)
+                        (if r4-player-paused "⏸" "▶")
                         (if r4-player-label (format "[%s] " r4-player-label) "")
                         (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…")
                         (r4-player-time-string))
@@ -497,9 +500,17 @@ downloaded audio file."
   "Mode line construct of the player.")
 (put 'r4-player--mode-line-construct 'risky-local-variable t)
 
-(defun r4-player--mode-line-setup ()
-  "Add the player to `global-mode-string'."
-  (add-to-list 'global-mode-string 'r4-player--mode-line-construct t))
+(define-minor-mode r4-player-mode-line-mode
+  "Show the Radio4000 player in the mode line, while it plays.
+It shows r4, ▶ or ⏸, what plays, and its elapsed time and duration.
+Click it to pause, middle-click for the next track, right-click for
+the queue."
+  :global t
+  :group 'r4
+  (if r4-player-mode-line-mode
+      (add-to-list 'global-mode-string 'r4-player--mode-line-construct t)
+    (setq global-mode-string (delq 'r4-player--mode-line-construct global-mode-string)))
+  (force-mode-line-update t))
 
 ;;;; Keys
 

@@ -162,7 +162,9 @@ In lists of channels:
 
 Bookmark any list with =C-x r m=, such as a search or a filtered
 channel, to open it again with =C-x r b=: the saved views of
-radio4000.com.  Click the player in the mode line to pause it,
+radio4000.com.  While playing, the mode line shows =r4 ▶ Title 1:23/4:56=
+(=r4-player-mode-line-mode=, set =r4-player-mode-line= to nil to
+hide it).  Click it to pause,
 middle-click for the next track, right-click for the queue.  =v= shows
 the player in a window at the top of the frame, with the elapsed time
 and a progress bar to click to seek.  With
