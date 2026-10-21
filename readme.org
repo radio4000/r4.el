@@ -111,7 +111,7 @@ quits.  The player keys work in every list:
 | =+= =-=       | Volume                         |
 | =Z=           | Toggle shuffle                 |
 | =V=           | Toggle video                   |
-| =Q=           | Queue                          |
+| =Q=           | Queue, where =/= =#= filter what plays |
 | =v=           | Player window                  |
 | =k=           | Stop                           |
 

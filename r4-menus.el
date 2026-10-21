@@ -57,6 +57,12 @@
                                   'face 'shadow))
             (propertize "nothing playing" 'face 'shadow))))
 
+(defun r4-menus--queue-filter ()
+  "Return the description of the filter of the queue."
+  (if r4-queue-filter-text
+      (format "Filter: %s" (propertize r4-queue-filter-text 'face 'transient-value))
+    "Filter"))
+
 (defun r4-menus--playing-p ()
   "Return non-nil if a track is playing."
   (and (r4-player-live-p) (r4-player-current)))
@@ -276,6 +282,9 @@
     ("RET" "Play track" r4-queue-play)
     ("x" "Remove" r4-queue-remove)
     ("C" "Clear" r4-player-clear)]
+   ["Filter what plays"
+    ("/" r4-queue-filter :description r4-menus--queue-filter)
+    ("#" "Toggle tags" r4-queue-filter-tag)]
    ["Share"
     ("o" "Open on radio4000.com" r4-queue-browse)
     ("w" "Copy media URL" r4-queue-copy-url)

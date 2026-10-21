@@ -80,6 +80,10 @@ with `r4-player-toggle-video'."
   "What the player plays, such as \"auto radio @slug\", or nil.
 When non-nil, the queue plays in order, without shuffle.")
 
+(defvar r4-player-queue-filter nil
+  "Predicate of the tracks of the queue to play, or nil to play all.
+Set by the filter of the queue, see `r4-queue-filter'.")
+
 (defvar r4-player-next-function nil
   "Function choosing the next track, or nil to play the queue.
 It returns a cons of the queue index and the start position in
@@ -263,6 +267,7 @@ plays the queue in order."
   (when (null tracks) (user-error "No tracks to play"))
   (setq r4-player-queue (vconcat tracks)
         r4-player--history nil
+        r4-player-queue-filter nil
         r4-player-label label
         r4-player-next-function nil)
   (r4-player--play-index (or index
@@ -273,25 +278,41 @@ plays the queue in order."
   "Return non-nil if the next track is random."
   (and r4-player-shuffle (not r4-player-label)))
 
+(defun r4-player--playable ()
+  "Return the indexes of the queue tracks to play, passing its filter.
+All of them when none passes `r4-player-queue-filter'."
+  (let ((indexes (number-sequence 0 (1- (length r4-player-queue)))))
+    (or (and r4-player-queue-filter
+             (seq-filter (lambda (index)
+                           (funcall r4-player-queue-filter (aref r4-player-queue index)))
+                         indexes))
+        indexes)))
+
 (defun r4-player-next ()
-  "Play the next track in the queue."
+  "Play the next track in the queue, among the tracks passing its filter."
   (interactive)
   (unless r4-player-index (user-error "Nothing is playing"))
   (push r4-player-index r4-player--history)
-  (let ((size (length r4-player-queue)))
+  (let ((indexes (r4-player--playable)))
     (cond (r4-player-next-function
            (when-let* ((next (funcall r4-player-next-function)))
              (r4-player--play-index (car next) (cdr next))))
-          ((and (r4-player--shuffling-p) (> size 1))
-           (r4-player--play-index (mod (+ r4-player-index 1 (random (1- size))) size)))
-          (t (r4-player--play-index (mod (1+ r4-player-index) size))))))
+          ((and (r4-player--shuffling-p) (cdr indexes))
+           (let ((others (remq r4-player-index indexes)))
+             (r4-player--play-index (nth (random (length others)) others))))
+          (t (r4-player--play-index
+              (or (seq-find (lambda (index) (> index r4-player-index)) indexes)
+                  (car indexes)))))))
 
 (defun r4-player-previous ()
   "Play the previously played track."
   (interactive)
   (unless r4-player-index (user-error "Nothing is playing"))
-  (r4-player--play-index (or (pop r4-player--history)
-                             (mod (1- r4-player-index) (length r4-player-queue)))))
+  (let ((indexes (r4-player--playable)))
+    (r4-player--play-index
+     (or (pop r4-player--history)
+         (car (last (seq-filter (lambda (index) (< index r4-player-index)) indexes)))
+         (car (last indexes))))))
 
 (defun r4-player-toggle-pause ()
   "Pause or resume playback, or play the queue if stopped."

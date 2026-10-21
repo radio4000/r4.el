@@ -6,7 +6,9 @@
 
 ;;; Commentary:
 
-;; The list of the tracks in the play queue, see r4-player.el.
+;; The list of the tracks in the play queue, see r4-player.el.  Like
+;; the queue of radio4000.com, / and # filter it by text and tags, and
+;; the filter decides what plays next.
 
 ;;; Code:
 
@@ -14,19 +16,56 @@
 (require 'tabulated-list)
 (require 'r4-models)
 (require 'r4-player)
+(require 'r4-filter)
 
 (defconst r4-queue-buffer "*r4 queue*"
   "Name of the buffer listing the play queue.")
 
+(defvar r4-queue-filter-text nil
+  "Text of the filter of the queue, see `r4-queue-filter'.")
+
 (defun r4-queue--entries ()
-  "Return the `tabulated-list-entries' of the play queue."
+  "Return the `tabulated-list-entries' of the play queue, passing its filter."
   (cl-loop for track across r4-player-queue
            for index from 0
+           when (or (null r4-player-queue-filter) (funcall r4-player-queue-filter track))
            collect (list index
                          (vector (if (eql index r4-player-index) "▶" "")
                                  (concat "@" (r4-track-slug track))
                                  (r4-one-line (r4-track-title track))
-                                 (r4-format-duration (r4-track-duration track))))))
+                                 (r4-format-duration (r4-track-duration track))
+                                 (r4-filter-tags-string (r4-track-tags track))))))
+
+(defun r4-queue--revert ()
+  "Set the entries and mode line of the queue buffer."
+  (unless r4-player-queue-filter
+    (setq r4-queue-filter-text nil))
+  (setq tabulated-list-entries (r4-queue--entries)
+        mode-line-process (r4-filter-mode-line r4-queue-filter-text
+                                               (length tabulated-list-entries)
+                                               (length r4-player-queue))))
+
+(defun r4-queue-filter (text)
+  "Only show and play the queue tracks matching TEXT, such as \"#jazz\".
+The next tracks play among them, like the queue of radio4000.com.  An
+empty TEXT shows and plays all the tracks."
+  (interactive (list (read-string "Filter the queue (@channel #tag words): "
+                                  r4-queue-filter-text)))
+  (setq r4-queue-filter-text (and (not (string-blank-p text)) (string-trim text))
+        r4-player-queue-filter (r4-filter-matcher r4-queue-filter-text))
+  (r4-queue--refresh)
+  (message (if r4-queue-filter-text
+               (format "Playing the queue tracks matching \"%s\"" r4-queue-filter-text)
+             "Playing all the queue tracks")))
+
+(defun r4-queue-filter-tag (tags)
+  "Toggle filtering the queue by TAGS, see `r4-queue-filter'."
+  (interactive (list (r4-filter-read-tags
+                      (if r4-player-queue-filter
+                          (seq-filter r4-player-queue-filter r4-player-queue)
+                        (append r4-player-queue nil))
+                      r4-queue-filter-text)))
+  (r4-queue-filter (or (r4-filter-toggle-tags r4-queue-filter-text tags) "")))
 
 (defun r4-queue--index ()
   "Return the queue index of the track at point, or signal an error."
@@ -79,18 +118,19 @@
   "C" #'r4-player-clear
   "o" #'r4-queue-browse
   "w" #'r4-queue-copy-url
-  "W" #'r4-queue-copy-web-url)
+  "W" #'r4-queue-copy-web-url
+  "/" #'r4-queue-filter
+  "#" #'r4-queue-filter-tag)
 
 (define-derived-mode r4-queue-mode tabulated-list-mode "r4 queue"
   "Major mode listing the Radio4000 play queue.
 
 \\{r4-queue-mode-map}"
-  (setq tabulated-list-format [(" " 1 nil) ("Channel" 20 t) ("Title" 60 t)
-                               ("Time" 8 nil :right-align t)]
+  (setq tabulated-list-format [(" " 1 nil) ("slug" 20 t) ("title" 50 t)
+                               ("duration" 8 nil :right-align t) ("tags" 0 nil)]
         tabulated-list-padding 1)
-  (add-hook 'tabulated-list-revert-hook
-            (lambda () (setq tabulated-list-entries (r4-queue--entries)))
-            nil t)
+  (setq-local r4-filter-toggle-function #'r4-queue-filter-tag)
+  (add-hook 'tabulated-list-revert-hook #'r4-queue--revert nil t)
   (tabulated-list-init-header))
 
 ;;;###autoload
@@ -100,9 +140,11 @@
   (with-current-buffer (get-buffer-create r4-queue-buffer)
     (r4-queue-mode)
     (revert-buffer)
-    (when r4-player-index
-      (goto-char (point-min))
-      (forward-line r4-player-index))
+    (goto-char (point-min))
+    (while (and r4-player-index (not (eobp))
+                (not (eql (tabulated-list-get-id) r4-player-index)))
+      (forward-line 1))
+    (when (eobp) (goto-char (point-min)))
     (pop-to-buffer (current-buffer))))
 
 (provide 'r4-queue)

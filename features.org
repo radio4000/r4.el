@@ -53,6 +53,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Shuffle, video in an Emacs window | player                      | =r4-player-toggle-shuffle=, =r4-player-toggle-video= | =Z= =V= |
 | Play next, add to the queue      | track menu                  | =r4-tracks-play-next=, =r4-tracks-add-to-queue= | =N= =a= |
 | Queue: show, remove, clear       | queue panel                 | =r4-queue=, =r4-queue-remove=, =r4-player-clear= | =Q=, =x=, =C= |
+| Filter the queue, what plays     | queue panel filter          | =r4-queue-filter=, =r4-queue-filter-tag= | =/= =#= |
 | Player, elapsed time, seek bar   | player                      | =r4-player-window=            | =v=           |
 | Play history                     | /history                    | =r4-history=                  | menu =h=      |
 | Current track links              | player                      | =r4-player-copy-url=, =r4-player-copy-web-url= | menu =w= =W= |
