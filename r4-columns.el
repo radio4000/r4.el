@@ -23,8 +23,10 @@
                          (:copier nil))
   "A column of a list, named NAME, of WIDTH characters.
 KEY returns the value of an object for this column, FORMAT returns
-the string displaying that value, and RIGHT-ALIGN aligns it right."
-  name width key (format #'r4-columns-format-value) right-align)
+the string displaying that value, and RIGHT-ALIGN aligns it right.
+DESCENDING sorts it from the largest value first, such as the newest
+date or the most tracks, like radio4000.com."
+  name width key (format #'r4-columns-format-value) right-align descending)
 
 (defconst r4-columns-max-length 200
   "Maximum length of the text of a cell.
@@ -64,12 +66,17 @@ SPECS is an alist of column symbols and `r4-column'."
   (vconcat
    (cl-loop for (symbol . rest) on columns
             for column = (alist-get symbol specs)
-            for key = (r4-column-key column)
             collect `(,(r4-column-name column)
                       ,(if rest (r4-column-width column) 0)
-                      ,(lambda (a b)
-                         (r4-columns-less-p (funcall key (car a)) (funcall key (car b))))
+                      ,(r4-columns--sorter column)
                       ,@(when (r4-column-right-align column) '(:right-align t))))))
+
+(defun r4-columns--sorter (column)
+  "Return the predicate sorting the entries of a list by COLUMN."
+  (let ((key (r4-column-key column)))
+    (if (r4-column-descending column)
+        (lambda (a b) (r4-columns-less-p (funcall key (car b)) (funcall key (car a))))
+      (lambda (a b) (r4-columns-less-p (funcall key (car a)) (funcall key (car b)))))))
 
 (defun r4-columns-cell (object column specs)
   "Return the text of the COLUMN defined in SPECS for OBJECT."

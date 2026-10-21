@@ -61,9 +61,9 @@ The player: ▶ playing, · played before."
   `((status . ,(r4-column-create :name " " :width 2 :key #'r4-tracks--status
                                  :format #'identity))
     (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-track-created-at
-                                     :format #'r4-format-date))
+                                     :format #'r4-format-date :descending t))
     (updated_at . ,(r4-column-create :name "updated_at" :width 10 :key #'r4-track-updated-at
-                                     :format #'r4-format-date))
+                                     :format #'r4-format-date :descending t))
     (slug . ,(r4-column-create :name "slug" :width 16 :key #'r4-track-slug
                                :format (lambda (slug) (concat "@" slug))))
     (title . ,(r4-column-create :name "title" :width 50 :key #'r4-track-title))

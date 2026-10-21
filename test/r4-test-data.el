@@ -66,10 +66,10 @@
          (format (r4-columns-list-format '(slug track_count) specs))
          (sort-tracks (nth 2 (aref format 1)))
          (entry (lambda (count) (list (r4-channel-create :slug "x" :track-count count) nil))))
-    ;; Numbers sort by value, not by text.
-    (should (funcall sort-tracks (funcall entry 9) (funcall entry 10)))
-    (should-not (funcall sort-tracks (funcall entry 10) (funcall entry 9)))
-    (should (funcall sort-tracks (funcall entry nil) (funcall entry 0)))
+    ;; Numbers sort by value, not by text, the most tracks first.
+    (should (funcall sort-tracks (funcall entry 10) (funcall entry 9)))
+    (should-not (funcall sort-tracks (funcall entry 9) (funcall entry 10)))
+    (should (funcall sort-tracks (funcall entry 0) (funcall entry nil)))
     ;; The last column takes the remaining width.
     (should (equal (nth 1 (aref format 1)) 0))
     (should (r4-columns-less-p "abc" "ABD"))

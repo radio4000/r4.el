@@ -83,7 +83,7 @@ TIME is an ISO 8601 timestamp.")
 
 (add-to-list 'r4-tracks-column-specs
              `(time . ,(r4-column-create
-                          :name "time" :width 16
+                          :name "time" :width 16 :descending t
                           :key (lambda (track) (gethash track r4-history--times))
                           :format (lambda (time)
                                     (if time

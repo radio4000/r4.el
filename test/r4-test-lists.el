@@ -120,6 +120,35 @@
           (should (equal (length (r4-tracks--marked)) 1)))
       (kill-buffer buffer))))
 
+;; Each column sorts by its own values, dates and counts largest first.
+(ert-deftest r4-test-channels-sort ()
+  (let ((buffer (generate-new-buffer "r4-test")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (r4-channels-mode)
+          (setq r4-channels--channels
+                (list (r4-channel-create :slug "b" :name "Z" :track-count 5
+                                         :latest-track-at "2025-01-01")
+                      (r4-channel-create :slug "a" :name "Y" :track-count 50
+                                         :latest-track-at "2024-01-01")
+                      (r4-channel-create :slug "c" :name "X" :track-count 7
+                                         :latest-track-at "2026-01-01")))
+          (r4-channels-redisplay)
+          (pcase-dolist (`(,column . ,order)
+                         `((,(r4-column-name (alist-get 'slug r4-channels-column-specs)) "a" "b" "c")
+                           (,(r4-column-name (alist-get 'name r4-channels-column-specs)) "c" "a" "b")
+                           (,(r4-column-name (alist-get 'track_count r4-channels-column-specs)) "a" "c" "b")
+                           (,(r4-column-name (alist-get 'latest_track_at r4-channels-column-specs))
+                            "c" "b" "a")))
+            (setq tabulated-list-sort-key (cons column nil))
+            (tabulated-list-print t)
+            (goto-char (point-min))
+            (should (equal (cl-loop until (eobp)
+                                    collect (r4-channel-slug (tabulated-list-get-id))
+                                    do (forward-line 1))
+                           order))))
+      (kill-buffer buffer))))
+
 (ert-deftest r4-test-channels-filter ()
   (let ((buffer (generate-new-buffer "r4-test")))
     (unwind-protect
