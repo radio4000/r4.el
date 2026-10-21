@@ -83,7 +83,11 @@
 
 (defun r4-home--insert-player ()
   "Insert the player."
-  (r4-player-window--insert (- (window-max-chars-per-line) 2))
+  (r4-player-window--insert
+   (- (if-let* ((window (get-buffer-window (current-buffer) t)))
+          (window-max-chars-per-line window)
+        (frame-width))
+      2))
   (insert "\n"))
 
 (defun r4-home--insert-my-channels ()

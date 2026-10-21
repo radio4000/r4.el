@@ -253,6 +253,16 @@
         (kill-buffer r4-home-buffer)
         (delete-directory r4-download-directory t)))))
 
+;; The bar fits its width, also in fonts drawing its characters wider.
+(ert-deftest r4-test-player-window-bar-width ()
+  (let ((r4-player-queue (vector (r4-test--track))) (r4-player-index 0)
+        (r4-player-time-pos 10.0) (r4-player--duration 20.0))
+    (cl-letf (((symbol-function 'string-pixel-width)
+               (lambda (string &rest _) (if (equal string " ") 8 16))))
+      (should (equal (length (r4-player-window--bar 40)) 20)))
+    (cl-letf (((symbol-function 'string-pixel-width) (lambda (&rest _) 8)))
+      (should (equal (length (r4-player-window--bar 40)) 40)))))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))

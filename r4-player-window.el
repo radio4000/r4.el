@@ -63,9 +63,19 @@ By default, a side window at the top of the frame.  An entry for
   :doc "Mouse keys of the progress bar."
   "<mouse-1>" #'r4-player-window-seek-at-mouse)
 
-(defun r4-player-window--bar (width)
-  "Return the progress bar of the playing track, WIDTH characters wide."
-  (let* ((duration (r4-player-duration))
+(defun r4-player-window--bar-length (width)
+  "Return how many characters of the bar fit in WIDTH columns.
+Fonts often draw its characters wider than a column."
+  (let ((column (string-pixel-width " "))
+        (char (max (string-pixel-width "━") (string-pixel-width "─"))))
+    (if (and (> column 0) (> char column))
+        (floor (* width column) char)
+      width)))
+
+(defun r4-player-window--bar (columns)
+  "Return the progress bar of the playing track, at most COLUMNS wide."
+  (let* ((width (r4-player-window--bar-length columns))
+         (duration (r4-player-duration))
          (played (if (and duration (> duration 0) r4-player-time-pos)
                      (min width (round (* width (/ r4-player-time-pos duration))))
                    0)))
