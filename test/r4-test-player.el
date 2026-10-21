@@ -156,6 +156,18 @@
             (should-not (get-buffer-window r4-player-window-buffer)))
         (kill-buffer r4-player-window-buffer)))))
 
+(ert-deftest r4-test-video-frame ()
+  ;; Not in a terminal.
+  (should-not (r4-video-frame-p))
+  (let ((r4-player-video t) (r4-video--frame 'frame) (r4-player-changed-hook nil))
+    ;; Deleting the video frame turns videos off.
+    (r4-video--frame-deleted 'other-frame)
+    (should r4-player-video)
+    (r4-video--frame-deleted 'frame)
+    (should-not r4-player-video)
+    (should-not r4-video--frame))
+  (should (eq (keymap-lookup r4-video-mode-map "V") 'r4-player-toggle-video)))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))

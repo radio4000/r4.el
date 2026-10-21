@@ -40,6 +40,10 @@ The list of downloads.
 Controlling mpv over its JSON IPC socket.
 #+INCLUDE: "r4-mpv.el" src emacs-lisp
 
+** r4-video.el
+Videos in an Emacs frame.
+#+INCLUDE: "r4-video.el" src emacs-lisp
+
 ** r4-player.el
 Playing tracks with mpv, from disk when downloaded.
 #+INCLUDE: "r4-player.el" src emacs-lisp

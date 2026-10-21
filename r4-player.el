@@ -17,6 +17,7 @@
 (require 'r4-models)
 (require 'r4-files)
 (require 'r4-mpv)
+(require 'r4-video)
 
 (defcustom r4-player-program "mpv"
   "Program used to play tracks."
@@ -37,8 +38,9 @@ which mpv crashes when it shows a video."
   :group 'r4)
 
 (defcustom r4-player-video nil
-  "When non-nil, play videos in a window, else only audio.
-Toggle it with `r4-player-toggle-video'."
+  "When non-nil, play videos, else only audio.
+They show in an Emacs frame, see `r4-player-video-frame'.  Toggle it
+with `r4-player-toggle-video'."
   :type 'boolean
   :group 'r4)
 
@@ -126,9 +128,24 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defun r4-player--apply-video ()
   "Show or hide videos, according to `r4-player-video'."
   (when (r4-mpv-live-p)
+    (when r4-player-video
+      ;; In the video frame, the keys go to Emacs, for the player keys.
+      (r4-mpv-send "set_property" "wid" (if (r4-video-frame-p) (r4-video-frame-id) -1))
+      (r4-mpv-send "set_property" "input-vo-keyboard" (if (r4-video-frame-p) "no" "yes")))
     (r4-mpv-send "set_property" "vid" (if r4-player-video "auto" "no"))
     (r4-mpv-send "set_property" "ytdl-format"
-                 (if r4-player-video r4-player-video-quality r4-player-audio-quality))))
+                 (if r4-player-video r4-player-video-quality r4-player-audio-quality)))
+  (unless r4-player-video
+    (r4-video-delete-frame)))
+
+(defun r4-player--video-frame-deleted ()
+  "Turn videos off, as their frame was deleted."
+  (setq r4-player-video nil)
+  (r4-player--apply-video)
+  (r4-player--changed)
+  (message "r4: video off"))
+
+(add-hook 'r4-video-frame-deleted-hook #'r4-player--video-frame-deleted)
 
 (defun r4-player--changed ()
   "Run `r4-player-changed-hook' and update the mode lines."
@@ -174,6 +191,7 @@ It is the one given by mpv, or else the one of radio4000.com."
 (defun r4-player--kill ()
   "Stop mpv."
   (r4-mpv-kill)
+  (r4-video-delete-frame)
   (r4-player--stop-timer)
   (setq r4-player-paused nil))
 
@@ -457,6 +475,8 @@ downloaded audio file."
   "V" #'r4-player-toggle-video
   "k" #'r4-player-stop
   "Q" #'r4-queue)
+
+(set-keymap-parent r4-video-mode-map r4-player-map)
 
 (declare-function r4-queue "r4-queue")
 
