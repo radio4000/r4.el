@@ -216,7 +216,7 @@ They are named after the fields of the channels of radio4000.com.")
   (interactive)
   (browse-url (r4-channel-web-url (r4-channels--at-point))))
 
-(declare-function r4-describe-channel "r4-describe")
+(declare-function r4-describe-channel "r4-channel-page")
 
 (defun r4-channels-describe ()
   "Describe the channel at point."

@@ -17,11 +17,12 @@
 (require 'r4-search)
 (require 'r4-local)
 (require 'r4-auto-radio)
-(require 'r4-describe)
+(require 'r4-channel-page)
 
 (defvar-keymap r4-embark-channel-map
   :doc "Embark actions on a Radio4000 channel."
-  "o" #'r4-open-channel
+  "o" #'r4-channel-page
+  "t" #'r4-open-channel
   "p" #'r4-play-channel
   "R" #'r4-auto-radio
   "i" #'r4-describe-channel

@@ -81,8 +81,12 @@ The list of tracks.
 The list of channels.
 #+INCLUDE: "r4-channels.el" src emacs-lisp
 
+** r4-channel-page.el
+The page of a channel, like /@slug.
+#+INCLUDE: "r4-channel-page.el" src emacs-lisp
+
 ** r4-describe.el
-Describing a channel, with its image, and a track.
+Describing a track.
 #+INCLUDE: "r4-describe.el" src emacs-lisp
 
 ** r4-explore.el

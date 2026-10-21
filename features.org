@@ -31,8 +31,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Filter the shown tracks or channels      | queue and tracks filters               | =r4-tracks-filter=, =r4-channels-filter= | =/= |
 | Toggle tags, with their counts, click tags | /@slug/tracks?tags=, =r4 tags list= | =r4-tracks-filter-tag=    | =#=        |
 | Tracks mentioning a channel              | /@slug/mentions                        | =r4-mentions=             | =M=, menu =@= |
-| Open a channel                           | /@slug, =r4 track list --channel=      | =r4-open-channel=         | =RET=      |
-| Channel details, image, RSS, map         | /@slug, =r4 channel view=              | =r4-describe-channel=     | =i=        |
+| Channel page: image, links, tags, latest tracks | /@slug, =r4 channel view=       | =r4-channel-page=         | =RET=      |
+| Tracks of a channel                      | /@slug/tracks, =r4 track list --channel= | =r4-open-channel=       | =T=        |
 | Track details                            | /@slug/tracks/ID, =r4 track view=      | =r4-tracks-describe=      | =i=        |
 | Open the channel of a track              | link                                   | =r4-tracks-open-channel=  | =@=        |
 | Open on radio4000.com, the media         | share                                  | =r4-tracks-browse=, =r4-tracks-browse-media= | =o= =O= |

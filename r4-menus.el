@@ -141,8 +141,8 @@
   [["Channels"
     ("c" "Channels" r4-channels)
     ("x" "Explore" r4-explore)
-    ("o" "Visit channel" r4-open-channel)
-    ("i" "Describe channel" r4-describe-channel)
+    ("o" "Visit channel" r4-channel-page)
+    ("t" "Channel tracks" r4-open-channel)
     ("@" "Mentions" r4-mentions)]
    ["Play"
     ("P" "Play channel" r4-play-channel)
@@ -247,11 +247,11 @@
 (r4-menus--define r4-channels-menu
   "Menu of a list of channels."
   [["Channel"
-    ("RET" "Visit channel" r4-channels-open)
+    ("RET" "Visit channel" r4-channels-visit)
+    ("T" "Tracks" r4-channels-open)
     ("P" "Play channel" r4-channels-play)
     ("z" "Shuffle" r4-channels-shuffle)
-    ("R" "Auto radio" r4-channels-auto-radio)
-    ("i" "Describe channel" r4-channels-describe)]
+    ("R" "Auto radio" r4-channels-auto-radio)]
    ["Search"
     ("s" "Search channels" r4-search-channels)
     ("/" "Filter shown channels" r4-channels-filter)

@@ -159,6 +159,55 @@
           (kill-buffer "*r4 track Song*"))
       (delete-directory r4-download-directory t))))
 
+;; Like /@slug on radio4000.com, with links, tags and the latest tracks.
+(ert-deftest r4-test-channel-page ()
+  (let* ((channel (r4-channel-create :id "c1" :slug "ko002" :name "Ko"
+                                     :description "Dub and #jazz, with @oskar https://ko.org"
+                                     :track-count 7 :latitude 52.5 :longitude 13.4))
+         (tracks (cl-loop for i from 1 to 7
+                          collect (r4-test--track :id (format "%d" i) :slug "ko002"
+                                                  :title (format "Song %d" i)
+                                                  :tags (if (cl-oddp i) '("jazz") '("dub")))))
+         (r4-channel-image-size 0)
+         visited filtered played)
+    (cl-letf (((symbol-function 'r4-api-tracks)
+               (lambda (callback &rest _) (funcall callback tracks)))
+              ((symbol-function 'r4-player-play)
+               (lambda (queue &optional index &rest _) (setq played (cons (length queue) index))))
+              ((symbol-function 'r4-tracks-buffer)
+               (lambda (source) (setq visited source) (get-buffer-create "*r4 test tracks*")))
+              ((symbol-function 'r4-tracks-set-filter)
+               (lambda (text) (setq filtered text))))
+      (r4-channel-page channel)
+      (unwind-protect
+          (with-current-buffer "*r4 @ko002 channel*"
+            (should (eq major-mode 'r4-channel-page-mode))
+            (should (string-match-p "\\`Ko  @ko002\n" (buffer-string)))
+            (dolist (text '("52.50, 13.40" "▶ Play" "Tracks 7" "#jazz 4" "#dub 3"
+                            "Song 5" "See all 7 tracks"))
+              (should (string-search text (buffer-string))))
+            ;; 5 latest tracks.
+            (should-not (string-search "Song 6" (buffer-string)))
+            ;; The tags of the description open the tracks with that tag.
+            (goto-char (point-min))
+            (search-forward "#jazz,")
+            (push-button (- (point) 3))
+            (should (equal visited '(:slug "ko002")))
+            (should (equal filtered "#jazz"))
+            (set-buffer "*r4 @ko002 channel*")
+            ;; Mentions are buttons too.
+            (should (button-at (1+ (string-search "@oskar" (buffer-string)))))
+            ;; A track plays the channel from it.
+            (search-forward "Song 2")
+            (push-button (1- (point)))
+            (should (equal played '(7 . 1)))
+            (should (eq (keymap-lookup r4-channel-page-mode-map "t") 'r4-channel-page-tracks)))
+        (kill-buffer "*r4 @ko002 channel*")
+        (kill-buffer "*r4 test tracks*")))
+    ;; RET in channel lists visits the page, T the tracks.
+    (should (eq (keymap-lookup r4-channels-mode-map "RET") 'r4-channels-visit))
+    (should (eq (keymap-lookup r4-channels-mode-map "T") 'r4-channels-open))))
+
 (ert-deftest r4-test-bookmark-tracks ()
   (let ((r4-history-file nil) (r4-history--entries nil) (r4-history--loaded t))
     (with-current-buffer (r4-tracks-buffer '(:history t :name "history"))

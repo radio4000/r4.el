@@ -136,9 +136,9 @@ In lists of channels:
 
 | Key           | Channels                                                 |
 |---------------+----------------------------------------------------------|
-| =RET=         | Open the tracks                                          |
+| =RET=         | Visit the channel page, like /@slug                      |
+| =T=           | Open the tracks                                          |
 | =P= =z= =R=   | Play, shuffle, auto-radio                                |
-| =i=           | Describe, with its image                                 |
 | =f= =F= =r=   | Follow or unfollow, its following, its followers         |
 | =M=           | Tracks mentioning it                                     |
 | =D= =C=       | Download, save locally                                   |

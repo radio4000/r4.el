@@ -88,8 +88,11 @@ per Emacs session."
 (defun r4-channels-follow ()
   "Follow the channel at point with your channel, or stop following it."
   (interactive)
-  (let* ((channel (r4-channels--at-point))
-         (mine (r4-follows-my-channel))
+  (r4-follows-toggle (r4-channels--at-point)))
+
+(defun r4-follows-toggle (channel)
+  "Follow CHANNEL with your channel, or stop following it."
+  (let* ((mine (r4-follows-my-channel))
          (following (member (r4-channel-id channel)
                             (r4-follows-following-ids (r4-channel-id mine)))))
     (if following
