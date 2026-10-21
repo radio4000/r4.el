@@ -228,7 +228,7 @@
 
 (defun r4-channel-page--insert-image (channel)
   "Insert the image of CHANNEL, fetching it first."
-  (cond ((imagep r4-channel-page--image)
+  (cond ((eq (car-safe r4-channel-page--image) 'image)
          (insert-image r4-channel-page--image "[image]")
          (insert "\n\n"))
         ((null r4-channel-page--image)
