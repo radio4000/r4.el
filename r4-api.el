@@ -109,6 +109,11 @@ the call, with the error message."
            (funcall callback (plist-get result :data)))))
      nil t t)))
 
+(defun r4-api--json (body)
+  "Return BODY as JSON bytes, for a request."
+  (let ((json (json-serialize body)))
+    (if (multibyte-string-p json) (encode-coding-string json 'utf-8) json)))
+
 (cl-defun r4-api-request (method path &key params body token prefer)
   "Send a METHOD request to PATH below `r4-api-url', and return the parsed JSON.
 PARAMS is a list of (KEY VALUE) query params, BODY is sent as JSON,
@@ -121,7 +126,7 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
             ,@(when body '(("Content-Type" . "application/json")))
             ,@(when token `(("Authorization" . ,(concat "Bearer " token))))
             ,@(when prefer `(("Prefer" . ,prefer)))))
-         (url-request-data (and body (json-serialize body)))
+         (url-request-data (and body (r4-api--json body)))
          (url (concat r4-api-url path (when params (concat "?" (url-build-query-string params)))))
          (buffer (or (url-retrieve-synchronously url t t 60)
                      (signal 'r4-api-error (list "No response from the server")))))
@@ -137,6 +142,37 @@ Block Emacs until the response, and signal `r4-api-error' on failure."
                     (list (or (r4-api--body-message)
                               (format "HTTP status %s" url-http-response-status)))))
         (kill-buffer buffer)))))
+
+(cl-defun r4-api-send (method path &key params body token prefer callback)
+  "Send a METHOD request to PATH below `r4-api-url', without waiting.
+Like `r4-api-request', with the same PARAMS, BODY, TOKEN and PREFER,
+but call CALLBACK with the parsed response, if non-nil, and
+`r4-api-error-function', as bound at the time of the call, on
+failure."
+  (let ((url-request-method method)
+        (url-request-extra-headers
+         `(,@(r4-api--headers)
+           ,@(when body '(("Content-Type" . "application/json")))
+           ,@(when token `(("Authorization" . ,(concat "Bearer " token))))
+           ,@(when prefer `(("Prefer" . ,prefer)))))
+        (url-request-data (and body (r4-api--json body)))
+        (on-error r4-api-error-function))
+    (url-retrieve
+     (concat r4-api-url path (when params (concat "?" (url-build-query-string params))))
+     (lambda (status)
+       (let* ((buffer (current-buffer))
+              (ok (and (not (plist-get status :error))
+                       (numberp url-http-response-status)
+                       (<= 200 url-http-response-status 299)))
+              (result (if ok
+                          (progn (goto-char url-http-end-of-headers)
+                                 (skip-chars-forward " \t\r\n")
+                                 (unless (eobp) (ignore-errors (r4-api--parse))))
+                        (r4-api--error-message status))))
+         (kill-buffer buffer)
+         (cond ((not ok) (funcall on-error result))
+               (callback (funcall callback result)))))
+     nil t t)))
 
 (defun r4-api-get-sync (table params)
   "Fetch and return the rows of TABLE with PARAMS, blocking Emacs."
