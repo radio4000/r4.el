@@ -17,6 +17,7 @@
 (require 'r4-models)
 (require 'r4-player)
 (require 'r4-filter)
+(require 'r4-columns)
 
 (defconst r4-queue-buffer "*r4 queue*"
   "Name of the buffer listing the play queue.")
@@ -40,8 +41,11 @@
   "Set the entries and mode line of the queue buffer."
   (unless r4-player-queue-filter
     (setq r4-queue-filter-text nil))
-  (setq tabulated-list-entries (r4-queue--entries)
-        mode-line-process (r4-filter-mode-line r4-queue-filter-text
+  (setq tabulated-list-entries (r4-queue--entries))
+  (r4-columns-show-empty (if r4-queue-filter-text
+                             "No queue tracks match the filter, / changes it"
+                           "The queue is empty: RET in a list of tracks plays them"))
+  (setq mode-line-process (r4-filter-mode-line r4-queue-filter-text
                                                (length tabulated-list-entries)
                                                (length r4-player-queue))))
 

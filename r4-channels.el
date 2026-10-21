@@ -44,6 +44,9 @@ It is called with a callback, to call with the list of channels.")
                     r4-channels--channels)))
     (setq tabulated-list-entries (r4-channels--entries channels))
     (tabulated-list-print t)
+    (r4-columns-show-empty (if r4-channels--filter
+                               "No channels match the filter, / changes it"
+                             "No channels"))
     (setq mode-line-process
           (when r4-channels--filter
             (format " %d/%d" (length channels) (length r4-channels--channels))))))
@@ -105,6 +108,7 @@ They are named after the fields of the channels of radio4000.com.")
                 (r4-channels-redisplay)
                 (message "%d %s" (length channels) name))))))
     (setq mode-line-process " loading…")
+    (r4-columns-show-empty "Loading…")
     (force-mode-line-update)
     (let ((r4-api-error-function (lambda (error) (r4-list-fetch-failed buffer error))))
       (condition-case err

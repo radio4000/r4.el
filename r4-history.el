@@ -107,7 +107,7 @@ TIME is an ISO 8601 timestamp.")
 (defun r4-history ()
   "List the played tracks, newest first."
   (interactive)
-  (r4-tracks-show '(:history t :name "history"
+  (r4-tracks-show '(:history t :name "history" :empty "Nothing played yet"
                     :columns (status time slug title duration))))
 
 (defun r4-history-clear ()

@@ -159,7 +159,8 @@ Return non-nil if SOURCE is a feed."
   "List the latest tracks of the channels that SLUG follows.
 SLUG is your channel by default; with a prefix argument, ask for it."
   (interactive (list (r4-follows--read-slug "Feed of: @")))
-  (r4-tracks-show (list :feed slug :name (format "feed of @%s" slug))))
+  (r4-tracks-show (list :feed slug :name (format "feed of @%s" slug)
+                       :empty "No tracks: follow channels with f in channel lists")))
 
 (defun r4-channels-following ()
   "List the channels that the channel at point follows."

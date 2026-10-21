@@ -81,6 +81,19 @@ SPECS is an alist of column symbols and `r4-column'."
 COLUMNS are the column symbols, defined in SPECS."
   (vconcat (mapcar (lambda (column) (r4-columns-cell object column specs)) columns)))
 
+(defvar-local r4-columns--empty-overlay nil
+  "Overlay showing why the list of the buffer is empty.")
+
+(defun r4-columns-show-empty (text)
+  "Show TEXT in the list of the buffer while it has no entries.
+TEXT says why, such as \"No tracks\", or nil to show nothing."
+  (unless (overlayp r4-columns--empty-overlay)
+    (setq r4-columns--empty-overlay (make-overlay (point-min) (point-min) nil t)))
+  (move-overlay r4-columns--empty-overlay (point-min) (point-min))
+  (overlay-put r4-columns--empty-overlay 'before-string
+               (and text (null tabulated-list-entries)
+                    (propertize (concat "  " text "\n") 'face 'shadow))))
+
 (defun r4-columns-custom-type (specs)
   "Return the `defcustom' type choosing columns among SPECS."
   `(repeat (choice ,@(mapcar (lambda (spec)

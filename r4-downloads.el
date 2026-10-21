@@ -15,6 +15,7 @@
 (require 'r4-models)
 (require 'r4-files)
 (require 'r4-download)
+(require 'r4-columns)
 
 (defconst r4-downloads-buffer "*r4 downloads*"
   "Name of the buffer listing downloads.")
@@ -48,6 +49,24 @@
                             (concat "@" (r4-track-slug track))
                             (r4-one-line (r4-track-title track))))))
           (reverse r4-download--jobs)))
+
+(defun r4-downloads--summary ()
+  "Return the counts of the downloads by status, as \" 2 running, 5 queued\"."
+  (let ((counts (mapcar (lambda (status)
+                          (cons status (cl-count status r4-download--jobs
+                                                 :key #'r4-download-status)))
+                        '(running queued done failed cancelled))))
+    (mapconcat (pcase-lambda (`(,status . ,count))
+                 (propertize (format " %d %s" count status)
+                             'face (if (eq status 'failed) 'error nil)))
+               (cl-remove-if #'zerop counts :key #'cdr)
+               ",")))
+
+(defun r4-downloads--revert ()
+  "Set the entries and the summary of the downloads list."
+  (setq tabulated-list-entries (r4-downloads--entries)
+        mode-line-process (r4-downloads--summary))
+  (r4-columns-show-empty "No downloads: d and D download tracks in lists of tracks"))
 
 (defun r4-downloads--at-point ()
   "Return the download at point, or signal an error."
@@ -114,9 +133,7 @@
                                ("Channel" 20 t)
                                ("Title" 0 t)]
         tabulated-list-padding 2)
-  (add-hook 'tabulated-list-revert-hook
-            (lambda () (setq tabulated-list-entries (r4-downloads--entries)))
-            nil t)
+  (add-hook 'tabulated-list-revert-hook #'r4-downloads--revert nil t)
   (tabulated-list-init-header))
 
 ;;;###autoload

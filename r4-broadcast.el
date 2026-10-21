@@ -20,6 +20,7 @@
 (require 'r4-api)
 (require 'r4-player)
 (require 'r4-channels)
+(require 'r4-columns)
 
 (defcustom r4-broadcast-interval 5
   "Seconds between two checks of the broadcast you listen to."
@@ -180,6 +181,7 @@ calculateSeekTime of radio4000.com."
                     (with-current-buffer buffer
                       (setq tabulated-list-entries (r4-broadcasts--entries rows))
                       (tabulated-list-print t)
+                      (r4-columns-show-empty "No live broadcasts now, g refreshes")
                       (message "%d live broadcast%s" (length rows) (if (cdr rows) "s" ""))))))))
 
 (defun r4-broadcasts-listen ()

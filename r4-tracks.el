@@ -27,7 +27,8 @@
   "Plist describing the tracks of the buffer.
 It has the keys :slug, a channel slug, :query, a search, :local,
 non-nil for a local channel, :columns, the columns to show instead
-of `r4-tracks-columns', and :name, the name of the list.  Other keys
+of `r4-tracks-columns', :name, the name of the list, and :empty, what
+it shows when it has no tracks.  Other keys
 are handled by `r4-tracks-fetch-functions'.")
 
 (defvar-local r4-tracks--tracks nil
@@ -115,6 +116,10 @@ status shows the file and the player state of a track, see
   "Redisplay the tracks of the buffer, without fetching them."
   (setq tabulated-list-entries (r4-tracks--entries))
   (tabulated-list-print t)
+  (r4-columns-show-empty (if r4-tracks--filter-text
+                             (format "No tracks match \"%s\", / changes the filter"
+                                     r4-tracks--filter-text)
+                           (or (plist-get r4-tracks--source :empty) "No tracks")))
   (setq mode-line-process
         (r4-filter-mode-line r4-tracks--filter-text
                              (length tabulated-list-entries) (length r4-tracks--tracks))))
@@ -147,6 +152,7 @@ status shows the file and the player state of a track, see
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq mode-line-process (propertize " failed" 'face 'error))
+      (r4-columns-show-empty (format "%s, g tries again" error))
       (force-mode-line-update)))
   (message "%s (g to retry)" error))
 
@@ -157,6 +163,7 @@ status shows the file and the player state of a track, see
          (callback (lambda (tracks) (r4-tracks--set buffer tracks)))
          (r4-api-error-function (lambda (error) (r4-list-fetch-failed buffer error))))
     (setq mode-line-process " loading…")
+    (r4-columns-show-empty "Loading…")
     (force-mode-line-update)
     (condition-case err
         (unless (run-hook-with-args-until-success 'r4-tracks-fetch-functions source callback)

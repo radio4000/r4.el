@@ -24,7 +24,12 @@
           (should (equal (mapcar (lambda (e) (r4-track-id (car e))) tabulated-list-entries) '("1")))
           (r4-tracks-filter "@else")
           (should (equal (mapcar (lambda (e) (r4-track-id (car e))) tabulated-list-entries) '("3")))
+          ;; An empty list says why.
+          (r4-tracks-filter "zzz")
+          (should (string-match-p "No tracks match \"zzz\""
+                                  (overlay-get r4-columns--empty-overlay 'before-string)))
           (r4-tracks-filter "")
+          (should-not (overlay-get r4-columns--empty-overlay 'before-string))
           (should (equal (length tabulated-list-entries) 3))
           (should-not mode-line-process)
           (should (equal (r4-filter-tag-counts tracks) '(("jazz" . 2) ("dub" . 1))))
@@ -259,6 +264,15 @@
           (setq r4-channels--cache nil)
           (should (equal (mapcar #'r4-channel-slug (r4-channels--all)) '("oskar"))))
       (delete-file r4-channels-cache-file))))
+
+(ert-deftest r4-test-downloads-summary ()
+  (let ((r4-download--jobs
+         (list (r4-download-create :track (r4-test--track) :status 'running)
+               (r4-download-create :track (r4-test--track) :status 'queued)
+               (r4-download-create :track (r4-test--track) :status 'queued)
+               (r4-download-create :track (r4-test--track) :status 'failed))))
+    (should (equal (substring-no-properties (r4-downloads--summary))
+                   " 1 running, 2 queued, 1 failed"))))
 
 (provide 'r4-test-lists)
 
