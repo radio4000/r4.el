@@ -49,31 +49,34 @@ non-nil if it handles the source.")
   "Return the status of TRACK, two characters.
 The file: ✓ downloaded, ↓ downloading, ✗ its download failed.
 The player: ▶ playing, · played before."
-  (concat (cond ((r4-download-pending-p track) "↓")
-                ((r4-files-track-file track) "✓")
-                ((r4-files-failed-p track) "✗")
+  (concat (cond ((r4-download-pending-p track) (r4-faces-status "↓" 'r4-downloading))
+                ((r4-files-track-file track) (r4-faces-status "✓" 'r4-downloaded))
+                ((r4-files-failed-p track) (r4-faces-status "✗" 'r4-failed))
                 (t " "))
-          (cond ((equal (r4-track-id track) r4-tracks--playing-id) "▶")
-                ((funcall r4-tracks-played-function track) "·")
+          (cond ((equal (r4-track-id track) r4-tracks--playing-id)
+                 (r4-faces-status "▶" 'r4-playing))
+                ((funcall r4-tracks-played-function track) (r4-faces-status "·" 'shadow))
                 (t " "))))
 
 (defvar r4-tracks-column-specs
   `((status . ,(r4-column-create :name " " :width 2 :key #'r4-tracks--status
                                  :format #'identity))
     (created_at . ,(r4-column-create :name "created at" :width 10 :key #'r4-track-created-at
-                                     :format #'r4-format-date :descending t))
+                                     :format #'r4-format-date :descending t :face 'r4-date))
     (updated_at . ,(r4-column-create :name "updated at" :width 10 :key #'r4-track-updated-at
-                                     :format #'r4-format-date :descending t))
+                                     :format #'r4-format-date :descending t :face 'r4-date))
     (slug . ,(r4-column-create :name "slug" :width 16 :key #'r4-track-slug
-                               :format (lambda (slug) (concat "@" slug))))
-    (title . ,(r4-column-create :name "title" :width 50 :key #'r4-track-title))
+                               :format (lambda (slug) (concat "@" slug)) :face 'r4-slug))
+    (title . ,(r4-column-create :name "title" :width 50 :key #'r4-track-title
+                                :face 'r4-title))
     (duration . ,(r4-column-create :name "duration" :width 8 :key #'r4-track-duration
-                                   :format #'r4-format-duration :right-align t))
+                                   :format #'r4-format-duration :right-align t
+                                   :face 'r4-number))
     (tags . ,(r4-column-create :name "tags" :width 16
                                :key (lambda (track) (string-join (r4-track-tags track) " "))
                                :format #'r4-filter-tags-string))
     (description . ,(r4-column-create :name "description" :width 40
-                                      :key #'r4-track-description))
+                                      :key #'r4-track-description :face 'r4-description))
     (provider . ,(r4-column-create :name "provider" :width 10 :key #'r4-track-provider))
     (media_id . ,(r4-column-create :name "media id" :width 12 :key #'r4-track-media-id))
     (url . ,(r4-column-create :name "url" :width 45 :key #'r4-track-url))

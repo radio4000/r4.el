@@ -45,14 +45,6 @@
   :type 'natnum
   :group 'r4)
 
-(defface r4-channel-page-name '((t :inherit bold :height 1.4))
-  "Face of the channel name on channel pages."
-  :group 'r4)
-
-(defface r4-channel-page-heading '((t :inherit bold))
-  "Face of the headings of channel pages."
-  :group 'r4)
-
 (defvar-local r4-channel-page--channel nil
   "The `r4-channel' of the page.")
 
@@ -155,13 +147,6 @@
 
 ;;;; Content
 
-(defun r4-channel-page--button (label action &optional help)
-  "Insert a button LABEL calling ACTION, a command, with HELP."
-  (insert-text-button label
-                      'action (lambda (_) (call-interactively action))
-                      'follow-link t
-                      'help-echo (or help (documentation action t))))
-
 (defun r4-channel-page-insert-linked (text slug)
   "Insert TEXT, with its links, #tags and @mentions as buttons.
 Its #tags show the tracks of the channel SLUG with that tag."
@@ -185,33 +170,50 @@ Its #tags show the tracks of the channel SLUG with that tag."
         (setq start end)))
     (insert (substring text start))))
 
+(defun r4-channel-page--field (name)
+  "Insert the field NAME, right aligned, like `describe-package'."
+  (insert (make-string (max 0 (- 12 (string-width name))) ?\s)
+          (propertize (concat name ": ") 'face 'r4-heading)))
+
+(defun r4-channel-page--insert-wrapped (items)
+  "Insert ITEMS, functions inserting a text and returning its width.
+Wrap them under the field values."
+  (let ((column 14))
+    (dolist (item items)
+      (let ((start (point))
+            (width (funcall item)))
+        (when (and (> (+ column width) fill-column) (> column 14))
+          (save-excursion (goto-char start) (insert "\n" (make-string 14 ?\s)))
+          (setq column 14))
+        (insert "  ")
+        (cl-incf column (+ width 2))))
+    (insert "\n")))
+
 (defun r4-channel-page--insert-tags ()
-  "Insert the most used tags of the channel."
+  "Insert the most used tags of the channel, with their counts."
   (when-let* ((counts (seq-take (r4-filter-tag-counts r4-channel-page--tracks)
                                 r4-channel-page-tags)))
-    (insert (propertize "Tags" 'face 'r4-channel-page-heading) "\n")
-    (let ((column 0))
-      (pcase-dolist (`(,tag . ,count) counts)
-        (let ((width (+ (length tag) (length (number-to-string count)) 4)))
-          (when (> (+ column width) fill-column)
-            (insert "\n")
-            (setq column 0))
-          (insert-text-button (concat "#" tag)
-                              'action (lambda (_) (r4-channel-page-tag tag))
-                              'follow-link t
-                              'help-echo (format "Tracks with #%s" tag))
-          (insert (propertize (format " %d  " count) 'face 'shadow))
-          (cl-incf column width))))
-    (insert "\n\n")))
+    (r4-channel-page--field "Tags")
+    (r4-channel-page--insert-wrapped
+     (mapcar (pcase-lambda (`(,tag . ,count))
+               (lambda ()
+                 (insert-text-button (concat "#" tag)
+                                     'action (lambda (_) (r4-channel-page-tag tag))
+                                     'follow-link t
+                                     'face '(r4-tag button)
+                                     'help-echo (format "Tracks with #%s" tag))
+                 (insert " " (propertize (number-to-string count) 'face 'r4-number))
+                 (+ (length tag) 2 (length (number-to-string count)))))
+             counts))))
 
 (defun r4-channel-page--insert-tracks ()
   "Insert the latest tracks of the channel."
-  (insert (propertize "Latest tracks" 'face 'r4-channel-page-heading) "\n")
+  (insert (propertize "Latest tracks" 'face 'r4-heading) "\n")
   (cond ((null r4-channel-page--tracks)
-         (insert (propertize (if (eql (r4-channel-track-count r4-channel-page--channel) 0)
-                                 "No tracks"
-                               "Loading tracks…")
-                             'face 'shadow)
+         (insert "  " (propertize (if (eql (r4-channel-track-count r4-channel-page--channel) 0)
+                                      "No tracks"
+                                    "Loading tracks…")
+                                  'face 'shadow)
                  "\n"))
         (t
          (cl-loop for track in r4-channel-page--tracks
@@ -220,16 +222,19 @@ Its #tags show the tracks of the channel SLUG with that tag."
                        (insert "  ")
                        (insert-text-button
                         (truncate-string-to-width (r4-one-line (r4-track-title track))
-                                                  (max 20 (- fill-column 16)) nil nil "…")
+                                                  (max 20 (- fill-column 30)) nil ?\s "…")
                         'action (lambda (_) (r4-player-play r4-channel-page--tracks index))
                         'follow-link t
+                        'face '(r4-title button)
                         'help-echo "Play from this track")
                        (insert "  " (propertize (r4-format-duration (r4-track-duration track))
-                                                'face 'shadow)
+                                                'face 'r4-number)
+                               "  " (propertize (r4-format-date (r4-track-created-at track))
+                                                'face 'r4-date)
                                "\n")))
          (insert "  ")
-         (r4-channel-page--button (format "See all %d tracks →" (length r4-channel-page--tracks))
-                                  #'r4-channel-page-tracks)
+         (r4-faces-insert-key "t" (format "See all %d tracks" (length r4-channel-page--tracks))
+                              #'r4-channel-page-tracks)
          (insert "\n"))))
 
 (defun r4-channel-page--insert-image (channel)
@@ -251,60 +256,73 @@ Its #tags show the tracks of the channel SLUG with that tag."
                                        (r4-channel-page--render))))))))))
 
 (defun r4-channel-page--insert (channel)
-  "Insert the page of CHANNEL."
+  "Insert the page of CHANNEL, like `describe-package'."
   (let ((slug (r4-channel-slug channel)))
     (r4-channel-page--insert-image channel)
-    (insert (propertize (or (r4-channel-name channel) slug) 'face 'r4-channel-page-name)
-            "  @" slug "\n")
+    (insert (propertize (or (r4-channel-name channel) slug) 'face 'r4-big-heading) "\n"
+            (propertize (concat "@" slug) 'face 'r4-slug) "\n\n")
     (when-let* ((url (r4-channel-url channel))
                 ((not (string-blank-p url))))
+      (r4-channel-page--field "Website")
       (insert-text-button url 'type 'help-url 'help-args (list url))
       (insert "\n"))
-    (when-let* ((description (r4-channel-description channel))
-                ((not (string-blank-p description))))
-      (insert "\n")
-      (r4-channel-page-insert-linked description slug)
-      (insert "\n"))
+    (r4-channel-page--field "Tracks")
+    (insert (propertize (format "%s" (or (r4-channel-track-count channel) 0)) 'face 'r4-number))
+    (when-let* ((latest (r4-channel-latest-track-at channel)))
+      (insert ", the latest on " (propertize (r4-format-date latest) 'face 'r4-date)))
     (insert "\n")
+    (r4-channel-page--field "Created")
+    (insert (propertize (r4-format-date (r4-channel-created-at channel)) 'face 'r4-date) "\n")
     (when (and (r4-channel-latitude channel) (r4-channel-longitude channel))
+      (r4-channel-page--field "Location")
       (insert-text-button (format "%.2f, %.2f" (r4-channel-latitude channel)
                                   (r4-channel-longitude channel))
                           'type 'help-url 'help-args (list (r4-channel-map-url channel)))
-      (insert "  "))
-    (insert (propertize (format "Updated %s"
-                                (r4-format-date (or (r4-channel-latest-track-at channel)
-                                                    (r4-channel-updated-at channel))))
-                        'face 'shadow)
-            "\n\n")
-    (insert "  ")
-    (r4-channel-page--button "▶ Play" #'r4-channel-page-play)
-    (insert "  ")
-    (r4-channel-page--button "Shuffle" #'r4-channel-page-shuffle)
-    (insert "  ")
-    (r4-channel-page--button "Auto radio" #'r4-channel-page-auto-radio)
-    (insert "\n\n")
-    (r4-channel-page--button (format "Tracks %s" (or (r4-channel-track-count channel) ""))
-                             #'r4-channel-page-tracks)
-    (dolist (page `(("Following" . r4-channel-page-following)
-                    ("Followers" . r4-channel-page-followers)
-                    ("Mentions" . r4-channel-page-mentions)))
-      (insert "  ")
-      (r4-channel-page--button (car page) (cdr page)))
+      (insert "\n"))
+    (r4-channel-page--field "Links")
+    (insert-text-button "radio4000.com" 'type 'help-url
+                        'help-args (list (r4-channel-web-url channel)))
     (insert "  ")
     (insert-text-button "RSS" 'type 'help-url 'help-args (list (r4-channel-rss-url channel)))
-    (insert "  ")
-    (r4-channel-page--button "radio4000.com" #'r4-channel-page-browse)
     (insert "\n")
-    (r4-channel-page--button "Follow or unfollow" #'r4-channel-page-follow)
-    (insert "  ")
-    (r4-channel-page--button (if (r4-synced-p slug) "Stop syncing" "Sync locally")
-                             #'r4-channel-page-toggle-sync)
-    (insert "  ")
-    (r4-channel-page--button "Download" #'r4-channel-page-download)
-    (insert "  ")
-    (r4-channel-page--button "Save locally" #'r4-channel-page-save-locally)
-    (insert "\n\n")
+    (r4-channel-page--field "Locally")
+    (insert (cond ((r4-synced-p slug) (propertize "synced" 'face 'r4-synced))
+                  ((r4-local-p slug) "saved")
+                  (t (propertize "not synced" 'face 'shadow)))
+            "\n")
+    (when-let* ((description (r4-channel-description channel))
+                ((not (string-blank-p description))))
+      (r4-channel-page--field "Description")
+      (let ((start (point)))
+        (r4-channel-page-insert-linked description slug)
+        (add-face-text-property start (point) 'r4-description t)
+        (let ((indent-tabs-mode nil))
+          (indent-rigidly (save-excursion (goto-char start) (line-beginning-position 2))
+                          (point) 14)))
+      (insert "\n"))
     (r4-channel-page--insert-tags)
+    (insert "\n")
+    (dolist (row `((("P" "Play" r4-channel-page-play)
+                    ("z" "Shuffle" r4-channel-page-shuffle)
+                    ("R" "Auto radio" r4-channel-page-auto-radio))
+                   (("t" ,(format "Tracks %s" (or (r4-channel-track-count channel) ""))
+                     r4-channel-page-tracks)
+                    ("#" "Tags" r4-channel-page-tag)
+                    ("F" "Following" r4-channel-page-following)
+                    ("r" "Followers" r4-channel-page-followers)
+                    ("M" "Mentions" r4-channel-page-mentions))
+                   (("f" "Follow" r4-channel-page-follow)
+                    ("y" ,(if (r4-synced-p slug) "Stop syncing" "Sync locally")
+                     r4-channel-page-toggle-sync)
+                    ("D" "Download" r4-channel-page-download)
+                    ("C" "Save locally" r4-channel-page-save-locally)
+                    ("o" "Open on radio4000.com" r4-channel-page-browse))))
+      (insert "  ")
+      (pcase-dolist (`(,key ,label ,command) row)
+        (r4-faces-insert-key key label command)
+        (insert "   "))
+      (insert "\n"))
+    (insert "\n")
     (r4-channel-page--insert-tracks)))
 
 (defun r4-channel-page--render ()

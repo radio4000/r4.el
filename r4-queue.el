@@ -31,10 +31,13 @@
            for index from 0
            when (or (null r4-player-queue-filter) (funcall r4-player-queue-filter track))
            collect (list index
-                         (vector (if (eql index r4-player-index) "▶" "")
-                                 (concat "@" (r4-track-slug track))
+                         (vector (if (eql index r4-player-index)
+                                     (r4-faces-status "▶" 'r4-playing)
+                                   "")
+                                 (propertize (concat "@" (r4-track-slug track)) 'face 'r4-slug)
                                  (r4-one-line (r4-track-title track))
-                                 (r4-format-duration (r4-track-duration track))
+                                 (propertize (r4-format-duration (r4-track-duration track))
+                                             'face 'r4-number)
                                  (r4-filter-tags-string (r4-track-tags track))))))
 
 (defun r4-queue--revert ()

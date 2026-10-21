@@ -237,8 +237,10 @@
       (unwind-protect
           (with-current-buffer "*r4 @ko002 channel*"
             (should (eq major-mode 'r4-channel-page-mode))
-            (should (string-match-p "\\`Ko  @ko002\n" (buffer-string)))
-            (dolist (text '("52.50, 13.40" "▶ Play" "Tracks 7" "#jazz 4" "#dub 3"
+            (should (string-match-p "\\`Ko\n@ko002\n" (buffer-string)))
+            ;; Fields like `describe-package'.
+            (should (string-match-p "^ +Tracks: 7\n" (buffer-string)))
+            (dolist (text '("52.50, 13.40" "P Play" "t Tracks 7" "#jazz 4" "#dub 3"
                             "Song 5" "See all 7 tracks"))
               (should (string-search text (buffer-string))))
             ;; 5 latest tracks.
@@ -258,7 +260,7 @@
             (should (equal played '(7 . 1)))
             (should (eq (keymap-lookup r4-channel-page-mode-map "t") 'r4-channel-page-tracks)))
         (kill-buffer "*r4 @ko002 channel*")
-        (kill-buffer "*r4 test tracks*")))
+        (when (get-buffer "*r4 test tracks*") (kill-buffer "*r4 test tracks*"))))
     ;; RET in channel lists visits the page, T the tracks.
     (should (eq (keymap-lookup r4-channels-mode-map "RET") 'r4-channels-visit))
     (should (eq (keymap-lookup r4-channels-mode-map "T") 'r4-channels-open))))

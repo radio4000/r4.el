@@ -17,6 +17,7 @@
 (require 'r4-models)
 (require 'r4-player)
 (require 'r4-video)
+(require 'r4-faces)
 
 (defconst r4-player-window-buffer "*r4 player*"
   "Name of the buffer of the player window.")
@@ -106,19 +107,10 @@ Fonts often draw its characters wider than a column."
   "Controls of the player: key, label, command, and the variable of a toggle.
 The keys work in every r4 buffer, see `r4-player-map'.")
 
-(defun r4-player-window--insert-key (key label command &optional on)
-  "Insert the button KEY LABEL running COMMAND, highlighted when ON."
-  (insert (propertize key 'face 'help-key-binding) " ")
-  (insert-text-button label
-                      'action (lambda (_) (call-interactively command))
-                      'follow-link t
-                      'face (if on 'success 'button)
-                      'help-echo (documentation command t)))
-
 (defun r4-player-window--insert-controls (controls)
   "Insert CONTROLS, a list like `r4-player-window-controls'."
   (pcase-dolist (`(,key ,label ,command ,variable) controls)
-    (r4-player-window--insert-key
+    (r4-faces-insert-key
      key (if (and (eq command 'r4-player-toggle-pause) r4-player-paused) "play" label)
      command (and variable (symbol-value variable)))
     (insert "  ")))
@@ -137,7 +129,7 @@ The keys work in every r4 buffer, see `r4-player-map'.")
         (insert button " "
                 (propertize (truncate-string-to-width (r4-one-line (r4-track-title track))
                                                       (- width 2) nil nil "…")
-                            'face 'bold)
+                            'face 'r4-title)
                 "\n" info " " time " ")
         (when (> bar-width 4)
           (insert (r4-player-window--bar bar-width)))

@@ -35,10 +35,6 @@
 (defconst r4-home-buffer "*r4*"
   "Name of the home buffer.")
 
-(defface r4-home-heading '((t :inherit bold))
-  "Face of the headings of the home buffer."
-  :group 'r4)
-
 (defvar r4-home--my-channels nil
   "Your channels, once fetched, or `failed'.")
 
@@ -55,7 +51,7 @@
 
 (defun r4-home--heading (text)
   "Insert the heading TEXT."
-  (insert "\n" (propertize text 'face 'r4-home-heading) "\n"))
+  (insert "\n" (propertize text 'face 'r4-heading) "\n"))
 
 (defun r4-home--button (label action &optional help)
   "Insert a button LABEL calling the function ACTION, with HELP."
@@ -69,7 +65,7 @@
 Their key in the home buffer shows before them, like in magit."
   (pcase-dolist (`(,label . ,command) links)
     (if-let* ((key (where-is-internal command (current-local-map) t)))
-        (r4-player-window--insert-key (key-description key) label command)
+        (r4-faces-insert-key (key-description key) label command)
       (r4-home--button label (lambda () (call-interactively command))
                        (documentation command t)))
     (insert "  "))
@@ -145,7 +141,7 @@ Their key in the home buffer shows before them, like in magit."
 
 (defun r4-home--insert ()
   "Insert the home buffer."
-  (insert (propertize "Radio4000" 'face 'r4-channel-page-name) "\n\n")
+  (insert (propertize "Radio4000" 'face 'r4-big-heading) "\n\n")
   (r4-home--insert-player)
   (insert "\n")
   (r4-home--links '(("Channels" . r4-channels)

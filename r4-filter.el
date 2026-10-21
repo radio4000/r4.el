@@ -16,6 +16,7 @@
 
 (require 'cl-lib)
 (require 'r4-models)
+(require 'r4-faces)
 
 (defvar-local r4-filter-toggle-function nil
   "Function toggling tags in the filter of the buffer, called with a list.")
@@ -119,6 +120,7 @@ The tags of TEXT come first, choosing them removes them."
   "Return TAG as #TAG, toggling it in the filter when clicked, showing HELP."
   (propertize (concat "#" tag)
               'r4-tag tag
+              'face 'r4-tag
               'mouse-face 'highlight
               'help-echo help
               'keymap r4-filter-tag-map

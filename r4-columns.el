@@ -18,6 +18,7 @@
 
 (require 'cl-lib)
 (require 'r4-models)
+(require 'r4-faces)
 
 (cl-defstruct (r4-column (:constructor r4-column-create)
                          (:copier nil))
@@ -25,8 +26,9 @@
 KEY returns the value of an object for this column, FORMAT returns
 the string displaying that value, and RIGHT-ALIGN aligns it right.
 DESCENDING sorts it from the largest value first, such as the newest
-date or the most tracks, like radio4000.com."
-  name width key (format #'r4-columns-format-value) right-align descending)
+date or the most tracks, like radio4000.com.  FACE is the face of its
+text, under the faces the text already has."
+  name width key (format #'r4-columns-format-value) right-align descending face)
 
 (defconst r4-columns-max-length 200
   "Maximum length of the text of a cell.
@@ -80,8 +82,12 @@ SPECS is an alist of column symbols and `r4-column'."
 
 (defun r4-columns-cell (object column specs)
   "Return the text of the COLUMN defined in SPECS for OBJECT."
-  (let ((spec (alist-get column specs)))
-    (funcall (r4-column-format spec) (funcall (r4-column-key spec) object))))
+  (let* ((spec (alist-get column specs))
+         (text (funcall (r4-column-format spec) (funcall (r4-column-key spec) object))))
+    (when-let* ((face (r4-column-face spec)))
+      (setq text (copy-sequence text))
+      (add-face-text-property 0 (length text) face t text))
+    text))
 
 (defun r4-columns-row (object columns specs)
   "Return the `tabulated-list-entries' row vector of OBJECT.

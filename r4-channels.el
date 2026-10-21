@@ -85,11 +85,16 @@ when synced locally, and ↓ while downloading or ✓ when downloaded."
   (let ((slug (r4-channel-slug channel))
         (playing (r4-player-current)))
     (propertize
-     (concat (if (and playing (r4-player-live-p) (equal (r4-track-slug playing) slug)) "▶" " ")
-             (if (funcall r4-channels-following-function channel) "♥" " ")
-             (if (funcall r4-channels-synced-function slug) "⟳" " ")
-             (cond ((member slug r4-channels--downloading) "↓")
-                   ((r4-channels--downloaded-p slug) "✓")
+     (concat (r4-faces-status (and playing (r4-player-live-p)
+                                   (equal (r4-track-slug playing) slug) "▶")
+                              'r4-playing)
+             (r4-faces-status (and (funcall r4-channels-following-function channel) "♥")
+                              'r4-followed)
+             (r4-faces-status (and (funcall r4-channels-synced-function slug) "⟳")
+                              'r4-synced)
+             (cond ((member slug r4-channels--downloading)
+                    (r4-faces-status "↓" 'r4-downloading))
+                   ((r4-channels--downloaded-p slug) (r4-faces-status "✓" 'r4-downloaded))
                    (t " ")))
      'help-echo "▶ playing, ♥ followed by your channel, ⟳ synced, ↓ downloading, ✓ downloaded")))
 
@@ -97,20 +102,22 @@ when synced locally, and ↓ while downloading or ✓ when downloaded."
   `((status . ,(r4-column-create :name " " :width 4 :key #'r4-channels--status
                                  :format #'identity))
     (slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug
-                               :format (lambda (slug) (concat "@" slug))))
-    (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name))
+                               :format (lambda (slug) (concat "@" slug)) :face 'r4-slug))
+    (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name
+                               :face 'r4-name))
     (track_count . ,(r4-column-create :name "track count" :width 11
                                       :key #'r4-channel-track-count :right-align t
-                                      :descending t))
+                                      :descending t :face 'r4-number))
     (latest_track_at . ,(r4-column-create :name "latest track at" :width 15
                                           :key #'r4-channel-latest-track-at
-                                          :format #'r4-format-date :descending t))
+                                          :format #'r4-format-date :descending t
+                                          :face 'r4-date))
     (created_at . ,(r4-column-create :name "created at" :width 10 :key #'r4-channel-created-at
-                                     :format #'r4-format-date :descending t))
+                                     :format #'r4-format-date :descending t :face 'r4-date))
     (updated_at . ,(r4-column-create :name "updated at" :width 10 :key #'r4-channel-updated-at
-                                     :format #'r4-format-date :descending t))
+                                     :format #'r4-format-date :descending t :face 'r4-date))
     (description . ,(r4-column-create :name "description" :width 40
-                                      :key #'r4-channel-description))
+                                      :key #'r4-channel-description :face 'r4-description))
     (url . ,(r4-column-create :name "url" :width 30 :key #'r4-channel-url))
     (image . ,(r4-column-create :name "image" :width 20 :key #'r4-channel-image)))
   "Columns available in channel lists, see `r4-channels-columns'.
