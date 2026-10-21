@@ -21,6 +21,7 @@
 (require 'r4-search)
 (require 'r4-follows)
 (require 'r4-auto-radio)
+(require 'r4-channel-page)
 
 (defun r4-describe--field (label value)
   "Insert the field LABEL with VALUE, if VALUE is not empty."
@@ -52,11 +53,34 @@
   (with-help-window (format "*r4 track %s*" (r4-one-line (r4-track-title track)))
     (with-current-buffer standard-output
       (insert (propertize (or (r4-track-title track) "") 'face 'bold) "\n\n")
-      (when-let* ((description (r4-track-description track)))
-        (unless (string-blank-p description)
-          (insert description "\n\n")))
-      (r4-describe--field "Channel" (concat "@" (r4-track-slug track)))
-      (r4-describe--field "Tags" (mapconcat (lambda (tag) (concat "#" tag)) (r4-track-tags track) " "))
+      (let ((local (r4-track-local-p track))
+            (slug (r4-track-slug track)))
+        (when-let* ((description (r4-track-description track))
+                    ((not (string-blank-p description))))
+          ;; Links, #tags and @mentions are buttons, as on radio4000.com.
+          (if local
+              (insert description)
+            (r4-channel-page-insert-linked description slug))
+          (insert "\n\n"))
+        (r4-describe--field "Channel" (concat "@" slug))
+        (unless local
+          (save-excursion
+            (forward-line -1)
+            (when (search-forward (concat "@" slug) (pos-eol) t)
+              (make-text-button (match-beginning 0) (match-end 0)
+                                'action (lambda (_) (r4-channel-page slug))
+                                'help-echo "Visit the channel"))))
+        (when (r4-track-tags track)
+          (insert (format "%-13s" "Tags:"))
+          (dolist (tag (r4-track-tags track))
+            (if local
+                (insert "#" tag)
+              (insert-text-button (concat "#" tag)
+                                  'action (lambda (_) (r4-channel-page-open-tracks
+                                                       slug (concat "#" tag)))
+                                  'help-echo "Tracks of the channel with this tag"))
+            (insert " "))
+          (insert "\n")))
       (r4-describe--field "Duration" (r4-format-duration (r4-track-duration track)))
       (r4-describe--field "Added" (r4-format-date (r4-track-created-at track)))
       (r4-describe--field "Updated" (r4-format-date (r4-track-updated-at track)))

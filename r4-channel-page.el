@@ -68,13 +68,17 @@
   "Return the slug of the channel of the page."
   (r4-channel-slug (or r4-channel-page--channel (user-error "Not a channel page"))))
 
-(defun r4-channel-page-tracks (&optional filter)
-  "Show the tracks of the channel, with the search FILTER if non-nil."
-  (interactive)
-  (let ((buffer (r4-tracks-buffer (list :slug (r4-channel-page--slug)))))
+(defun r4-channel-page-open-tracks (slug &optional filter)
+  "Show the tracks of the channel SLUG, with the search FILTER if non-nil."
+  (let ((buffer (r4-tracks-buffer (list :slug slug))))
     (when filter
       (with-current-buffer buffer (r4-tracks-set-filter filter)))
     (pop-to-buffer-same-window buffer)))
+
+(defun r4-channel-page-tracks (&optional filter)
+  "Show the tracks of the channel, with the search FILTER if non-nil."
+  (interactive)
+  (r4-channel-page-open-tracks (r4-channel-page--slug) filter))
 
 (defun r4-channel-page-tag (tag)
   "Show the tracks of the channel with TAG."
@@ -158,8 +162,9 @@
                       'follow-link t
                       'help-echo (or help (documentation action t))))
 
-(defun r4-channel-page--insert-linked (text)
-  "Insert TEXT, with its links, #tags and @mentions as buttons."
+(defun r4-channel-page-insert-linked (text slug)
+  "Insert TEXT, with its links, #tags and @mentions as buttons.
+Its #tags show the tracks of the channel SLUG with that tag."
   (let ((start 0))
     (while (string-match "https?://[^ \t\n]+\\|#[[:alnum:]_-]+\\|@[[:alnum:]_-]+"
                          text start)
@@ -167,8 +172,9 @@
             (end (match-end 0)))
         (insert (substring text start (match-beginning 0)))
         (pcase (aref match 0)
-          (?# (let ((tag (downcase (substring match 1))))
-                (insert-text-button match 'action (lambda (_) (r4-channel-page-tag tag))
+          (?# (let ((filter (downcase match)))
+                (insert-text-button match 'action (lambda (_) (r4-channel-page-open-tracks
+                                                               slug filter))
                                     'follow-link t
                                     'help-echo (format "Tracks with %s" match))))
           (?@ (let ((slug (substring match 1)))
@@ -257,7 +263,7 @@
     (when-let* ((description (r4-channel-description channel))
                 ((not (string-blank-p description))))
       (insert "\n")
-      (r4-channel-page--insert-linked description)
+      (r4-channel-page-insert-linked description slug)
       (insert "\n"))
     (insert "\n")
     (when (and (r4-channel-latitude channel) (r4-channel-longitude channel))

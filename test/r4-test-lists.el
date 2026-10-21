@@ -160,7 +160,10 @@
             (let ((text (buffer-string)))
               (should (string-match-p "Tags: +#jazz" text))
               (should (string-match-p "Duration: +1:01" text))
-              (should (string-match-p "\\[Play next\\]" text))))
+              (should (string-match-p "\\[Play next\\]" text))
+              ;; Mentions, the channel and tags are buttons.
+              (dolist (link '("@oskar" "@test" "#jazz"))
+                (should (button-at (1+ (string-search link text)))))))
           (kill-buffer "*r4 track Song*"))
       (delete-directory r4-download-directory t))))
 
