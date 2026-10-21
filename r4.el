@@ -15,8 +15,9 @@
 ;; A Radio4000 (https://radio4000.com) client for Emacs: everything
 ;; radio4000.com and the r4 command line do, in Emacs lists and menus.
 ;;
-;; - `r4' opens a menu with all the commands, and ? in any list the
-;;   menu of that list.
+;; - `r4' opens the home buffer, like the home page of radio4000.com,
+;;   where ? opens the menu of all the commands, `r4-menu', and ? in
+;;   any list the menu of that list.
 ;; - `r4-channels', `r4-explore' and `r4-search' browse channels and
 ;;   tracks, with the search language of radio4000.com, as in
 ;;   "@ko002 #jazz miles".
@@ -55,6 +56,7 @@
 (require 'r4-broadcast)
 (require 'r4-describe)
 (require 'r4-channel-page)
+(require 'r4-home)
 (require 'r4-explore)
 (require 'r4-synced)
 (require 'r4-bookmark)

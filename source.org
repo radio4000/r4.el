@@ -81,6 +81,10 @@ The list of tracks.
 The list of channels.
 #+INCLUDE: "r4-channels.el" src emacs-lisp
 
+** r4-home.el
+The home buffer, opened by =r4=.
+#+INCLUDE: "r4-home.el" src emacs-lisp
+
 ** r4-channel-page.el
 The page of a channel, like /@slug.
 #+INCLUDE: "r4-channel-page.el" src emacs-lisp

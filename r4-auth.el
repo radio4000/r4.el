@@ -94,6 +94,11 @@ and :email.")
       (r4-auth--refresh))
     r4-auth--session))
 
+(defun r4-auth-signed-in-p ()
+  "Return non-nil if signed in, without checking the session online."
+  (r4-auth--load)
+  (and r4-auth--session t))
+
 (defun r4-auth-require ()
   "Return the current session, signing in first if needed."
   (or (r4-auth-session)

@@ -15,11 +15,14 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
   sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.
 - The same key does the same thing in every list, and the player keys
-  work in every list and in the =r4= menu.
+  work in every list and in the =r4-menu=.
 - Downloads use the same folders and file names as =r4 download=, so
   the command line, Emacs and the radio4000.com import share them.
 
 * Browse
+- =r4= opens the home buffer, like the home page of radio4000.com, and
+  =?= there the menu of all the commands, =r4-menu=.
+
 | Feature                                  | Web, command line                      | Emacs                     | Key        |
 |------------------------------------------+----------------------------------------+---------------------------+------------|
 | List channels                            | /explore/channels, =r4 channel list=   | =r4-channels=             | menu =c=   |

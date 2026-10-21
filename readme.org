@@ -83,8 +83,11 @@ Changes in the clone are then used directly, after =M-x
 package-vc-rebuild=, or by evaluating the edited buffers.
 
 ** Usage
-=M-x r4= opens a menu with all the commands, and =?= in any list opens
-the menu of that list.  Start with:
+=M-x r4= opens the home buffer, like the home page of radio4000.com:
+the player, your channels, the synced and local channels, live
+broadcasts and what you played lately.  =?= opens the menu of all the
+commands there (=M-x r4-menu=), and the menu of each list in lists.
+Start with:
 
 | Command               | Description                                         |
 |-----------------------+-----------------------------------------------------|
@@ -207,7 +210,7 @@ moves them.
 Choose the channels to keep synced locally, such as a few of the ones
 you follow: =y= in a channel list, or in the list of a channel, syncs
 it or stops syncing it.  Their new tracks download:
-- with =M-x r4-sync-channels=, or =y= in the =r4= menu;
+- with =M-x r4-sync-channels=, or =y= in the =r4-menu=;
 - when you open an r4 list, at most every =r4-sync-interval= (an hour);
 - while they play, to not stream them again (=r4-player-download=,
   =t= for all tracks, =nil= for none).

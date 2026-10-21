@@ -224,8 +224,37 @@
             (should (<= top bottom)))
         (kill-buffer r4-player-window-buffer)))))
 
+;; Like the home page of radio4000.com.
+(ert-deftest r4-test-home ()
+  (let* ((track (r4-test--track :title "Song" :slug "ko002"))
+         (r4-history--entries (list (cons "2026-10-21T10:00:00Z" track)))
+         (r4-history--loaded t)
+         (r4-auth--session nil)
+         (r4-synced-channels '("oskar"))
+         (r4-download-directory (make-temp-file "r4-test" t))
+         visited)
+    (cl-letf (((symbol-function 'r4-api-get)
+               (lambda (_table _params callback)
+                 (funcall callback '(((channel_id . "c1") (channels (slug . "live"))
+                                      (deck (track_title . "Now")))))))
+              ((symbol-function 'r4-channel-page) (lambda (slug) (setq visited slug))))
+      (unwind-protect
+          (progn
+            (r4)
+            (with-current-buffer r4-home-buffer
+              (should (eq major-mode 'r4-home-mode))
+              (dolist (text '("Nothing is playing" "Sign in" "@oskar" "@live" "Song"))
+                (should (string-search text (buffer-string))))
+              (goto-char (point-min))
+              (search-forward "@oskar")
+              (push-button (1- (point)))
+              (should (equal visited "oskar"))
+              (should (eq (keymap-lookup r4-home-mode-map "?") 'r4-menu))))
+        (kill-buffer r4-home-buffer)
+        (delete-directory r4-download-directory t)))))
+
 (ert-deftest r4-test-menus ()
-  (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))
+  (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))
   (should (eq (keymap-lookup r4-tracks-mode-map "?") 'r4-tracks-menu))
   ;; The player keys work in every list.
@@ -239,7 +268,7 @@
                   (when-let* ((player (lookup-key r4-player-map (vector key))))
                     (should (eq player (lookup-key map (vector key))))))
                 map))
-  (dolist (menu '(r4 r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
+  (dolist (menu '(r4-menu r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (let (keys)
       ;; Find the :key of the suffixes, in any version of transient.
       (cl-labels ((collect (x)

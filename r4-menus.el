@@ -140,9 +140,9 @@
 
 ;;;; Menus
 
-;;;###autoload (autoload 'r4 "r4-menus" nil t)
-(r4-menus--define r4
-  "Radio4000 menu."
+;;;###autoload (autoload 'r4-menu "r4-menus" nil t)
+(r4-menus--define r4-menu
+  "Radio4000 menu, of all the commands."
   [["Channels"
     ("c" "Channels" r4-channels)
     ("x" "Explore" r4-explore)
