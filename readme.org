@@ -38,6 +38,17 @@ mpv streaming):
 --js-runtimes bun
 #+end_src
 
+Give its full path when Emacs, started from your desktop, does not have
+it in its =PATH=, such as =--js-runtimes bun:/home/you/.bun/bin/bun=.
+
+When YouTube asks to "sign in to confirm you're not a bot", often after
+many downloads, pass the cookies of your browser to yt-dlp, in the
+same config file or in =r4-download-arguments=:
+
+#+begin_src conf
+--cookies-from-browser firefox
+#+end_src
+
 ** Installation
 r4.el is installed from its git repository with =package-vc=, built
 into Emacs 29.1 and newer. It installs the =.el= files of the default
