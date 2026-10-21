@@ -175,7 +175,10 @@ and =b= again stops.
 
 *** Lists
 Lists of channels and tracks are =tabulated-list-mode= buffers: =n= =p=
-move, =g= refreshes, =m= =u= mark, =q= quits.  =S= sorts by the column at
+move, =g= refreshes, =q= quits.  Tracks are marked like files in
+Dired: =m= marks, =u= unmarks, =U= unmarks all, =t= toggles the marks,
+=% m= marks by regexp, and actions apply to the marked tracks, or to
+the one at point.  =S= sorts by the column at
 point, or click its header; dates and counts sort newest and largest
 first, =S= again reverses.
 

@@ -332,7 +332,8 @@ groups instead."
    ["Select"
     ("m" "Mark" r4-tracks-mark :transient t)
     ("u" "Unmark" r4-tracks-unmark :transient t)
-    ("M" "Mark all" r4-tracks-mark-all :transient t)
+    ("t" "Toggle marks" r4-tracks-toggle-marks :transient t)
+    ("% m" "Mark by regexp" r4-tracks-mark-regexp :transient t)
     ("U" "Unmark all" r4-tracks-unmark-all :transient t)]]
   [["Download"
     ("d" "Marked or at point" r4-tracks-download)

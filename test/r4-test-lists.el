@@ -362,6 +362,20 @@
             (should (eq (keymap-lookup r4-tracks-mode-map "h") 'describe-mode))))
       (kill-buffer buffer))))
 
+;; Marks like in Dired: t toggles them, % m marks by regexp.
+(ert-deftest r4-test-tracks-marks ()
+  (let ((buffer (generate-new-buffer "r4-test")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (r4-tracks-mode)
+          (r4-tracks--set buffer (list (r4-test--track :id "1" :title "Miles" :tags '("jazz"))
+                                       (r4-test--track :id "2" :title "Tubby" :tags '("dub"))))
+          (r4-tracks-mark-regexp "#jazz")
+          (should (equal (mapcar #'r4-track-title (r4-tracks--marked)) '("Miles")))
+          (r4-tracks-toggle-marks)
+          (should (equal (mapcar #'r4-track-title (r4-tracks--marked)) '("Tubby"))))
+      (kill-buffer buffer))))
+
 (provide 'r4-test-lists)
 
 ;;; r4-test-lists.el ends here

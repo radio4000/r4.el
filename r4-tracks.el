@@ -308,6 +308,32 @@ For a new track, the title is fetched from the URL, if possible, see
           (tabulated-list-put-tag "*" t)
         (forward-line 1)))))
 
+(defun r4-tracks-toggle-marks ()
+  "Mark the unmarked tracks and unmark the marked ones, like in Dired."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (not (eobp))
+      (if (tabulated-list-get-id)
+          (tabulated-list-put-tag (if (eq (char-after) ?*) " " "*") t)
+        (forward-line 1)))))
+
+(defun r4-tracks-mark-regexp (regexp)
+  "Mark the tracks whose title, channel or tags match REGEXP, like in Dired."
+  (interactive (list (read-regexp "Mark tracks matching (regexp): ")))
+  (let ((count 0))
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+        (let ((track (tabulated-list-get-id)))
+          (if (and track
+                   (string-match-p regexp (concat (r4-track-title track) " @"
+                                                  (r4-track-slug track) " #"
+                                                  (string-join (r4-track-tags track) " #"))))
+              (progn (tabulated-list-put-tag "*" t) (cl-incf count))
+            (forward-line 1)))))
+    (message "Marked %d track%s" count (if (= count 1) "" "s"))))
+
 (defun r4-tracks--channel-tracks ()
   "Return all the tracks of the channel of the buffer, or nil."
   (when (and (plist-get r4-tracks--source :slug) (not (plist-get r4-tracks--source :query)))
@@ -387,7 +413,8 @@ With prefix argument RETRY, also retry the tracks that failed before."
   "m" #'r4-tracks-mark
   "u" #'r4-tracks-unmark
   "U" #'r4-tracks-unmark-all
-  "M" #'r4-tracks-mark-all
+  "t" #'r4-tracks-toggle-marks
+  "% m" #'r4-tracks-mark-regexp
   "d" #'r4-tracks-download
   "D" #'r4-tracks-download-all
   "L" #'r4-downloads
