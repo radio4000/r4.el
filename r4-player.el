@@ -330,12 +330,20 @@ All of them when none passes `r4-player-queue-filter'."
         ((> (length r4-player-queue) 0) (r4-player--play-index (or r4-player-index 0)))
         (t (user-error "Nothing to play"))))
 
-(defun r4-player-toggle-video ()
+(defun r4-player-toggle-video (&optional pop-out)
   "Toggle showing videos, see `r4-player-video'.
 The playing track plays again from the same position, from a source
 with a video when turning it on, such as the stream instead of a
-downloaded audio file."
-  (interactive)
+downloaded audio file.  With a prefix argument POP-OUT, toggle
+showing them in their own window instead, see
+`r4-player-toggle-video-pop-out'."
+  (interactive "P")
+  (if pop-out
+      (r4-player-toggle-video-pop-out)
+    (r4-player--toggle-video)))
+
+(defun r4-player--toggle-video ()
+  "Toggle showing videos."
   (setq r4-player-video (not r4-player-video))
   (r4-player--apply-video)
   (message "r4: video %s" (if r4-player-video "on" "off"))
@@ -532,17 +540,19 @@ the queue."
 
 (defvar-keymap r4-player-map
   :doc "Keys of the player, shared by the r4 buffers.
-The r4 menus add the keys going to the main views, such as h home."
+They stay clear of the Emacs keys of lists: the player is on Meta,
+M-n and M-p for the next and previous track, M-f and M-b to seek, as
+forward and backward.  The r4 menus add the keys going to the main
+views, such as j to visit a channel."
   "SPC" #'r4-player-toggle-pause
-  ">" #'r4-player-next
-  "<" #'r4-player-previous
-  "]" #'r4-player-seek-forward
-  "[" #'r4-player-seek-backward
-  "+" #'r4-player-volume-up
-  "-" #'r4-player-volume-down
+  "M-n" #'r4-player-next
+  "M-p" #'r4-player-previous
+  "M-f" #'r4-player-seek-forward
+  "M-b" #'r4-player-seek-backward
+  "M-<up>" #'r4-player-volume-up
+  "M-<down>" #'r4-player-volume-down
   "Z" #'r4-player-toggle-shuffle
   "V" #'r4-player-toggle-video
-  "^" #'r4-player-toggle-video-pop-out
   "k" #'r4-player-stop
   "Q" #'r4-queue)
 

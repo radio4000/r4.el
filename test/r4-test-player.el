@@ -210,7 +210,7 @@
                   ;; The controls and their keys, when asked for.
                   (let ((r4-player-window-show-controls t))
                     (r4-player--changed)
-                    (should (string-match-p "\n< previous  SPC play" (buffer-string)))
+                    (should (string-match-p "\nM-p previous  SPC play" (buffer-string)))
                     (should (string-search "b stop live" (buffer-string)))
                     (save-excursion
                       (goto-char (point-min))
@@ -233,7 +233,11 @@
       (r4-video-place)
       (should quit)
       (should-not r4-player-video)))
-  (should (eq (keymap-lookup r4-player-map "^") 'r4-player-toggle-video-pop-out))
+  ;; C-u V pops videos out.
+  (let ((popped nil))
+    (cl-letf (((symbol-function 'r4-player-toggle-video-pop-out) (lambda () (setq popped t))))
+      (r4-player-toggle-video '(4)))
+    (should popped))
   ;; The video is under the text of the player window.
   (let ((r4-player-queue (vector (r4-test--track :title "Song")))
         (r4-player-index 0) (r4-player-video nil))
@@ -430,7 +434,11 @@
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map
                      r4-downloads-mode-map r4-broadcasts-mode-map r4-home-mode-map
                      r4-channel-page-mode-map r4-player-window-mode-map))
-    (should (eq (keymap-lookup map ">") 'r4-player-next))
+    ;; The player is on Meta, the Emacs keys of lists stay.
+    (should (eq (keymap-lookup map "M-n") 'r4-player-next))
+    (should (eq (keymap-lookup map "M-f") 'r4-player-seek-forward))
+    (should-not (memq (keymap-lookup map ">") '(r4-player-next)))
+    (should-not (memq (keymap-lookup map "-") '(r4-player-volume-down)))
     ;; Like magit, the main views are a key away in every r4 buffer.
     (should (eq (keymap-lookup map "h") 'r4))
     (should (eq (keymap-lookup map "j") 'r4-channel-page)))
@@ -440,7 +448,8 @@
   ;; No list key hides a player key, and no menu has the same key twice.
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
     (map-keymap (lambda (key _)
-                  (when-let* ((player (lookup-key r4-player-map (vector key))))
+                  (when-let* ((player (lookup-key r4-player-map (vector key)))
+                              ((commandp player)))
                     (should (eq player (lookup-key map (vector key))))))
                 map))
   (dolist (menu '(r4-menu r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu

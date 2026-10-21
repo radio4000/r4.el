@@ -136,17 +136,17 @@ The main views are a key away in every r4 buffer, and in each menu:
 
 *** The player
 Tracks play with mpv, from disk when downloaded.  The player keys work
-in every r4 buffer:
+in every r4 buffer.  They are on Meta, and leave the keys of Emacs
+alone: =n= and =p= move between lines, =M-n= and =M-p= between tracks.
 
-| Key           | Player                         |
-|---------------+--------------------------------|
-| =SPC=         | Pause, resume                  |
-| =>= =<=       | Next, previous track           |
-| =]= =[=       | Seek forward, backward         |
-| =+= =-=       | Volume                         |
-| =Z=           | Toggle shuffle                 |
-| =V=           | Toggle video                   |
-| =^=           | Pop out the video, and back    |
+| Key             | Player                         |
+|-----------------+--------------------------------|
+| =SPC=           | Pause, resume                  |
+| =M-n= =M-p=     | Next, previous track           |
+| =M-f= =M-b=     | Seek forward, backward         |
+| =M-<up>= =M-<down>= | Volume                     |
+| =Z=             | Toggle shuffle                 |
+| =V=             | Toggle video, =C-u V= pops it out |
 | =Q=           | Queue, where =/= =#= filter what plays |
 | =v=           | Player window                  |
 | =;=           | Share the playing track        |
@@ -162,7 +162,7 @@ do: click it to list them.
 =v= shows the player in a compact window at the top of the frame: the
 track, its time, and a progress bar to click to seek.  =V= shows the
 video there too, beside the player in a wide window, under it in a
-narrow one; =^= pops it out in a window of mpv, and back
+narrow one; =C-u V= pops it out in a window of mpv, and back
 (=r4-player-video-pop-out=).  Emacs built for Wayland only (pgtk) and
 macOS show videos in a window of mpv.
 

@@ -118,11 +118,11 @@
 
 (defun r4-menus--video ()
   "Return the description of the video toggle."
-  (concat "Video " (r4-menus--on-off r4-player-video)))
-
-(defun r4-menus--pop-out ()
-  "Return the description of the video pop out toggle."
-  (concat "Pop out video " (r4-menus--on-off r4-player-video-pop-out)))
+  (concat "Video " (r4-menus--on-off r4-player-video)
+          (propertize (if r4-player-video-pop-out
+                          ", popped out (C-u V: back in)"
+                        " (C-u V: pop out)")
+                      'face 'shadow)))
 
 (defun r4-menus--broadcast ()
   "Return the description of the broadcast toggle."
@@ -202,16 +202,15 @@
   (defconst r4-menus--player-group
     [:description r4-menus--player
      [("SPC" "Pause/resume" r4-player-toggle-pause :transient t)
-      (">" "Next track" r4-player-next :transient t)
-      ("<" "Previous track" r4-player-previous :transient t)
+      ("M-n" "Next track" r4-player-next :transient t)
+      ("M-p" "Previous track" r4-player-previous :transient t)
       ("k" "Stop" r4-player-stop)]
-     [("]" "Seek forward" r4-player-seek-forward :transient t)
-      ("[" "Seek backward" r4-player-seek-backward :transient t)
-      ("+" "Volume up" r4-player-volume-up :transient t)
-      ("-" "Volume down" r4-player-volume-down :transient t)]
+     [("M-f" "Seek forward" r4-player-seek-forward :transient t)
+      ("M-b" "Seek backward" r4-player-seek-backward :transient t)
+      ("M-<up>" "Volume up" r4-player-volume-up :transient t)
+      ("M-<down>" "Volume down" r4-player-volume-down :transient t)]
      [("Z" r4-player-toggle-shuffle :description r4-menus--shuffle :transient t)
       ("V" r4-player-toggle-video :description r4-menus--video :transient t)
-      ("^" r4-player-toggle-video-pop-out :description r4-menus--pop-out :transient t)
       ("Q" "Queue" r4-queue)
       ("v" "Player window" r4-player-window)
       ("b" r4-broadcast-toggle :description r4-menus--broadcast)
