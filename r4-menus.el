@@ -224,21 +224,19 @@
      [("E" "Explore" r4-explore)
       ("B" "Broadcasts" r4-broadcasts)]
      [("H" "History" r4-history)
-      ("." "All commands" r4-menu :if-not r4-menus--main-p)]]
+      ("." "All commands" r4-menu)]]
     "The group of the r4 menus going to the main views.
 Their keys work in every r4 buffer, see `r4-player-map'."))
 
-(defun r4-menus--main-p ()
-  "Return non-nil in the menu of all the commands."
-  (eq transient-current-command 'r4-menu))
-
 (defmacro r4-menus--define (name doc &rest groups)
-  "Define the transient menu NAME with DOC, GROUPS, going to and the player."
+  "Define the transient menu NAME with DOC, GROUPS, going to and the player.
+The menu of all the commands, `r4-menu', has the main views in its
+groups instead."
   (declare (indent 1) (doc-string 2))
   `(transient-define-prefix ,name ()
      ,doc
      ,@groups
-     ,r4-menus--go-to-group
+     ,@(unless (eq name 'r4-menu) (list r4-menus--go-to-group))
      ,r4-menus--player-group))
 
 ;;;; Menus
@@ -247,14 +245,19 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 (r4-menus--define r4-menu
   "Radio4000 menu, of all the commands."
   [["Channels"
+    ("h" "Home" r4)
     ("c" "Channels" r4-channels)
+    ("j" "Visit channel" r4-channel-page)
+    ("E" "Explore" r4-explore)
     ("t" "Channel tracks" r4-open-channel)
     ("@" "Mentions" r4-mentions)]
    ["Play"
     ("P" "Play channel" r4-play-channel)
-    ("R" "Auto radio" r4-auto-radio)]
+    ("R" "Auto radio" r4-auto-radio)
+    ("B" "Broadcasts" r4-broadcasts)]
    ["Tracks"
-    ("s" "Search tracks: @slug #tag" r4-search)]
+    ("s" "Search tracks: @slug #tag" r4-search)
+    ("H" "History" r4-history)]
    ["Download"
     ("D" "Download channel" r4-download-channel)
     ("L" "Downloads" r4-downloads)
