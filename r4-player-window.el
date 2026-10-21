@@ -94,7 +94,7 @@ Fonts often draw its characters wider than a column."
 
 (defconst r4-player-window-controls
   '(("<" "previous" r4-player-previous)
-    ("SPC" "pause" r4-player-toggle-pause)
+    ("SPC" "pause" r4-player-toggle-pause r4-player-paused "play")
     (">" "next" r4-player-next)
     ("[" "-10s" r4-player-seek-backward)
     ("]" "+10s" r4-player-seek-forward)
@@ -103,18 +103,19 @@ Fonts often draw its characters wider than a column."
     ("Z" "shuffle" r4-player-toggle-shuffle r4-player-shuffle)
     ("V" "video" r4-player-toggle-video r4-player-video)
     ("Q" "queue" r4-queue)
-    ("b" "go live" r4-broadcast-toggle r4-broadcasting)
+    ("b" "go live" r4-broadcast-toggle r4-broadcasting "stop live")
     ("k" "stop" r4-player-stop))
-  "Controls of the player: key, label, command, and the variable of a toggle.
-The keys work in every r4 buffer, see `r4-player-map'.")
+  "Controls of the player: key, label, command, and for a toggle its variable.
+A toggle that is on is highlighted, with its last label if any, such as
+\"stop live\" while broadcasting.  The keys work in every r4 buffer, see
+`r4-player-map'.")
 
 (defun r4-player-window--insert-controls (controls)
   "Insert CONTROLS, a list like `r4-player-window-controls'."
-  (pcase-dolist (`(,key ,label ,command ,variable) controls)
-    (r4-faces-insert-key
-     key (if (and (eq command 'r4-player-toggle-pause) r4-player-paused) "play" label)
-     command (and variable (boundp variable) (symbol-value variable)))
-    (insert "  ")))
+  (pcase-dolist (`(,key ,label ,command ,variable ,on-label) controls)
+    (let ((on (and variable (boundp variable) (symbol-value variable))))
+      (r4-faces-insert-key key (or (and on on-label) label) command on)
+      (insert "  "))))
 
 (defun r4-player-window--insert (width)
   "Insert the player, WIDTH characters wide."

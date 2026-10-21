@@ -203,7 +203,12 @@
                 (setq r4-player-paused t r4-player-time-pos 60.0)
                 (r4-player--changed)
                 (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 .*\n< previous  SPC play"
-                                        (buffer-string)))))
+                                        (buffer-string)))
+                ;; While broadcasting, b stops it.
+                (let ((r4-broadcasting (r4-channel-create :slug "ko002"))
+                      (r4-player-changed-hook '(r4-player-window--refresh)))
+                  (r4-player--changed)
+                  (should (string-search "b stop live" (buffer-string))))))
             ;; v hides it.
             (r4-player-window)
             (should-not (get-buffer-window r4-player-window-buffer)))
