@@ -58,7 +58,8 @@ The player: ▶ playing, · played before."
                 ((funcall r4-tracks-played-function track) (r4-faces-status "·" 'shadow))
                 (t " "))))
 
-(defvar r4-tracks-column-specs
+;; A constant, so that loading a new version of r4 redefines it.
+(defconst r4-tracks-column-specs
   `((status . ,(r4-column-create :name " " :width 2 :key #'r4-tracks--status
                                  :format #'identity))
     (created_at . ,(r4-column-create :name "created at" :width 10 :key #'r4-track-created-at
