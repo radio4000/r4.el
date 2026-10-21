@@ -81,7 +81,7 @@ own keys."
     "Bind the global keys of r4 that are free, see `r4-define-global-key-bindings'."
     (when r4-define-global-key-bindings
       (pcase-dolist (`(,key . ,command) '(("C-c r" . r4) ("C-c 4" . r4-command-map)))
-        (unless (keymap-lookup global-map key)
+        (unless (keymap-lookup (current-global-map) key)
           (keymap-global-set key command)))))
   (if after-init-time
       (r4--maybe-define-global-key-bindings)

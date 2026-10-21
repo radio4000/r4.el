@@ -65,6 +65,9 @@ Mechanisms that cut across files:
   `M-<down>` volume) and `SPC` pause, and the main views (`^` up, `j`
   visit a channel, `E`, `B`, `H`). A list key must not hide them; the
   tests check it.
+- Global keys, like magit's `C-x g`: `C-c r` home and `C-c 4`
+  (`r4-command-map`), bound from the autoloads after init, only when
+  free, unless `r4-define-global-key-bindings` is nil.
 - Keys stay close to Emacs: never take a key Emacs gives a meaning in
   `special-mode`, `tabulated-list-mode` or Dired (`n` `p` `<` `>` `-`
   digits `g` `q` `h`), except `SPC` for pause. Lists follow Dired

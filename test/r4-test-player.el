@@ -451,7 +451,7 @@
           (use-global-map map)
           (let ((r4-define-global-key-bindings nil))
             (r4--maybe-define-global-key-bindings))
-          (should-not (keymap-lookup map "C-c r")))
+          (should-not (commandp (keymap-lookup map "C-c r"))))
       (use-global-map global))))
 
 (ert-deftest r4-test-menus ()

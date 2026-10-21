@@ -29,7 +29,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 |------------------------------------------+----------------------------------------+---------------------------+------------|
 | Home: player, your channels, broadcasts, history | home page                      | =r4=                      | =^=        |
 | Menu of the buffer, of all commands      | menus                                  | =?=, =r4-menu=            | =?=        |
-| Keys from anywhere, under a prefix       |                                        | =r4-command-map=          | =C-c r=    |
+| Home from anywhere, like magit's =C-x g= |                                        | =r4=                      | =C-c r=    |
+| Player keys from anywhere                |                                        | =r4-command-map=          | =C-c 4=    |
 | List channels                            | /explore/channels, =r4 channel list=   | =r4-channels=             | menu =c=   |
 | Featured, with artwork, 10/100/1000+ tracks | /explore/channels/FILTER            | =r4-explore=              | =E=        |
 | Search channels                          | /search/channels, =r4 search --channels= | =r4-search-channels=    | =s=        |
