@@ -58,7 +58,8 @@ It is called with a callback, to call with the list of channels.")
   "Name of the channels of the buffer, such as \"following @oskar\".")
 
 (defconst r4-channels-column-specs
-  `((slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug))
+  `((slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug
+                               :format (lambda (slug) (concat "@" slug))))
     (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name))
     (track_count . ,(r4-column-create :name "track_count" :width 11
                                       :key #'r4-channel-track-count :right-align t))
