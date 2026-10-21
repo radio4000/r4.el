@@ -15,15 +15,17 @@
 ;; A Radio4000 (https://radio4000.com) client for Emacs: everything
 ;; radio4000.com and the r4 command line do, in Emacs lists and menus.
 ;;
-;; - `r4' opens the home buffer, like the home page of radio4000.com,
-;;   where ? opens the menu of all the commands, `r4-menu', and ? in
-;;   any list the menu of that list.
+;; - `r4' opens the home buffer, like the home page of radio4000.com.
+;;   Like in magit, ? opens the menu of the buffer you are in, and the
+;;   menu of all the commands, `r4-menu', in the home buffer.
+;; - `r4-channel-page' visits a channel, like /@slug.
 ;; - `r4-channels', `r4-explore' and `r4-search' browse channels and
 ;;   tracks, with the search language of radio4000.com, as in
 ;;   "@ko002 #jazz miles".
-;; - Tracks play with mpv, from disk when downloaded; `r4-auto-radio'
-;;   plays the same live radio as radio4000.com, and `r4-broadcasts'
-;;   lists live broadcasts.
+;; - Tracks play with mpv, from disk when downloaded, with their videos
+;;   in Emacs; `r4-auto-radio' plays the same live radio as
+;;   radio4000.com, `r4-broadcasts' lists live broadcasts, and
+;;   `r4-broadcast-toggle' broadcasts your player.
 ;; - Tracks download as the best audio, or videos, with yt-dlp, into
 ;;   the folders of the r4 command line, `r4-download-directory'.
 ;; - Follow channels, read your feed, and edit your channels and tracks
