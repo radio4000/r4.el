@@ -66,6 +66,37 @@
 (require 'r4-embark)
 (require 'r4-menus)
 
+;;;###autoload (autoload 'r4-command-map "r4" nil nil 'keymap)
+(defvar-keymap r4-command-map
+  :doc "Keys of r4 from anywhere, under a prefix of your choice.
+For example, with C-c r: C-c r r opens the home buffer, C-c r SPC
+pauses, C-c r n plays the next track.  Bind it with
+\(keymap-global-set \"C-c r\" \='r4-command-map), or with the
+:bind-keymap keyword of `use-package'."
+  :prefix 'r4-command-map
+  "r" #'r4
+  "?" #'r4-menu
+  "SPC" #'r4-player-toggle-pause
+  "n" #'r4-player-next
+  "p" #'r4-player-previous
+  "f" #'r4-player-seek-forward
+  "b" #'r4-player-seek-backward
+  "+" #'r4-player-volume-up
+  "-" #'r4-player-volume-down
+  "k" #'r4-player-stop
+  "Z" #'r4-player-toggle-shuffle
+  "V" #'r4-player-toggle-video
+  "v" #'r4-player-window
+  "q" #'r4-queue
+  "w" #'r4-player-share-menu
+  "l" #'r4-broadcast-toggle
+  "j" #'r4-channel-page
+  "s" #'r4-search
+  "E" #'r4-explore
+  "B" #'r4-broadcasts
+  "H" #'r4-history
+  "L" #'r4-downloads)
+
 (define-obsolete-function-alias 'r4-status #'r4-channels "0.2.0")
 (define-obsolete-function-alias 'list-r4-channels #'r4-channels "0.2.0")
 (define-obsolete-function-alias 'r4-describe-channel-slug #'r4-open-channel "0.2.0")

@@ -426,6 +426,14 @@
       (should-not (r4-player-window--beside-p 'window))
       (should (equal (r4-player-window--video-area) (list 'window 290 60 630 400))))))
 
+;; The keys of r4 from anywhere, under a prefix.
+(ert-deftest r4-test-command-map ()
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "C-c r" 'r4-command-map)
+    (should (eq (keymap-lookup map "C-c r n") 'r4-player-next))
+    (should (eq (keymap-lookup map "C-c r SPC") 'r4-player-toggle-pause))
+    (should (eq (keymap-lookup map "C-c r r") 'r4))))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))

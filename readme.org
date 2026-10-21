@@ -60,7 +60,7 @@ branch, byte-compiles them and generates their autoloads.
 #+begin_src emacs-lisp
 (use-package r4
   :vc (:url "https://github.com/radio4000/r4.el" :rev :newest)
-  :bind ("C-c r" . r4)
+  :bind-keymap ("C-c r" . r4-command-map)
   :custom
   (r4-download-directory "~/Music/radio4000/"))
 #+end_src
@@ -79,7 +79,7 @@ M-x package-vc-install RET https://github.com/radio4000/r4.el RET
 
 #+begin_src emacs-lisp
 (use-package r4
-  :bind ("C-c r" . r4))
+  :bind-keymap ("C-c r" . r4-command-map))
 #+end_src
 
 *** Update and remove
@@ -118,6 +118,15 @@ with these commands:
 | =r4-history=          | The tracks you played                               |
 | =r4-download-channel= | Download a channel                                  |
 | =r4-menu=             | The menu of all the commands                        |
+
+*** From anywhere
+=r4-command-map= holds the keys of r4 from any buffer, under the
+prefix you choose, =C-c r= in the examples above: =C-c r r= opens the
+home buffer, =C-c r SPC= pauses, =C-c r n= and =C-c r p= play the next
+and previous track, =C-c r f= and =C-c r b= seek, =C-c r v= shows the
+player window, =C-c r w= shares the playing track, =C-c r l= goes live,
+=C-c r j= visits a channel, =C-c r s= searches, and =C-c r ?= opens the
+menu of all the commands.
 
 *** Menus and keys
 Like in magit, =?= opens the menu of the buffer you are in: its heading
