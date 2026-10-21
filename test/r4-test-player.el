@@ -156,16 +156,17 @@
             (should-not (get-buffer-window r4-player-window-buffer)))
         (kill-buffer r4-player-window-buffer)))))
 
-(ert-deftest r4-test-video-frame ()
+(ert-deftest r4-test-video-window ()
   ;; Not in a terminal.
-  (should-not (r4-video-frame-p))
-  (let ((r4-player-video t) (r4-video--frame 'frame) (r4-player-changed-hook nil))
-    ;; Deleting the video frame turns videos off.
-    (r4-video--frame-deleted 'other-frame)
-    (should r4-player-video)
-    (r4-video--frame-deleted 'frame)
-    (should-not r4-player-video)
-    (should-not r4-video--frame))
+  (should-not (r4-video-window-p))
+  (let ((r4-player-video t) (r4-video--frame 'frame) (r4-player-changed-hook nil) quit)
+    (cl-letf (((symbol-function 'frame-live-p) (lambda (frame) (eq frame 'frame)))
+              ((symbol-function 'r4-video-quit)
+               (lambda () (setq quit t r4-video--frame nil))))
+      ;; Without the video window, videos turn off.
+      (r4-video--place)
+      (should quit)
+      (should-not r4-player-video)))
   (should (eq (keymap-lookup r4-video-mode-map "V") 'r4-player-toggle-video)))
 
 (ert-deftest r4-test-menus ()

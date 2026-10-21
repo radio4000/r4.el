@@ -39,7 +39,7 @@ which mpv crashes when it shows a video."
 
 (defcustom r4-player-video nil
   "When non-nil, play videos, else only audio.
-They show in an Emacs frame, see `r4-player-video-frame'.  Toggle it
+They show in an Emacs window, see `r4-player-video-window'.  Toggle it
 with `r4-player-toggle-video'."
   :type 'boolean
   :group 'r4)
@@ -113,7 +113,9 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defun r4-player--send (&rest command)
   "Send COMMAND, a list of arguments, to mpv, starting it if needed."
   (unless (r4-mpv-live-p)
-    (r4-mpv-start r4-player-program r4-player-arguments r4-player-environment)
+    (r4-mpv-start r4-player-program
+                  (append (r4-video-mpv-arguments) r4-player-arguments)
+                  r4-player-environment)
     (r4-mpv-send "observe_property" 1 "pause")
     (r4-mpv-send "observe_property" 2 "duration")
     (r4-player--apply-video)
@@ -129,23 +131,24 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
   "Show or hide videos, according to `r4-player-video'."
   (when (r4-mpv-live-p)
     (when r4-player-video
-      ;; In the video frame, the keys go to Emacs, for the player keys.
-      (r4-mpv-send "set_property" "wid" (if (r4-video-frame-p) (r4-video-frame-id) -1))
-      (r4-mpv-send "set_property" "input-vo-keyboard" (if (r4-video-frame-p) "no" "yes")))
+      (let ((window (r4-video-window-p)))
+        (r4-mpv-send "set_property" "wid" (if window (r4-video-window-id) -1))
+        ;; The keys go to Emacs, for the player keys.
+        (r4-mpv-send "set_property" "input-vo-keyboard" (if window "no" "yes"))))
     (r4-mpv-send "set_property" "vid" (if r4-player-video "auto" "no"))
     (r4-mpv-send "set_property" "ytdl-format"
                  (if r4-player-video r4-player-video-quality r4-player-audio-quality)))
   (unless r4-player-video
-    (r4-video-delete-frame)))
+    (r4-video-quit)))
 
-(defun r4-player--video-frame-deleted ()
-  "Turn videos off, as their frame was deleted."
+(defun r4-player--video-window-quit ()
+  "Turn videos off, as their window was quit."
   (setq r4-player-video nil)
   (r4-player--apply-video)
   (r4-player--changed)
   (message "r4: video off"))
 
-(add-hook 'r4-video-frame-deleted-hook #'r4-player--video-frame-deleted)
+(add-hook 'r4-video-window-quit-hook #'r4-player--video-window-quit)
 
 (defun r4-player--changed ()
   "Run `r4-player-changed-hook' and update the mode lines."
@@ -191,7 +194,7 @@ It is the one given by mpv, or else the one of radio4000.com."
 (defun r4-player--kill ()
   "Stop mpv."
   (r4-mpv-kill)
-  (r4-video-delete-frame)
+  (r4-video-quit)
   (r4-player--stop-timer)
   (setq r4-player-paused nil))
 

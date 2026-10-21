@@ -1,4 +1,4 @@
-;;; r4-video.el --- Show Radio4000 videos in an Emacs frame  -*- lexical-binding: t; -*-
+;;; r4-video.el --- Show Radio4000 videos in an Emacs window  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2026 Internet4000
 
@@ -6,65 +6,131 @@
 
 ;;; Commentary:
 
-;; mpv shows videos inside an Emacs frame, with its --wid option, on
-;; X and MS-Windows.  Elsewhere, such as Emacs built for Wayland only
-;; (pgtk) or macOS, it shows them in its own window.  Deleting the
-;; video frame turns videos off.
+;; Videos show in an Emacs window, of the buffer `r4-video-buffer'.
+;; mpv draws them with its --wid option in a child frame without
+;; decorations, kept over that window when it moves or resizes.  This
+;; works on X, including X Emacs on Wayland, and MS-Windows.  Elsewhere,
+;; such as Emacs built for Wayland only (pgtk) or macOS, mpv shows them
+;; in its own window.  Quitting the video window turns videos off.
 
 ;;; Code:
 
 (require 'r4-mpv)
 
-(defcustom r4-player-video-frame t
-  "When non-nil, show videos in an Emacs frame, else in a mpv window.
-Emacs frames show videos on X and MS-Windows, including X Emacs on
+(defcustom r4-player-video-window t
+  "When non-nil, show videos in an Emacs window, else in a mpv window.
+Emacs windows show videos on X and MS-Windows, including X Emacs on
 Wayland, not on Emacs built for Wayland only (pgtk) or macOS."
   :type 'boolean
   :group 'r4)
 
-(defcustom r4-player-video-frame-parameters
-  '((name . "r4 video") (width . 80) (height . 24) (minibuffer . nil))
-  "Parameters of the frame showing videos, see `make-frame'."
-  :type '(alist :key-type symbol :value-type sexp)
+(defcustom r4-player-video-window-action
+  '(display-buffer-in-side-window (side . right) (window-width . 0.4))
+  "Action displaying the video window, see `display-buffer'.
+By default, a side window at the right of the frame.  An entry for
+`r4-video-buffer' in `display-buffer-alist' overrides it."
+  :type 'sexp
   :group 'r4)
 
 (defconst r4-video-buffer "*r4 video*"
-  "Name of the buffer of the video frame, under the video.")
+  "Name of the buffer of the video window.")
 
-(defvar r4-video-frame-deleted-hook nil
-  "Hook run after the video frame was deleted, other than by r4.")
+(defconst r4-video--surface-buffer " *r4 video surface*"
+  "Name of the buffer of the child frame mpv draws in.")
 
-(defvar r4-video--frame nil "The frame showing videos.")
-(defvar r4-video--deleting nil "Non-nil while r4 deletes the video frame.")
+(defvar r4-video-window-quit-hook nil
+  "Hook run after the video window was quit, to turn videos off.")
+
+(defvar r4-video--frame nil "The child frame mpv draws in.")
 
 (defvar-keymap r4-video-mode-map
   :doc "Keymap for `r4-video-mode', the player keys.")
 
 (define-derived-mode r4-video-mode special-mode "r4 video"
-  "Major mode of the buffer of the video frame, under the video.
+  "Major mode of the video window.
 
 \\{r4-video-mode-map}"
-  (setq mode-line-format nil
-        cursor-type nil))
+  (setq cursor-type nil))
 
-(defun r4-video-frame-p ()
-  "Return non-nil if videos show in an Emacs frame."
-  (and r4-player-video-frame (memq window-system '(x w32))))
+(defun r4-video-window-p ()
+  "Return non-nil if videos show in an Emacs window."
+  (and r4-player-video-window (memq window-system '(x w32))))
 
-(defun r4-video-frame-id ()
-  "Return the window id of the video frame, making the frame if needed."
-  (unless (frame-live-p r4-video--frame)
-    (let ((buffer (get-buffer-create r4-video-buffer)))
-      (with-current-buffer buffer
-        (r4-video-mode))
-      (setq r4-video--frame (make-frame r4-player-video-frame-parameters))
-      (set-window-buffer (frame-root-window r4-video--frame) buffer)
-      (set-window-dedicated-p (frame-root-window r4-video--frame) t)))
-  (string-to-number (frame-parameter r4-video--frame 'window-id)))
+(defun r4-video-mpv-arguments ()
+  "Return the arguments of mpv to draw videos in Emacs windows.
+On X, mpv draws in Emacs with X, also when Wayland runs, where it
+would use Wayland, which cannot draw in Emacs."
+  (when (and (r4-video-window-p) (eq window-system 'x))
+    '("--gpu-context=x11egl")))
+
+(defun r4-video--window ()
+  "Return the window showing the video buffer, or nil."
+  (when-let* ((buffer (get-buffer r4-video-buffer)))
+    (get-buffer-window buffer)))
+
+(defun r4-video--make-frame (parent)
+  "Make the child frame of PARENT where mpv draws."
+  (let ((frame (make-frame
+                `((parent-frame . ,parent)
+                  (minibuffer . nil)
+                  (undecorated . t)
+                  (no-accept-focus . t)
+                  (no-other-frame . t)
+                  (no-special-glyphs . t)
+                  (skip-taskbar . t)
+                  (unsplittable . t)
+                  (desktop-dont-save . t)
+                  (internal-border-width . 0)
+                  (child-frame-border-width . 0)
+                  (left-fringe . 0)
+                  (right-fringe . 0)
+                  (vertical-scroll-bars . nil)
+                  (horizontal-scroll-bars . nil)
+                  (menu-bar-lines . 0)
+                  (tool-bar-lines . 0)
+                  (tab-bar-lines . 0)
+                  (background-color . "black")
+                  (visibility . nil)))))
+    (with-current-buffer (get-buffer-create r4-video--surface-buffer)
+      (setq mode-line-format nil cursor-type nil))
+    (set-window-buffer (frame-root-window frame) r4-video--surface-buffer)
+    (set-window-dedicated-p (frame-root-window frame) t)
+    frame))
+
+(defun r4-video--place ()
+  "Keep the child frame over the video window, or turn videos off."
+  (when (frame-live-p r4-video--frame)
+    (if-let* ((window (r4-video--window))
+              ((eq (window-frame window) (frame-parent r4-video--frame))))
+        (pcase-let ((`(,left ,top ,right ,bottom) (window-inside-pixel-edges window)))
+          (modify-frame-parameters r4-video--frame
+                                   `((left . ,left) (top . ,top)
+                                     (width . (text-pixels . ,(- right left)))
+                                     (height . (text-pixels . ,(- bottom top)))))
+          (make-frame-visible r4-video--frame))
+      (r4-video-quit)
+      (run-hooks 'r4-video-window-quit-hook))))
+
+(defun r4-video-window-id ()
+  "Show the video window and return the id mpv draws in."
+  (with-current-buffer (get-buffer-create r4-video-buffer)
+    (unless (derived-mode-p 'r4-video-mode)
+      (r4-video-mode)))
+  (let ((window (or (r4-video--window)
+                    (display-buffer r4-video-buffer r4-player-video-window-action))))
+    (unless (frame-live-p r4-video--frame)
+      (setq r4-video--frame (r4-video--make-frame (window-frame window)))
+      (add-hook 'window-state-change-functions #'r4-video--state-changed))
+    (r4-video--place)
+    (string-to-number (frame-parameter r4-video--frame 'window-id))))
+
+(defun r4-video--state-changed (_frame)
+  "Keep the video over its window, after windows changed."
+  (r4-video--place))
 
 (defun r4-video--release ()
   "Turn off the video of mpv, and wait until its video output is closed.
-Else mpv stops playing when the frame it draws in disappears."
+Else mpv stops playing when the window it draws in disappears."
   (when (r4-mpv-live-p)
     (r4-mpv-send "set_property" "vid" "no")
     (let ((deadline (+ (float-time) 1))
@@ -75,23 +141,17 @@ Else mpv stops playing when the frame it draws in disappears."
         (while (and (eq configured 'waiting) (< (float-time) deadline))
           (accept-process-output nil 0.05))))))
 
-(defun r4-video-delete-frame ()
-  "Delete the video frame, if any."
+(defun r4-video-quit ()
+  "Stop showing videos in Emacs: delete the child frame, quit the window."
+  (remove-hook 'window-state-change-functions #'r4-video--state-changed)
   (when (frame-live-p r4-video--frame)
     (r4-video--release)
-    (let ((r4-video--deleting t))
-      (delete-frame r4-video--frame t)))
-  (setq r4-video--frame nil))
+    (delete-frame r4-video--frame t))
+  (setq r4-video--frame nil)
+  (when-let* ((window (r4-video--window)))
+    (quit-window nil window)))
 
-(defun r4-video--frame-deleted (frame)
-  "Turn videos off when the video FRAME is deleted."
-  (when (and (eq frame r4-video--frame) (not r4-video--deleting))
-    (r4-video--release)
-    (setq r4-video--frame nil)
-    (run-hooks 'r4-video-frame-deleted-hook)))
-
-(add-hook 'delete-frame-functions #'r4-video--frame-deleted)
-(add-hook 'r4-mpv-exit-hook #'r4-video-delete-frame)
+(add-hook 'r4-mpv-exit-hook #'r4-video-quit)
 
 (provide 'r4-video)
 

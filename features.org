@@ -50,7 +50,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Listen to a live broadcast       | /broadcast                  | =r4-broadcasts=               | menu =b=      |
 | Pause, next, previous, stop      | =k=, =N=, =P=               | =r4-player-toggle-pause=, =r4-player-next=… | =SPC= =>= =<= =k= |
 | Seek, volume                     | player                      | =r4-player-seek-forward=…     | =]= =[= =+= =-= |
-| Shuffle, video in an Emacs frame | player                      | =r4-player-toggle-shuffle=, =r4-player-toggle-video= | =Z= =V= |
+| Shuffle, video in an Emacs window | player                      | =r4-player-toggle-shuffle=, =r4-player-toggle-video= | =Z= =V= |
 | Play next, add to the queue      | track menu                  | =r4-tracks-play-next=, =r4-tracks-add-to-queue= | =N= =a= |
 | Queue: show, remove, clear       | queue panel                 | =r4-queue=, =r4-queue-remove=, =r4-player-clear= | =Q=, =x=, =C= |
 | Player, elapsed time, seek bar   | player                      | =r4-player-window=            | =v=           |
