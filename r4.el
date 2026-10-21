@@ -66,32 +66,13 @@
 (require 'r4-embark)
 (require 'r4-menus)
 
-;;;###autoload
-(defcustom r4-define-global-key-bindings t
-  "When non-nil, bind \\`C-c r' to `r4' and \\`C-c 4' to `r4-command-map'.
-Like magit binds \\`C-x g', each key is only bound if it is free once
-your init file ran.  Set it to nil before r4 loads, to choose your
-own keys."
-  :type 'boolean
-  :group 'r4)
-
-;;;###autoload
-(progn
-  (defun r4--maybe-define-global-key-bindings ()
-    "Bind the global keys of r4 that are free, see `r4-define-global-key-bindings'."
-    (when r4-define-global-key-bindings
-      (pcase-dolist (`(,key . ,command) '(("C-c r" . r4) ("C-c 4" . r4-command-map)))
-        (unless (keymap-lookup (current-global-map) key)
-          (keymap-global-set key command)))))
-  (if after-init-time
-      (r4--maybe-define-global-key-bindings)
-    (add-hook 'after-init-hook #'r4--maybe-define-global-key-bindings t)))
-
 ;;;###autoload (autoload 'r4-command-map "r4" nil nil 'keymap)
 (defvar-keymap r4-command-map
-  :doc "Keys of r4 from anywhere, under a prefix, \\`C-c 4' by default.
-\\`C-c 4 SPC' pauses, \\`C-c 4 n' plays the next track, \\`C-c 4 r' opens
-the home buffer.  See `r4-define-global-key-bindings'."
+  :doc "Keys of r4 from anywhere, under a prefix of your choice.
+For example, with C-c 4: C-c 4 SPC pauses, C-c 4 n plays the next
+track, C-c 4 r opens the home buffer.  Bind it with
+\(keymap-global-set \"C-c 4\" \='r4-command-map), or with the
+:bind-keymap keyword of `use-package'."
   :prefix 'r4-command-map
   "r" #'r4
   "?" #'r4-menu

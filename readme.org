@@ -60,6 +60,8 @@ branch, byte-compiles them and generates their autoloads.
 #+begin_src emacs-lisp
 (use-package r4
   :vc (:url "https://github.com/radio4000/r4.el" :rev :newest)
+  :bind ("C-c r" . r4)
+  :bind-keymap ("C-c 4" . r4-command-map)
   :custom
   (r4-download-directory "~/Music/radio4000/"))
 #+end_src
@@ -78,6 +80,8 @@ M-x package-vc-install RET https://github.com/radio4000/r4.el RET
 
 #+begin_src emacs-lisp
 (use-package r4
+  :bind ("C-c r" . r4)
+  :bind-keymap ("C-c 4" . r4-command-map)
   :custom
   (r4-download-directory "~/Music/radio4000/"))
 #+end_src
@@ -120,19 +124,17 @@ with these commands:
 | =r4-menu=             | The menu of all the commands                        |
 
 *** From anywhere
-Like magit with =C-x g=, r4 binds two keys, if your configuration does
-not use them already:
+r4 binds no global keys: choose yours, as in the examples above.
 
-- =C-c r= opens the home buffer, where the player keys work.
-- =C-c 4= holds the player keys from any buffer (=r4-command-map=):
-  =C-c 4 SPC= pauses, =C-c 4 n= and =C-c 4 p= play the next and
-  previous track, =C-c 4 f= and =C-c 4 b= seek, =C-c 4 v= shows the
-  player window, =C-c 4 w= shares the playing track, =C-c 4 l= goes
-  live, =C-c 4 j= visits a channel, =C-c 4 s= searches, and =C-c 4 ?=
-  opens the menu of all the commands.
-
-Set =r4-define-global-key-bindings= to nil, before r4 loads, to choose
-your own keys.
+- =r4= opens the home buffer, where the player keys work; =C-c r= in
+  the examples.
+- =r4-command-map= holds the player keys from any buffer, under the
+  prefix you choose, =C-c 4= in the examples: =C-c 4 SPC= pauses,
+  =C-c 4 n= and =C-c 4 p= play the next and previous track, =C-c 4 f=
+  and =C-c 4 b= seek, =C-c 4 v= shows the player window, =C-c 4 w=
+  shares the playing track, =C-c 4 l= goes live, =C-c 4 j= visits a
+  channel, =C-c 4 s= searches, and =C-c 4 ?= opens the menu of all the
+  commands.
 
 *** Menus and keys
 Like in magit, =?= opens the menu of the buffer you are in: its heading

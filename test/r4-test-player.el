@@ -434,26 +434,6 @@
     (should (eq (keymap-lookup map "C-c r SPC") 'r4-player-toggle-pause))
     (should (eq (keymap-lookup map "C-c r r") 'r4))))
 
-;; Like magit's C-x g: C-c r and C-c 4 by default, only when free.
-(ert-deftest r4-test-global-key-bindings ()
-  (let ((global (current-global-map))
-        (map (make-sparse-keymap)))
-    (unwind-protect
-        (progn
-          (use-global-map map)
-          (keymap-global-set "C-c 4" #'ignore)
-          (let ((r4-define-global-key-bindings t))
-            (r4--maybe-define-global-key-bindings))
-          (should (eq (keymap-lookup map "C-c r") 'r4))
-          ;; Yours stays.
-          (should (eq (keymap-lookup map "C-c 4") 'ignore))
-          (setq map (make-sparse-keymap))
-          (use-global-map map)
-          (let ((r4-define-global-key-bindings nil))
-            (r4--maybe-define-global-key-bindings))
-          (should-not (commandp (keymap-lookup map "C-c r"))))
-      (use-global-map global))))
-
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))
