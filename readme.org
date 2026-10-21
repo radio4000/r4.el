@@ -125,11 +125,13 @@ says what it acts on, such as the list and the track at point, and its
 keys work without opening it.  In the home buffer, =?= opens the menu
 of all the commands, =r4-menu=.
 
-The main views are a key away in every r4 buffer, and in each menu:
+The main views are a key away in every r4 buffer, and in each menu.
+Like in Dired, =^= goes up: from the tracks of a channel to its page,
+to the channels, to home.
 
 | Key           | Go to                          |
 |---------------+--------------------------------|
-| =h=           | Home                           |
+| =^=           | Up, to home                    |
 | =j=           | Visit a channel                |
 | =E= =B=       | Explore, broadcasts            |
 | =H=           | History                        |

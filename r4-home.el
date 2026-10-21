@@ -227,6 +227,16 @@ Their key in the home buffer shows before them, like in magit."
 \\{r4-home-mode-map}"
   (setq-local revert-buffer-function #'r4-home-revert))
 
+(defvar-local r4-up-function nil
+  "Function showing the view above the current buffer, or nil for home.")
+
+(defun r4-up ()
+  "Go up, like in Dired: from the tracks of a channel to its page, up to home."
+  (interactive)
+  (if (derived-mode-p 'r4-home-mode)
+      (message "r4: this is the top, home")
+    (funcall (or r4-up-function #'r4))))
+
 ;;;###autoload
 (defun r4 ()
   "Show the Radio4000 home buffer, like the home page of radio4000.com.

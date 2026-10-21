@@ -340,6 +340,28 @@
         (r4-download--done))
       (should (equal said "r4: downloads done, 1 downloaded, 1 failed (see r4-downloads)")))))
 
+;; Like Dired, ^ goes up: the tracks of a channel, its page, the channels, home.
+(ert-deftest r4-test-up ()
+  (let ((buffer (generate-new-buffer "r4-test")) went)
+    (unwind-protect
+        (cl-letf (((symbol-function 'r4-channel-page) (lambda (slug) (setq went (list 'page slug))))
+                  ((symbol-function 'r4-channels) (lambda () (setq went '(channels))))
+                  ((symbol-function 'r4) (lambda () (setq went '(home)))))
+          (with-current-buffer buffer
+            (r4-tracks-mode)
+            (setq r4-tracks--source '(:slug "ko002"))
+            (r4-up)
+            (should (equal went '(page "ko002")))
+            (setq r4-tracks--source '(:query "jazz"))
+            (r4-up)
+            (should (equal went '(home)))
+            (r4-channel-page-mode)
+            (r4-up)
+            (should (equal went '(channels)))
+            ;; h stays the help of the mode, like in Emacs.
+            (should (eq (keymap-lookup r4-tracks-mode-map "h") 'describe-mode))))
+      (kill-buffer buffer))))
+
 (provide 'r4-test-lists)
 
 ;;; r4-test-lists.el ends here

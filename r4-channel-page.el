@@ -413,6 +413,30 @@ visit its pages, its tags and its latest tracks."
 
 (setq r4-tracks-visit-channel-function #'r4-channel-page)
 
+;;;; Going up, see `r4-up'
+
+(defvar r4-up-function)
+
+(defun r4-channel-page--up-from-tracks ()
+  "Go up from a list of tracks: to its channel page, else home."
+  (let ((slug (plist-get r4-tracks--source :slug)))
+    (if (and slug (not (plist-get r4-tracks--source :local))
+             (not (plist-get r4-tracks--source :query)))
+        (r4-channel-page slug)
+      (r4))))
+
+(defun r4-channel-page--setup-up ()
+  "Make `r4-up' go up from the current buffer."
+  (setq-local r4-up-function
+              (if (derived-mode-p 'r4-tracks-mode)
+                  #'r4-channel-page--up-from-tracks
+                #'r4-channels)))
+
+(add-hook 'r4-tracks-mode-hook #'r4-channel-page--setup-up)
+(add-hook 'r4-channel-page-mode-hook #'r4-channel-page--setup-up)
+
+(declare-function r4 "r4-home")
+
 (keymap-set r4-channels-mode-map "RET" #'r4-channels-visit)
 (keymap-set r4-channels-mode-map "T" #'r4-channels-open)
 

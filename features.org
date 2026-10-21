@@ -14,16 +14,20 @@ the keys are the ones of the r4 lists, where =?= shows them all.
   menus use the words of its interface.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
   sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.
+- Keys stay close to Emacs: lists work like Dired (=m= =u= =U= =t=
+  marks, =^= up, =j= jump, =w= copy), the player is on Meta (=M-n=
+  =M-p= tracks, =M-f= =M-b= seek), and =?= opens the menu of the
+  buffer, like in magit.
 - The same key does the same thing in every list, and the player keys
-  and the main views (=h= home, =j= visit a channel, =E= explore, =B=
-  broadcasts, =H= history) work in every r4 buffer, like in magit.
+  and the main views (=^= up to home, =j= visit a channel, =E= explore,
+  =B= broadcasts, =H= history) work in every r4 buffer.
 - Downloads use the same folders and file names as =r4 download=, so
   the command line, Emacs and the radio4000.com import share them.
 
 * Browse
 | Feature                                  | Web, command line                      | Emacs                     | Key        |
 |------------------------------------------+----------------------------------------+---------------------------+------------|
-| Home: player, your channels, broadcasts, history | home page                      | =r4=                      | =h=        |
+| Home: player, your channels, broadcasts, history | home page                      | =r4=                      | =^=        |
 | Menu of the buffer, of all commands      | menus                                  | =?=, =r4-menu=            | =?=        |
 | List channels                            | /explore/channels, =r4 channel list=   | =r4-channels=             | menu =c=   |
 | Featured, with artwork, 10/100/1000+ tracks | /explore/channels/FILTER            | =r4-explore=              | =E=        |

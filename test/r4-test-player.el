@@ -358,7 +358,7 @@
                         ((consp x) (collect (car x)) (collect (cdr x)))
                         ((vectorp x) (mapc #'collect x)))))
       (collect (get 'r4-menu 'transient--layout)))
-    (dolist (command '(r4 r4-channels r4-channel-page r4-explore r4-broadcasts r4-history))
+    (dolist (command '(r4-channels r4-channel-page r4-explore r4-broadcasts r4-history))
       (should (memq command commands)))
     ;; Once each.
     (should (equal (cl-count 'r4-channel-page commands) 1))))
@@ -440,7 +440,7 @@
     (should-not (memq (keymap-lookup map ">") '(r4-player-next)))
     (should-not (memq (keymap-lookup map "-") '(r4-player-volume-down)))
     ;; Like magit, the main views are a key away in every r4 buffer.
-    (should (eq (keymap-lookup map "h") 'r4))
+    (should (eq (keymap-lookup map "^") 'r4-up))
     (should (eq (keymap-lookup map "j") 'r4-channel-page)))
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
     (should (eq (keymap-lookup map "S") 'tabulated-list-sort))

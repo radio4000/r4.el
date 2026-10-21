@@ -219,7 +219,7 @@
 
   (defconst r4-menus--go-to-group
     ["Go to, also without this menu"
-     [("h" "Home" r4)
+     [("^" "Up, to home" r4-up)
       ("j" "Visit channel" r4-channel-page)]
      [("E" "Explore" r4-explore)
       ("B" "Broadcasts" r4-broadcasts)]
@@ -245,7 +245,6 @@ groups instead."
 (r4-menus--define r4-menu
   "Radio4000 menu, of all the commands."
   [["Channels"
-    ("h" "Home" r4)
     ("c" "Channels" r4-channels)
     ("j" "Visit channel" r4-channel-page)
     ("E" "Explore" r4-explore)
@@ -460,7 +459,7 @@ groups instead."
   "Menu of the player.")
 
 ;; Like magit, the keys of the main views work in every r4 buffer.
-(keymap-set r4-player-map "h" #'r4)
+(keymap-set r4-player-map "^" #'r4-up)
 (keymap-set r4-player-map "H" #'r4-history)
 (keymap-set r4-player-map "j" #'r4-channel-page)
 (keymap-set r4-player-map "E" #'r4-explore)
