@@ -8,13 +8,15 @@
 
 ;; The player in its own window, at the top of the frame by default:
 ;; the playing track, its channel, the elapsed time and duration, and
-;; a progress bar to click to seek.  `r4-player-window', v, shows or
-;; hides it.  The player keys work in it.
+;; a progress bar to click to seek, and the video under them, see
+;; r4-video.el.  `r4-player-window', v, shows or hides it.  The player
+;; keys work in it.
 
 ;;; Code:
 
 (require 'r4-models)
 (require 'r4-player)
+(require 'r4-video)
 
 (defconst r4-player-window-buffer "*r4 player*"
   "Name of the buffer of the player window.")
@@ -31,6 +33,11 @@
 By default, a side window at the top of the frame.  An entry for
 `r4-player-window-buffer' in `display-buffer-alist' overrides it."
   :type 'sexp
+  :group 'r4)
+
+(defcustom r4-player-window-video-height 0.4
+  "Height of the player window showing a video, a fraction of the frame."
+  :type 'number
   :group 'r4)
 
 (defface r4-player-window-played '((t :inherit success))
@@ -77,7 +84,8 @@ By default, a side window at the top of the frame.  An entry for
 (defun r4-player-window--options ()
   "Return the options of the player shown in its window."
   (string-join (delq nil (list (and r4-player-shuffle "shuffle")
-                               (and r4-player-video "video")))
+                               (and r4-player-video
+                                    (if (r4-video-window-p) "video" "video, popped out"))))
                " "))
 
 (defun r4-player-window--insert (width)
@@ -109,7 +117,38 @@ By default, a side window at the top of the frame.  An entry for
   (when-let* ((buffer (get-buffer r4-player-window-buffer))
               (window (get-buffer-window buffer t)))
     (with-current-buffer buffer
-      (r4-player-window--render (1- (window-max-chars-per-line window))))))
+      (r4-player-window--render (1- (window-max-chars-per-line window))))
+    (r4-player-window--fit window)))
+
+(defun r4-player-window--fit (window)
+  "Fit the side WINDOW of the player to its text, and the video if any."
+  (when (window-parameter window 'window-side)
+    (let ((height (and r4-player-video (r4-video-window-p)
+                       (floor (* r4-player-window-video-height
+                                 (frame-height (window-frame window)))))))
+      (fit-window-to-buffer window height height))))
+
+(defun r4-player-window--show ()
+  "Show the player window and return it."
+  (or (get-buffer-window r4-player-window-buffer)
+      (progn
+        (with-current-buffer (get-buffer-create r4-player-window-buffer)
+          (unless (derived-mode-p 'r4-player-window-mode)
+            (r4-player-window-mode))
+          ;; Its content, for the window to fit it.
+          (r4-player-window--render (frame-width)))
+        (prog1 (display-buffer r4-player-window-buffer r4-player-window-action)
+          (r4-player-window--refresh)))))
+
+(defun r4-player-window--video-area ()
+  "Return the player window and the pixel edges of its video area, or nil.
+The video is under the text of the player."
+  (when-let* ((window (get-buffer-window r4-player-window-buffer)))
+    (pcase-let ((`(,left ,top ,right ,bottom) (window-inside-pixel-edges window)))
+      (list window left (+ top (cdr (window-text-pixel-size window))) right bottom))))
+
+(setq r4-video-show-function #'r4-player-window--show
+      r4-video-area-function #'r4-player-window--video-area)
 
 (defun r4-player-window--render (width)
   "Replace the content of the current buffer by the player, WIDTH wide."
@@ -143,13 +182,7 @@ By default, a side window at the top of the frame.  An entry for
   (interactive)
   (if-let* ((window (get-buffer-window r4-player-window-buffer)))
       (quit-window nil window)
-    (with-current-buffer (get-buffer-create r4-player-window-buffer)
-      (unless (derived-mode-p 'r4-player-window-mode)
-        (r4-player-window-mode))
-      ;; Its content, for the window to fit it.
-      (r4-player-window--render (frame-width)))
-    (display-buffer r4-player-window-buffer r4-player-window-action)
-    (r4-player-window--refresh)))
+    (r4-player-window--show)))
 
 (keymap-set r4-player-map "v" #'r4-player-window)
 

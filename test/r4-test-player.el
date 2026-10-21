@@ -201,15 +201,28 @@
 (ert-deftest r4-test-video-window ()
   ;; Not in a terminal.
   (should-not (r4-video-window-p))
-  (let ((r4-player-video t) (r4-video--frame 'frame) (r4-player-changed-hook nil) quit)
+  (let ((r4-player-video t) (r4-video--frame 'frame) (r4-player-changed-hook nil)
+        (r4-video-area-function #'ignore) quit)
     (cl-letf (((symbol-function 'frame-live-p) (lambda (frame) (eq frame 'frame)))
               ((symbol-function 'r4-video-quit)
                (lambda () (setq quit t r4-video--frame nil))))
-      ;; Without the video window, videos turn off.
+      ;; Without the player window, videos turn off.
       (r4-video--place)
       (should quit)
       (should-not r4-player-video)))
-  (should (eq (keymap-lookup r4-video-mode-map "V") 'r4-player-toggle-video)))
+  (should (eq (keymap-lookup r4-player-map "^") 'r4-player-toggle-video-pop-out))
+  ;; The video is under the text of the player window.
+  (let ((r4-player-queue (vector (r4-test--track :title "Song")))
+        (r4-player-index 0) (r4-player-video nil))
+    (cl-letf (((symbol-function 'r4-player-live-p) #'always))
+      (unwind-protect
+          (pcase-let* ((window (r4-player-window--show))
+                       (`(,area-window ,_ ,top ,_ ,bottom) (r4-player-window--video-area)))
+            (should (eq area-window window))
+            (should (= top (+ (nth 1 (window-inside-pixel-edges window))
+                              (* 2 (frame-char-height)))))
+            (should (<= top bottom)))
+        (kill-buffer r4-player-window-buffer)))))
 
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))

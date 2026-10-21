@@ -46,6 +46,10 @@
   "Return the description of the video toggle."
   (concat "Video " (r4-menus--on-off r4-player-video)))
 
+(defun r4-menus--pop-out ()
+  "Return the description of the video pop out toggle."
+  (concat "Pop out video " (r4-menus--on-off r4-player-video-pop-out)))
+
 (defun r4-menus--player ()
   "Return the heading of the player group: the playing track."
   (concat (propertize "Player" 'face 'transient-heading) "  "
@@ -121,6 +125,7 @@
       ("-" "Volume down" r4-player-volume-down :transient t)]
      [("Z" r4-player-toggle-shuffle :description r4-menus--shuffle :transient t)
       ("V" r4-player-toggle-video :description r4-menus--video :transient t)
+      ("^" r4-player-toggle-video-pop-out :description r4-menus--pop-out :transient t)
       ("Q" "Queue" r4-queue)
       ("v" "Player window" r4-player-window)]]
     "The player group of the r4 menus."))

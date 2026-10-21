@@ -111,6 +111,7 @@ quits.  The player keys work in every list:
 | =+= =-=       | Volume                         |
 | =Z=           | Toggle shuffle                 |
 | =V=           | Toggle video                   |
+| =^=           | Pop out the video, and back    |
 | =Q=           | Queue, where =/= =#= filter what plays |
 | =v=           | Player window                  |
 | =k=           | Stop                           |
@@ -194,11 +195,10 @@ command line: retry them with =C-u d=, or =R= in =r4-downloads=.
 Set =r4-download-video= to download videos instead, in
 =r4-download-video-quality= and =r4-download-video-container=; audio and
 video files of a track live side by side.  =V= shows videos while
-playing, in an Emacs window at the right of the frame, where the player
-keys work; quit the window to turn videos off.  Place it with
-=display-buffer-alist= for =*r4 video*=.  Emacs built for Wayland only
-(pgtk) and macOS show videos in a window of mpv, as does setting
-=r4-player-video-window= to nil.
+playing, in the player window, under the playing track; quitting it
+turns videos off.  =^= pops them out in a window of mpv, and back
+(=r4-player-video-pop-out=).  Emacs built for Wayland only (pgtk) and
+macOS show videos in a window of mpv.
 
 Downloads of r4.el 0.2 were outside =tracks/=: =M-x r4-files-migrate=
 moves them.

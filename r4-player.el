@@ -39,8 +39,8 @@ which mpv crashes when it shows a video."
 
 (defcustom r4-player-video nil
   "When non-nil, play videos, else only audio.
-They show in an Emacs window, see `r4-player-video-window'.  Toggle it
-with `r4-player-toggle-video'."
+They show in the player window, or pop out, see
+`r4-player-video-pop-out'.  Toggle it with `r4-player-toggle-video'."
   :type 'boolean
   :group 'r4)
 
@@ -331,6 +331,23 @@ downloaded audio file."
   (r4-player--apply-video)
   (message "r4: video %s" (if r4-player-video "on" "off"))
   (r4-player--changed)
+  (r4-player--reload))
+
+(defun r4-player-toggle-video-pop-out ()
+  "Toggle showing videos in their own window, see `r4-player-video-pop-out'."
+  (interactive)
+  (setq r4-player-video-pop-out (not r4-player-video-pop-out))
+  (message "r4: videos show in %s" (if r4-player-video-pop-out
+                                       "their own window"
+                                     "the player window"))
+  (when r4-player-video
+    (r4-video-quit)
+    (r4-player--apply-video)
+    (r4-player--changed)
+    (r4-player--reload)))
+
+(defun r4-player--reload ()
+  "Play the playing track again from the same position."
   (when (and (r4-player-live-p) r4-player-index)
     (let ((index r4-player-index))
       (r4-player-get-property
@@ -497,10 +514,9 @@ downloaded audio file."
   "-" #'r4-player-volume-down
   "Z" #'r4-player-toggle-shuffle
   "V" #'r4-player-toggle-video
+  "^" #'r4-player-toggle-video-pop-out
   "k" #'r4-player-stop
   "Q" #'r4-queue)
-
-(set-keymap-parent r4-video-mode-map r4-player-map)
 
 (declare-function r4-queue "r4-queue")
 

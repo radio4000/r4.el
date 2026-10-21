@@ -41,7 +41,7 @@ Controlling mpv over its JSON IPC socket.
 #+INCLUDE: "r4-mpv.el" src emacs-lisp
 
 ** r4-video.el
-Videos in an Emacs window.
+Videos in the player window.
 #+INCLUDE: "r4-video.el" src emacs-lisp
 
 ** r4-player.el
