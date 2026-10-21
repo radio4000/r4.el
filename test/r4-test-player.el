@@ -28,6 +28,11 @@
             (while (equal (r4-track-title (r4-player-current)) "one")
               (accept-process-output nil 0.1)))
           (should (equal (r4-track-title (r4-player-current)) "two"))
+          ;; The elapsed time and duration are read from mpv.
+          (with-timeout (5 (ert-fail "No duration"))
+            (while (not (r4-player-duration)) (accept-process-output nil 0.05)))
+          (should (< 0.4 (r4-player-duration) 0.6))
+          (should (equal (r4-player-time-string) "0:00/0:00"))
           ;; Start a track at a position, once loaded.
           (r4-player-play tracks 0 0.3 "test")
           (should (equal r4-player-label "test"))
@@ -103,13 +108,20 @@
 
 (ert-deftest r4-test-mode-line ()
   (let ((r4-player-queue (vector (r4-test--track :title "Song")))
-        (r4-player-index 0) (r4-player-paused nil) (r4-player-label "auto radio @x"))
+        (r4-player-index 0) (r4-player-paused nil) (r4-player-label "auto radio @x")
+        (r4-player-time-pos nil) (r4-player--duration nil))
     (cl-letf (((symbol-function 'r4-player-live-p) #'always))
       (let ((string (r4-player-mode-line-string)))
-        (should (string-match-p "▶ \\[auto radio @x\\] Song" string))
+        (should (string-match-p "▶ \\[auto radio @x\\] Song 0:00 " string))
         (should (eq (get-text-property 1 'local-map string) r4-player-mode-line-map))
         (should (eq (keymap-lookup r4-player-mode-line-map "<mode-line> <mouse-1>")
-                    'r4-player-toggle-pause))))))
+                    'r4-player-toggle-pause))
+        ;; With the elapsed time and the duration, from mpv or radio4000.com.
+        (setq r4-player-time-pos 83.4)
+        (setf (r4-track-duration (r4-player-current)) 296)
+        (should (string-match-p "Song 1:23/4:56 " (r4-player-mode-line-string)))
+        (setq r4-player--duration 3725.0)
+        (should (equal (r4-player-time-string) "1:23/1:02:05"))))))
 
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))

@@ -83,14 +83,24 @@ When non-nil, the queue plays in order, without shuffle.")
 It returns a cons of the queue index and the start position in
 seconds, or nil to play nothing.  Playing new tracks resets it.")
 
+(defvar r4-player-time-pos nil
+  "Position of the playing track in seconds, or nil.")
+
+(defvar r4-player--duration nil
+  "Duration of the playing track in seconds, given by mpv, or nil.")
+
 (defvar r4-player-track-changed-hook nil
   "Hook run after the current track changed.")
+
+(defvar r4-player-changed-hook nil
+  "Hook run after the player changed: its track, time, pause or options.")
 
 (defvar r4-player-queue-changed-hook nil
   "Hook run after tracks were added to or removed from the queue.")
 
 (defvar r4-player--history nil "Indexes of the previously played tracks.")
 (defvar r4-player--start-at nil "Position in seconds to seek to, once loaded.")
+(defvar r4-player--timer nil "Timer reading the position of the playing track.")
 
 ;;;; mpv
 
@@ -103,8 +113,10 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
   (unless (r4-mpv-live-p)
     (r4-mpv-start r4-player-program r4-player-arguments r4-player-environment)
     (r4-mpv-send "observe_property" 1 "pause")
+    (r4-mpv-send "observe_property" 2 "duration")
     (r4-player--apply-video)
-    (r4-player--mode-line-setup))
+    (r4-player--mode-line-setup)
+    (r4-player--start-timer))
   (apply #'r4-mpv-send command))
 
 (defun r4-player-get-property (name callback)
@@ -118,9 +130,51 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
     (r4-mpv-send "set_property" "ytdl-format"
                  (if r4-player-video r4-player-video-quality r4-player-audio-quality))))
 
+(defun r4-player--changed ()
+  "Run `r4-player-changed-hook' and update the mode lines."
+  (run-hooks 'r4-player-changed-hook)
+  (force-mode-line-update t))
+
+(defun r4-player--start-timer ()
+  "Read the position of the playing track every second."
+  (unless (timerp r4-player--timer)
+    (setq r4-player--timer (run-with-timer 1 1 #'r4-player--update-time))))
+
+(defun r4-player--stop-timer ()
+  "Stop reading the position of the playing track."
+  (when (timerp r4-player--timer)
+    (cancel-timer r4-player--timer))
+  (setq r4-player--timer nil
+        r4-player-time-pos nil
+        r4-player--duration nil))
+
+(defun r4-player--update-time ()
+  "Read the position of the playing track, and show it when it changed."
+  (when (and (r4-mpv-live-p) (not r4-player-paused))
+    (r4-mpv-get-property
+     "time-pos"
+     (lambda (position)
+       (unless (equal (and position (floor position))
+                      (and r4-player-time-pos (floor r4-player-time-pos)))
+         (setq r4-player-time-pos position)
+         (r4-player--changed))))))
+
+(defun r4-player-duration ()
+  "Return the duration in seconds of the playing track, or nil.
+It is the one given by mpv, or else the one of radio4000.com."
+  (or r4-player--duration
+      (when-let* ((track (r4-player-current))) (r4-track-duration track))))
+
+(defun r4-player-time-string ()
+  "Return the elapsed time and duration of the playing track, as 1:23/4:56."
+  (let ((duration (r4-player-duration)))
+    (concat (r4-format-duration (or r4-player-time-pos 0))
+            (if duration (concat "/" (r4-format-duration duration)) ""))))
+
 (defun r4-player--kill ()
   "Stop mpv."
   (r4-mpv-kill)
+  (r4-player--stop-timer)
   (setq r4-player-paused nil))
 
 (defun r4-player--handle-event (event)
@@ -138,14 +192,16 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
          (r4-mpv-send "seek" r4-player--start-at "absolute")
          (setq r4-player--start-at nil)))
       ("property-change"
-       (when (equal .name "pause")
-         (setq r4-player-paused .data)
-         (force-mode-line-update t))))))
+       (pcase .name
+         ("pause" (setq r4-player-paused .data))
+         ("duration" (setq r4-player--duration .data)))
+       (r4-player--changed)))))
 
 (add-hook 'r4-mpv-event-functions #'r4-player--handle-event)
 (add-hook 'r4-mpv-exit-hook (lambda ()
+                              (r4-player--stop-timer)
                               (setq r4-player-paused nil)
-                              (force-mode-line-update t)))
+                              (r4-player--changed)))
 
 ;;;; Queue
 
@@ -168,13 +224,15 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
   (let* ((track (aref r4-player-queue index))
          (source (r4-player--source track)))
     (setq r4-player-index index
-          r4-player--start-at (and start (> start 0) start))
+          r4-player--start-at (and start (> start 0) start)
+          r4-player-time-pos start
+          r4-player--duration nil)
     (r4-player--send "loadfile" source "replace")
     (r4-player--send "set_property" "pause" :false)
     (message "r4: %s %s" (if (file-name-absolute-p source) "Playing" "Streaming")
              (r4-track-title track))
     (run-hooks 'r4-player-track-changed-hook)
-    (force-mode-line-update t)))
+    (r4-player--changed)))
 
 (defun r4-player-play (tracks &optional index start label)
   "Replace the queue by the list TRACKS and play the one at INDEX.
@@ -230,6 +288,7 @@ downloaded audio file."
   (setq r4-player-video (not r4-player-video))
   (r4-player--apply-video)
   (message "r4: video %s" (if r4-player-video "on" "off"))
+  (r4-player--changed)
   (when (and (r4-player-live-p) r4-player-index)
     (let ((index r4-player-index))
       (r4-player-get-property
@@ -280,7 +339,8 @@ downloaded audio file."
   "Toggle playing the queue in random order."
   (interactive)
   (setq r4-player-shuffle (not r4-player-shuffle))
-  (message "r4: shuffle %s" (if r4-player-shuffle "on" "off")))
+  (message "r4: shuffle %s" (if r4-player-shuffle "on" "off"))
+  (r4-player--changed))
 
 (defun r4-player-seek (seconds)
   "Seek SECONDS forward, or backward if negative."
@@ -321,7 +381,7 @@ downloaded audio file."
         r4-player-label nil
         r4-player-next-function nil)
   (run-hooks 'r4-player-track-changed-hook)
-  (force-mode-line-update t)
+  (r4-player--changed)
   (message "r4: stopped"))
 
 (defun r4-player--current-or-error ()
@@ -360,9 +420,10 @@ downloaded audio file."
 (defun r4-player-mode-line-string ()
   "Return the mode line string of the player."
   (when-let* ((track (and r4-player-mode-line (r4-player-live-p) (r4-player-current))))
-    (propertize (format " %s %s%s " (if r4-player-paused "⏸" "▶")
+    (propertize (format " %s %s%s %s " (if r4-player-paused "⏸" "▶")
                         (if r4-player-label (format "[%s] " r4-player-label) "")
-                        (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…"))
+                        (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…")
+                        (r4-player-time-string))
                 'help-echo (format "@%s: %s\nmouse-1: pause or resume\nmouse-2: next track\nmouse-3: queue"
                                    (r4-track-slug track) (r4-track-title track))
                 'mouse-face 'mode-line-highlight
