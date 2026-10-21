@@ -333,6 +333,37 @@
             (should-not r4-player-mode-line-extra))
         (r4-broadcast-stop)))))
 
+;; Like magit, each buffer has its menu, saying what it acts on.
+(ert-deftest r4-test-menus-context ()
+  (dolist (map-menu `((,r4-tracks-mode-map . r4-tracks-menu)
+                      (,r4-channels-mode-map . r4-channels-menu)
+                      (,r4-queue-mode-map . r4-queue-menu)
+                      (,r4-channel-page-mode-map . r4-channel-page-menu)
+                      (,r4-downloads-mode-map . r4-downloads-menu)
+                      (,r4-broadcasts-mode-map . r4-broadcasts-menu)
+                      (,r4-player-window-mode-map . r4-player-menu)
+                      (,r4-home-mode-map . r4-menu)))
+    (should (eq (keymap-lookup (car map-menu) "?") (cdr map-menu))))
+  (let ((buffer (generate-new-buffer "r4-test")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buffer
+            (r4-tracks-mode)
+            (setq r4-tracks--source '(:slug "ko002"))
+            (r4-tracks--set buffer (list (r4-test--track :title "Song" :tags '("jazz"))
+                                         (r4-test--track :id "2" :title "Other")))
+            (r4-tracks-filter "#jazz")
+            (goto-char (point-min)))
+          ;; Descriptions are formatted in another buffer.
+          (let ((transient--original-buffer buffer))
+            (with-temp-buffer
+              (let ((heading (r4-menus--tracks-heading)))
+                (should (string-match-p "Tracks of @ko002" heading))
+                (should (string-match-p "1 of 2 shown" heading))
+                (should (string-match-p "at point: Song" heading)))
+              (should (string-match-p "#jazz" (r4-menus--filter))))))
+      (kill-buffer buffer))))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))
@@ -354,7 +385,8 @@
                   (when-let* ((player (lookup-key r4-player-map (vector key))))
                     (should (eq player (lookup-key map (vector key))))))
                 map))
-  (dolist (menu '(r4-menu r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
+  (dolist (menu '(r4-menu r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu
+                  r4-channel-page-menu r4-downloads-menu r4-broadcasts-menu r4-player-menu))
     (let (keys)
       ;; Find the :key of the suffixes, in any version of transient.
       (cl-labels ((collect (x)

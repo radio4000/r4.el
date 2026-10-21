@@ -37,6 +37,77 @@
 
 ;;;; Descriptions showing the state
 
+;; Transient formats descriptions in a temporary buffer: those showing
+;; the state of a list read it in the buffer the menu was opened from.
+(defmacro r4-menus--in-buffer (&rest body)
+  "Run BODY in the buffer the menu was opened from."
+  (declare (indent 0))
+  `(with-current-buffer (or (and (buffer-live-p transient--original-buffer)
+                                 transient--original-buffer)
+                            (current-buffer))
+     ,@body))
+
+(defun r4-menus--heading (title &rest parts)
+  "Return a menu heading: TITLE, then the non-nil PARTS, dimmed."
+  (concat (propertize title 'face 'transient-heading)
+          (mapconcat (lambda (part) (concat "  " (propertize part 'face 'shadow)))
+                     (delq nil parts) "")))
+
+(defun r4-menus--tracks-heading ()
+  "Return the heading of the menu of a list of tracks, and its track at point."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     (concat "Tracks of " (r4-tracks--describe-source r4-tracks--source))
+     (if r4-tracks--filter
+         (format "%d of %d shown" (length tabulated-list-entries) (length r4-tracks--tracks))
+       (format "%d tracks" (length r4-tracks--tracks)))
+     (when-let* ((track (tabulated-list-get-id)))
+       (concat "at point: " (r4-one-line (r4-track-title track)))))))
+
+(defun r4-menus--channels-heading ()
+  "Return the heading of the menu of a list of channels, and its channel at point."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     (string-trim (buffer-name) "\\*r4 " "\\*")
+     (format "%d channels" (length tabulated-list-entries))
+     (when-let* ((channel (tabulated-list-get-id)))
+       (concat "at point: @" (r4-channel-slug channel)
+               (if-let* ((name (r4-channel-name channel))) (concat " " name) ""))))))
+
+(defun r4-menus--queue-heading ()
+  "Return the heading of the menu of the queue: the track at point."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     "Queue"
+     (format "%d tracks" (length r4-player-queue))
+     (when-let* ((index (tabulated-list-get-id)))
+       (concat "at point: " (r4-one-line (r4-track-title (aref r4-player-queue index))))))))
+
+(defun r4-menus--channel-page-heading ()
+  "Return the heading of the menu of a channel page: the channel."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     (concat "Channel @" (r4-channel-slug r4-channel-page--channel))
+     (r4-channel-name r4-channel-page--channel))))
+
+(defun r4-menus--downloads-heading ()
+  "Return the heading of the menu of the downloads: their counts."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     "Downloads"
+     (string-trim (r4-downloads--summary))
+     (when-let* ((job (tabulated-list-get-id)))
+       (concat "at point: " (r4-one-line (r4-track-title (r4-download-track job))))))))
+
+(defun r4-menus--broadcasts-heading ()
+  "Return the heading of the menu of the broadcasts."
+  (r4-menus--in-buffer
+    (r4-menus--heading
+     "Live broadcasts"
+     (format "%d live" (length tabulated-list-entries))
+     (when r4-broadcast--listening
+       (concat "listening to @" (plist-get r4-broadcast--listening :slug))))))
+
 (defun r4-menus--on-off (value)
   "Return VALUE as on or off, highlighted when on."
   (if value (propertize "on" 'face 'transient-value) (propertize "off" 'face 'shadow)))
@@ -83,7 +154,7 @@
 
 (defun r4-menus--local-list-p ()
   "Return non-nil in the list of a local channel."
-  (plist-get r4-tracks--source :local))
+  (r4-menus--in-buffer (plist-get r4-tracks--source :local)))
 
 (defun r4-menus--remote-list-p ()
   "Return non-nil in a list of tracks of radio4000.com."
@@ -101,17 +172,22 @@
 
 (defun r4-menus--channel-sync ()
   "Return the label of the sync toggle of the channel at point."
-  (r4-menus--sync-label (when-let* ((channel (tabulated-list-get-id)))
-                          (r4-channel-slug channel))))
+  (r4-menus--sync-label (r4-menus--in-buffer
+                          (when-let* ((channel (tabulated-list-get-id)))
+                            (r4-channel-slug channel)))))
+
+(defun r4-menus--page-sync ()
+  "Return the label of the sync toggle of the channel of the page."
+  (r4-menus--sync-label (r4-menus--in-buffer (r4-channel-slug r4-channel-page--channel))))
 
 (defun r4-menus--list-sync ()
   "Return the label of the sync toggle of the channel of the list."
-  (r4-menus--sync-label (plist-get r4-tracks--source :slug)))
+  (r4-menus--sync-label (r4-menus--in-buffer (plist-get r4-tracks--source :slug))))
 
 (defun r4-menus--filter ()
   "Return the description of the filter of the track list."
-  (if r4-tracks--filter-text
-      (format "Filter: %s" (propertize r4-tracks--filter-text 'face 'transient-value))
+  (if-let* ((text (r4-menus--in-buffer r4-tracks--filter-text)))
+      (format "Filter: %s" (propertize text 'face 'transient-value))
     "Filter shown tracks"))
 
 (defun r4-menus--account ()
@@ -230,7 +306,8 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 ;;;###autoload (autoload 'r4-tracks-menu "r4-menus" nil t)
 (r4-menus--define r4-tracks-menu
   "Menu of a list of tracks."
-  [["Play"
+  [:description r4-menus--tracks-heading
+   ["Play"
     ("RET" "Play track" r4-tracks-play)
     ("P" "Play all" r4-tracks-play-all)
     ("z" "Shuffle" r4-tracks-shuffle)
@@ -274,7 +351,8 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 ;;;###autoload (autoload 'r4-channels-menu "r4-menus" nil t)
 (r4-menus--define r4-channels-menu
   "Menu of a list of channels."
-  [["Channel"
+  [:description r4-menus--channels-heading
+   ["Channel"
     ("RET" "Visit channel" r4-channels-visit)
     ("T" "Tracks" r4-channels-open)
     ("P" "Play channel" r4-channels-play)
@@ -306,7 +384,8 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 ;;;###autoload (autoload 'r4-queue-menu "r4-menus" nil t)
 (r4-menus--define r4-queue-menu
   "Menu of the play queue."
-  [["Queue"
+  [:description r4-menus--queue-heading
+   ["Queue"
     ("RET" "Play track" r4-queue-play)
     ("x" "Remove" r4-queue-remove)
     ("C" "Clear" r4-player-clear)]
@@ -317,6 +396,60 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
     ("o" "Open on radio4000.com" r4-queue-browse)
     ("w" "Copy media URL" r4-queue-copy-url)
     ("W" "Copy radio4000.com URL" r4-queue-copy-web-url)]])
+
+;;;###autoload (autoload 'r4-channel-page-menu "r4-menus" nil t)
+(r4-menus--define r4-channel-page-menu
+  "Menu of a channel page."
+  [:description r4-menus--channel-page-heading
+   ["Play"
+    ("P" "Play" r4-channel-page-play)
+    ("z" "Shuffle" r4-channel-page-shuffle)
+    ("R" "Auto radio" r4-channel-page-auto-radio)]
+   ["Pages"
+    ("t" "Tracks" r4-channel-page-tracks)
+    ("#" "Tracks with a tag" r4-channel-page-tag)
+    ("F" "Following" r4-channel-page-following)
+    ("r" "Followers" r4-channel-page-followers)
+    ("M" "Mentions" r4-channel-page-mentions)]
+   ["Channel"
+    ("f" "Follow/unfollow" r4-channel-page-follow)
+    ("y" r4-channel-page-toggle-sync :description r4-menus--page-sync)
+    ("D" "Download" r4-channel-page-download)
+    ("C" "Save locally" r4-channel-page-save-locally)]
+   ["Share"
+    ("o" "Open on radio4000.com" r4-channel-page-browse)
+    ("w" "Copy radio4000.com URL" r4-channel-page-copy-url)
+    ("g" "Refresh" revert-buffer)]])
+
+;;;###autoload (autoload 'r4-downloads-menu "r4-menus" nil t)
+(r4-menus--define r4-downloads-menu
+  "Menu of the downloads."
+  [:description r4-menus--downloads-heading
+   ["At point"
+    ("x" "Cancel" r4-downloads-cancel)
+    ("r" "Retry" r4-downloads-retry)
+    ("F" "Visit file" r4-downloads-visit-file)]
+   ["All"
+    ("R" "Retry failed" r4-downloads-retry-failed)
+    ("c" "Clear finished" r4-downloads-clear)
+    ("X" "Cancel all" r4-download-cancel-all)]
+   ["Show"
+    ("l" "Log" r4-downloads-show-log)
+    ("o" "Downloads folder" r4-files-open-directory)
+    ("g" "Refresh" revert-buffer)]])
+
+;;;###autoload (autoload 'r4-broadcasts-menu "r4-menus" nil t)
+(r4-menus--define r4-broadcasts-menu
+  "Menu of the live broadcasts."
+  [:description r4-menus--broadcasts-heading
+   ["Listen"
+    ("RET" "Listen to the broadcast at point" r4-broadcasts-listen)
+    ("l" "Leave the broadcast" r4-broadcast-leave)
+    ("g" "Refresh" revert-buffer)]])
+
+;;;###autoload (autoload 'r4-player-menu "r4-menus" nil t)
+(r4-menus--define r4-player-menu
+  "Menu of the player.")
 
 ;; Like magit, the keys of the main views work in every r4 buffer.
 (keymap-set r4-player-map "h" #'r4)
@@ -329,6 +462,10 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 (keymap-set r4-tracks-mode-map "?" #'r4-tracks-menu)
 (keymap-set r4-channels-mode-map "?" #'r4-channels-menu)
 (keymap-set r4-queue-mode-map "?" #'r4-queue-menu)
+(keymap-set r4-channel-page-mode-map "?" #'r4-channel-page-menu)
+(keymap-set r4-downloads-mode-map "?" #'r4-downloads-menu)
+(keymap-set r4-broadcasts-mode-map "?" #'r4-broadcasts-menu)
+(keymap-set r4-player-window-mode-map "?" #'r4-player-menu)
 
 (provide 'r4-menus)
 

@@ -104,8 +104,10 @@ Start with:
 
 Lists are =tabulated-list-mode= buffers: =n= =p= move, =S= sorts by the
 column at point (or click a header), =g= refreshes, =m= =u= mark, =q=
-quits.  Like in magit, the main views are a key away in every r4
-buffer, and listed in each =?= menu:
+quits.  Like in magit, =?= opens the menu of the buffer you are in:
+its heading says what it acts on, such as the list and the track at
+point, and its keys work without opening it.  The main views are a key
+away in every r4 buffer, and listed in each menu:
 
 | Key           | Go to                          |
 |---------------+--------------------------------|
