@@ -42,6 +42,7 @@ LEFT TOP RIGHT BOTTOM.")
   "Name of the buffer of the child frame mpv draws in.")
 
 (defvar r4-video--frame nil "The child frame mpv draws in.")
+(defvar r4-video--area nil "The last area of the video, to only move it when it changes.")
 
 (defun r4-video-window-p ()
   "Return non-nil if videos show in an Emacs window."
@@ -84,17 +85,19 @@ would use Wayland, which cannot draw in Emacs."
     (set-window-dedicated-p (frame-root-window frame) t)
     frame))
 
-(defun r4-video--place ()
+(defun r4-video-place ()
   "Keep the child frame over the video area, or turn videos off."
   (when (frame-live-p r4-video--frame)
     (pcase (funcall r4-video-area-function)
-      ((and `(,window ,left ,top ,right ,bottom)
+      ((and `(,window . ,(and edges `(,left ,top ,right ,bottom)))
             (guard (eq (window-frame window) (frame-parent r4-video--frame))))
-       (modify-frame-parameters r4-video--frame
-                                `((left . ,left) (top . ,top)
-                                  (width . (text-pixels . ,(max 1 (- right left))))
-                                  (height . (text-pixels . ,(max 1 (- bottom top))))))
-       (make-frame-visible r4-video--frame))
+       (unless (and (equal edges r4-video--area) (frame-visible-p r4-video--frame))
+         (setq r4-video--area edges)
+         (modify-frame-parameters r4-video--frame
+                                  `((left . ,left) (top . ,top)
+                                    (width . (text-pixels . ,(max 1 (- right left))))
+                                    (height . (text-pixels . ,(max 1 (- bottom top))))))
+         (make-frame-visible r4-video--frame)))
       (_ (r4-video-quit)
          (run-hooks 'r4-video-window-quit-hook)))))
 
@@ -104,12 +107,12 @@ would use Wayland, which cannot draw in Emacs."
     (unless (frame-live-p r4-video--frame)
       (setq r4-video--frame (r4-video--make-frame (window-frame window)))
       (add-hook 'window-state-change-functions #'r4-video--state-changed))
-    (r4-video--place)
+    (r4-video-place)
     (string-to-number (frame-parameter r4-video--frame 'window-id))))
 
 (defun r4-video--state-changed (_frame)
   "Keep the video over its area, after windows changed."
-  (r4-video--place))
+  (r4-video-place))
 
 (defun r4-video--release ()
   "Turn off the video of mpv, and wait until its video output is closed.
@@ -135,7 +138,8 @@ Else mpv stops playing when the window it draws in disappears."
   (r4-video--release)
   (when (frame-live-p r4-video--frame)
     (delete-frame r4-video--frame t))
-  (setq r4-video--frame nil))
+  (setq r4-video--frame nil
+        r4-video--area nil))
 
 (add-hook 'r4-mpv-exit-hook #'r4-video-quit)
 

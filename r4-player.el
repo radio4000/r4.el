@@ -93,6 +93,9 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defvar r4-player-time-pos nil
   "Position of the playing track in seconds, or nil.")
 
+(defvar r4-player-video-aspect nil
+  "Aspect ratio of the video playing, its width divided by its height, or nil.")
+
 (defvar r4-player--duration nil
   "Duration of the playing track in seconds, given by mpv, or nil.")
 
@@ -126,6 +129,7 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
                   r4-player-environment)
     (r4-mpv-send "observe_property" 1 "pause")
     (r4-mpv-send "observe_property" 2 "duration")
+    (r4-mpv-send "observe_property" 3 "video-params/aspect")
     (r4-player--apply-video)
     (when r4-player-mode-line (r4-player-mode-line-mode 1))
     (r4-player--start-timer))
@@ -223,7 +227,8 @@ It is the one given by mpv, or else the one of radio4000.com."
       ("property-change"
        (pcase .name
          ("pause" (setq r4-player-paused .data))
-         ("duration" (setq r4-player--duration .data)))
+         ("duration" (setq r4-player--duration .data))
+         ("video-params/aspect" (setq r4-player-video-aspect .data)))
        (r4-player--changed)))))
 
 (add-hook 'r4-mpv-event-functions #'r4-player--handle-event)

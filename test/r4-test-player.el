@@ -223,7 +223,7 @@
               ((symbol-function 'r4-video-quit)
                (lambda () (setq quit t r4-video--frame nil))))
       ;; Without the player window, videos turn off.
-      (r4-video--place)
+      (r4-video-place)
       (should quit)
       (should-not r4-player-video)))
   (should (eq (keymap-lookup r4-player-map "^") 'r4-player-toggle-video-pop-out))
@@ -368,6 +368,28 @@
                 (should (string-match-p "at point: Song" heading)))
               (should (string-match-p "#jazz" (r4-menus--filter))))))
       (kill-buffer buffer))))
+
+;; The video is beside the player in a wide window, else under it, at
+;; its aspect ratio.
+(ert-deftest r4-test-player-window-video-layout ()
+  (let ((r4-player-video t) (r4-player-video-aspect 1.0) (width 1900)
+        (r4-player-window-text-width 70))
+    (cl-letf (((symbol-function 'r4-video-window-p) #'always)
+              ((symbol-function 'get-buffer-window) (lambda (&rest _) 'window))
+              ((symbol-function 'window-frame) #'ignore)
+              ((symbol-function 'frame-char-width) (lambda (&rest _) 10))
+              ((symbol-function 'window-body-width) (lambda (&rest _) width))
+              ((symbol-function 'window-body-height) (lambda (&rest _) 400))
+              ((symbol-function 'window-inside-pixel-edges)
+               (lambda (&rest _) (list 10 0 (+ 10 width) 400)))
+              ((symbol-function 'window-text-pixel-size) (lambda (&rest _) '(700 . 60))))
+      ;; A square video, 400 pixels high, at the right.
+      (should (r4-player-window--beside-p 'window))
+      (should (equal (r4-player-window--video-area) (list 'window 1510 0 1910 400)))
+      ;; Too narrow: under the player, centered.
+      (setq width 900)
+      (should-not (r4-player-window--beside-p 'window))
+      (should (equal (r4-player-window--video-area) (list 'window 290 60 630 400))))))
 
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))

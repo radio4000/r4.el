@@ -41,6 +41,12 @@ By default, a side window at the top of the frame.  An entry for
   :type 'number
   :group 'r4)
 
+(defcustom r4-player-window-text-width 70
+  "Width in columns of the player beside a video.
+In a window too narrow for both, the video shows under the player."
+  :type 'natnum
+  :group 'r4)
+
 (defface r4-player-window-played '((t :inherit success))
   "Face of the played part of the progress bar."
   :group 'r4)
@@ -144,13 +150,34 @@ A toggle that is on is highlighted, with its last label if any, such as
                                                            r4-queue)))
                  r4-player-window-controls))))
 
+(defun r4-player-window--video-p ()
+  "Return non-nil if the player window shows a video."
+  (and r4-player-video (r4-video-window-p)))
+
+(defun r4-player-window--video-width (window)
+  "Return the width in pixels of a video as high as WINDOW."
+  (round (* (or r4-player-video-aspect (/ 16.0 9))
+            (window-body-height window t))))
+
+(defun r4-player-window--beside-p (window)
+  "Return non-nil if WINDOW shows the video beside the player, else under."
+  (and (r4-player-window--video-p)
+       (>= (- (window-body-width window t) (r4-player-window--video-width window))
+           (* r4-player-window-text-width (frame-char-width (window-frame window))))))
+
 (defun r4-player-window--refresh ()
-  "Redraw the player window, if shown."
+  "Redraw the player window, if shown, and place its video."
   (when-let* ((buffer (get-buffer r4-player-window-buffer))
               (window (get-buffer-window buffer t)))
+    (r4-player-window--fit window)
     (with-current-buffer buffer
-      (r4-player-window--render (1- (window-max-chars-per-line window))))
-    (r4-player-window--fit window)))
+      (r4-player-window--render
+       (1- (if (r4-player-window--beside-p window)
+               (/ (- (window-body-width window t) (r4-player-window--video-width window))
+                  (frame-char-width (window-frame window)))
+             (window-max-chars-per-line window)))))
+    (when (r4-video-showing-p)
+      (r4-video-place))))
 
 (defun r4-player-window--fit (window)
   "Fit the side WINDOW of the player to its text, and the video if any."
@@ -174,10 +201,17 @@ A toggle that is on is highlighted, with its last label if any, such as
 
 (defun r4-player-window--video-area ()
   "Return the player window and the pixel edges of its video area, or nil.
-The video is under the text of the player."
+The video is beside the player in a wide window, else under it, as
+wide as its aspect ratio allows."
   (when-let* ((window (get-buffer-window r4-player-window-buffer)))
     (pcase-let ((`(,left ,top ,right ,bottom) (window-inside-pixel-edges window)))
-      (list window left (+ top (cdr (window-text-pixel-size window))) right bottom))))
+      (if (r4-player-window--beside-p window)
+          (list window (- right (r4-player-window--video-width window)) top right bottom)
+        (let* ((top (+ top (cdr (window-text-pixel-size window))))
+               (width (min (- right left)
+                           (round (* (or r4-player-video-aspect (/ 16.0 9)) (- bottom top)))))
+               (left (+ left (/ (- right left width) 2))))
+          (list window left top (+ left width) bottom))))))
 
 (setq r4-video-show-function #'r4-player-window--show
       r4-video-area-function #'r4-player-window--video-area)
