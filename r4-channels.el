@@ -15,6 +15,7 @@
 (require 'tabulated-list)
 (require 'r4-models)
 (require 'r4-api)
+(require 'r4-player)
 (require 'r4-tracks)
 (require 'r4-files)
 (require 'r4-download)
@@ -57,8 +58,45 @@ It is called with a callback, to call with the list of channels.")
 (defvar-local r4-channels--name nil
   "Name of the channels of the buffer, such as \"following @oskar\".")
 
+(defvar r4-channels-following-function #'ignore
+  "Function returning non-nil if your channel follows a channel.")
+
+(defvar r4-channels-synced-function #'ignore
+  "Function returning non-nil if a channel, by slug, is synced locally.")
+
+(defun r4-channels--downloading-slugs ()
+  "Return the slugs of the channels with queued or running downloads."
+  (delete-dups (mapcar (lambda (job) (r4-track-slug (r4-download-track job)))
+                       (seq-filter #'r4-download--active-p r4-download--jobs))))
+
+(defun r4-channels--downloaded-p (slug)
+  "Return non-nil if tracks of the channel SLUG are downloaded."
+  (let ((directory (r4-files-tracks-directory slug)))
+    (and (file-directory-p directory)
+         (directory-files directory nil "\\`[^.]" t 1))))
+
+(defvar r4-channels--downloading nil
+  "Slugs of the channels with downloads, while computing the status column.")
+
+(defun r4-channels--status (channel)
+  "Return the status of CHANNEL: playing, followed, synced and downloads.
+▶ when one of its tracks plays, ♥ when your channel follows it, ⟳
+when synced locally, and ↓ while downloading or ✓ when downloaded."
+  (let ((slug (r4-channel-slug channel))
+        (playing (r4-player-current)))
+    (propertize
+     (concat (if (and playing (r4-player-live-p) (equal (r4-track-slug playing) slug)) "▶" " ")
+             (if (funcall r4-channels-following-function channel) "♥" " ")
+             (if (funcall r4-channels-synced-function slug) "⟳" " ")
+             (cond ((member slug r4-channels--downloading) "↓")
+                   ((r4-channels--downloaded-p slug) "✓")
+                   (t " ")))
+     'help-echo "▶ playing, ♥ followed by your channel, ⟳ synced, ↓ downloading, ✓ downloaded")))
+
 (defconst r4-channels-column-specs
-  `((slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug
+  `((status . ,(r4-column-create :name " " :width 4 :key #'r4-channels--status
+                                 :format #'identity))
+    (slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug
                                :format (lambda (slug) (concat "@" slug))))
     (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name))
     (track_count . ,(r4-column-create :name "track count" :width 11
@@ -79,7 +117,7 @@ It is called with a callback, to call with the list of channels.")
 They are named after the fields of the channels of radio4000.com.")
 
 (defcustom r4-channels-columns
-  '(slug name track_count latest_track_at created_at updated_at description)
+  '(status slug name track_count latest_track_at created_at updated_at description)
   "Columns of the channel lists, among `r4-channels-column-specs'."
   :type (r4-columns-custom-type r4-channels-column-specs)
   :group 'r4)
@@ -89,10 +127,31 @@ They are named after the fields of the channels of radio4000.com.")
 
 (defun r4-channels--entries (channels)
   "Return the `tabulated-list-entries' of CHANNELS."
-  (mapcar (lambda (channel)
-            (list channel (r4-columns-row channel r4-channels--columns
-                                          r4-channels-column-specs)))
-          channels))
+  (let ((r4-channels--downloading (r4-channels--downloading-slugs)))
+    (mapcar (lambda (channel)
+              (list channel (r4-columns-row channel r4-channels--columns
+                                            r4-channels-column-specs)))
+            channels)))
+
+(defvar r4-channels--status-timer nil
+  "Timer redisplaying the channel lists, after their status changed.")
+
+(defun r4-channels-status-changed (&rest _)
+  "Redisplay the channel lists soon, for their status column."
+  (unless (timerp r4-channels--status-timer)
+    (setq r4-channels--status-timer
+          (run-with-idle-timer
+           0.5 nil
+           (lambda ()
+             (setq r4-channels--status-timer nil)
+             (dolist (buffer (buffer-list))
+               (with-current-buffer buffer
+                 (when (and (derived-mode-p 'r4-channels-mode)
+                            (memq 'status r4-channels--columns))
+                   (r4-channels-redisplay)))))))))
+
+(add-hook 'r4-player-track-changed-hook #'r4-channels-status-changed)
+(add-hook 'r4-download-changed-functions #'r4-channels-status-changed)
 
 (defun r4-channels-revert (&rest _)
   "Fetch the channels of the buffer again."
@@ -245,9 +304,12 @@ They are named after the fields of the channels of radio4000.com.")
 (define-derived-mode r4-channels-mode tabulated-list-mode "r4 channels"
   "Major mode listing Radio4000 channels.
 
-Sort by the column at point with \\[tabulated-list-sort], or by
-clicking a column header.  Choose the columns with
-`r4-channels-columns'.
+The status column shows ▶ for the channel playing, ♥ for the
+channels your channel follows, ⟳ for the channels synced locally, and
+↓ while downloading or ✓ once downloaded.
+
+Sort by the column at point with \\[tabulated-list-sort], or by clicking
+a column header.  Choose the columns with `r4-channels-columns'.
 
 \\{r4-channels-mode-map}"
   (setq r4-channels--columns (r4-columns-valid r4-channels-columns r4-channels-column-specs)

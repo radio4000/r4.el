@@ -57,6 +57,8 @@ and nil none."
   "Return non-nil if the channel SLUG is synced."
   (member slug r4-synced-channels))
 
+(setq r4-channels-synced-function #'r4-synced-p)
+
 ;;;###autoload
 (defun r4-toggle-synced-channel (slug)
   "Start or stop syncing the channel SLUG locally."
@@ -70,6 +72,7 @@ and nil none."
                  "@%s is synced: its new tracks download, see r4-sync-channels"
                "@%s is not synced anymore")
              slug)
+    (r4-channels-status-changed)
     (when synced (r4-sync-channels (list slug)))))
 
 (defun r4-channels-toggle-sync ()

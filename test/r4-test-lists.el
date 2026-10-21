@@ -149,6 +149,24 @@
                            order))))
       (kill-buffer buffer))))
 
+(ert-deftest r4-test-channels-status ()
+  (let* ((r4-download-directory (make-temp-file "r4-test" t))
+         (playing (r4-test--track :slug "a"))
+         (r4-player-queue (vector playing)) (r4-player-index 0)
+         (r4-synced-channels '("b"))
+         (r4-follows--following (make-hash-table :test #'equal))
+         (r4-download--jobs (list (r4-download-create :track (r4-test--track :slug "c")))))
+    (puthash "id-b" t r4-follows--following)
+    (unwind-protect
+        (cl-letf (((symbol-function 'r4-player-live-p) #'always))
+          (make-directory (r4-files-tracks-directory "a") t)
+          (write-region "" nil (expand-file-name "x.opus" (r4-files-tracks-directory "a")))
+          (let ((r4-channels--downloading (r4-channels--downloading-slugs)))
+            (should (equal (r4-channels--status (r4-channel-create :slug "a")) "▶  ✓"))
+            (should (equal (r4-channels--status (r4-channel-create :id "id-b" :slug "b")) " ♥⟳ "))
+            (should (equal (r4-channels--status (r4-channel-create :slug "c")) "   ↓"))))
+      (delete-directory r4-download-directory t))))
+
 (ert-deftest r4-test-channels-filter ()
   (let ((buffer (generate-new-buffer "r4-test")))
     (unwind-protect

@@ -37,6 +37,9 @@ per Emacs session."
 (defvar r4-follows--my-channel nil
   "Your `r4-channel', as chosen in this session.")
 
+(defvar r4-follows--following-state nil
+  "Nil until the followed channels are fetched, then `done'.")
+
 (defun r4-follows-my-channel ()
   "Return your `r4-channel', signing in first if needed."
   (or (and r4-follows--my-channel
@@ -50,9 +53,60 @@ per Emacs session."
                            (completing-read "Your channel: @"
                                             (mapcar #'r4-channel-slug channels) nil t)
                          (r4-channel-slug (car channels))))))
-        (setq r4-follows--my-channel
+        (setq r4-follows--following-state nil
+              r4-follows--my-channel
               (or (cl-find slug channels :key #'r4-channel-slug :test #'equal)
                   (user-error "@%s is not one of your channels" slug))))))
+
+;;;; Followed channels, in channel lists
+
+(defvar r4-follows--following nil
+  "Hash table of the ids of the channels your channel follows, once fetched.")
+
+(defun r4-follows-following-p (channel)
+  "Return non-nil if your channel follows CHANNEL, as far as known."
+  (and (hash-table-p r4-follows--following)
+       (gethash (r4-channel-id channel) r4-follows--following)))
+
+(defun r4-follows--quiet-my-channel ()
+  "Return your channel without asking which one, or nil."
+  (or r4-follows--my-channel
+      (and (r4-auth-signed-in-p)
+           (condition-case nil
+               (let ((channels (r4-sync-my-channels)))
+                 (when (and channels (or r4-my-channel (null (cdr channels))))
+                   (r4-follows-my-channel)))
+             (error nil)))))
+
+(defun r4-follows-load-following ()
+  "Fetch once the channels your channel follows, to mark them in lists."
+  (unless r4-follows--following-state
+    (setq r4-follows--following-state 'done)
+    (run-at-time
+     0 nil
+     (lambda ()
+       (when-let* ((mine (r4-follows--quiet-my-channel)))
+         (let ((r4-api-error-function #'ignore))
+           (r4-api-get "followers"
+                       `(("select" "channel_id")
+                         ("follower_id" ,(concat "eq." (r4-channel-id mine))))
+                       (lambda (rows)
+                         (let ((table (make-hash-table :test #'equal)))
+                           (dolist (row rows)
+                             (puthash (alist-get 'channel_id row) t table))
+                           (setq r4-follows--following table))
+                         (r4-channels-status-changed)))))))))
+
+(setq r4-channels-following-function #'r4-follows-following-p)
+(add-hook 'r4-channels-mode-hook #'r4-follows-load-following)
+
+(defun r4-follows--set-following (channel following)
+  "Remember that your channel FOLLOWING CHANNEL or not, for the lists."
+  (when (hash-table-p r4-follows--following)
+    (if following
+        (puthash (r4-channel-id channel) t r4-follows--following)
+      (remhash (r4-channel-id channel) r4-follows--following))
+    (r4-channels-status-changed)))
 
 ;;;; Remote
 
@@ -98,8 +152,10 @@ per Emacs session."
     (if following
         (when (y-or-n-p (format "Stop following @%s? " (r4-channel-slug channel)))
           (r4-follows-unfollow channel)
+          (r4-follows--set-following channel nil)
           (message "@%s stopped following @%s" (r4-channel-slug mine) (r4-channel-slug channel)))
       (r4-follows-follow channel)
+      (r4-follows--set-following channel t)
       (message "@%s follows @%s" (r4-channel-slug mine) (r4-channel-slug channel)))))
 
 (defun r4-follows--channel-id (slug)

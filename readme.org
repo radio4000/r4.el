@@ -162,6 +162,10 @@ Click a tag of a track to filter the list by it, like on
 radio4000.com, and click it in the mode line to remove it; =#= toggles
 tags too, with their counts.
 
+The status column of channel lists shows =▶= the channel playing, =♥=
+the channels your channel follows, =⟳= the synced channels, and =↓=
+while downloading or =✓= once downloaded.
+
 The status column of track lists, the history and the feed shows the
 file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the
 player, =▶= playing, =·= played before.
@@ -241,7 +245,7 @@ largest first, =S= again reverses:
 
 #+begin_src emacs-lisp
 (setq r4-channels-columns
-      '(slug name track_count latest_track_at created_at updated_at description)
+      '(status slug name track_count latest_track_at created_at updated_at description)
       r4-tracks-columns
       '(status title duration tags slug created_at updated_at description))
 #+end_src
