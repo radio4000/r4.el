@@ -326,6 +326,20 @@
     (should (equal (substring-no-properties (r4-downloads--summary))
                    " 1 running, 2 queued, 1 failed"))))
 
+;; Downloads say nothing per track, show in the mode line, and sum up.
+(ert-deftest r4-test-downloads-quiet ()
+  (let ((r4-download--pending (make-hash-table :test #'equal))
+        (r4-download--jobs (list (r4-download-create :track (r4-test--track) :status 'done)
+                                 (r4-download-create :track (r4-test--track) :status 'failed))))
+    (should-not (r4-download-mode-line-string))
+    (puthash "1" t r4-download--pending)
+    (should (string-match-p "r4 ↓1" (r4-download-mode-line-string)))
+    (let (said)
+      (cl-letf (((symbol-function 'message)
+                 (lambda (format &rest args) (setq said (apply #'format format args)))))
+        (r4-download--done))
+      (should (equal said "r4: downloads done, 1 downloaded, 1 failed (see r4-downloads)")))))
+
 (provide 'r4-test-lists)
 
 ;;; r4-test-lists.el ends here

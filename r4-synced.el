@@ -72,7 +72,7 @@ and nil none."
                  "@%s is synced: its new tracks download, see r4-sync-channels"
                "@%s is not synced anymore")
              slug)
-    (r4-channels-status-changed)
+    (r4-channels-status-changed (list slug))
     (when synced (r4-sync-channels (list slug)))))
 
 (defun r4-channels-toggle-sync ()
@@ -90,10 +90,10 @@ and nil none."
     (r4-toggle-synced-channel slug)))
 
 ;;;###autoload
-(defun r4-sync-channels (&optional slugs)
+(defun r4-sync-channels (&optional slugs quiet)
   "Download the new tracks of the synced channels, or of SLUGS.
 Tracks already downloaded, or whose download failed before, are
-skipped."
+skipped.  QUIET says nothing, as when checking in the background."
   (interactive)
   (let ((slugs (or slugs r4-synced-channels)))
     (unless slugs
@@ -106,7 +106,7 @@ skipped."
          (when channel
            (r4-api-tracks (lambda (tracks)
                             (r4-download-tracks tracks :channel channel
-                                                :channel-tracks tracks))
+                                                :channel-tracks tracks :quiet quiet))
                           :slug slug)))))))
 
 (defun r4-sync-channels-maybe ()
@@ -116,7 +116,7 @@ skipped."
              (or (null r4-synced--last-check)
                  (> (- (float-time) r4-synced--last-check) r4-sync-interval)))
     (let ((r4-api-error-function #'ignore))
-      (r4-sync-channels))))
+      (r4-sync-channels nil t))))
 
 (add-hook 'r4-channels-mode-hook #'r4-sync-channels-maybe)
 (add-hook 'r4-tracks-mode-hook #'r4-sync-channels-maybe)
@@ -146,8 +146,7 @@ skipped."
                (not (r4-files-track-file track))
                (not (r4-download-pending-p track))
                (executable-find r4-download-program))
-      (let ((inhibit-message t))
-        (r4-download-tracks (list track))))))
+      (r4-download-tracks (list track) :quiet t))))
 
 (add-hook 'r4-player-track-changed-hook #'r4-synced--download-playing)
 

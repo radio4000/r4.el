@@ -187,12 +187,51 @@ CHANNEL-TRACKS are all the tracks of the channel, for its playlist."
           (setf (r4-download-progress job) 100)
           (when-let* ((file (r4-files-track-file track (r4-download-kind job))))
             (r4-files-finish-track track file))
-          (when (r4-download-channel-tracks job)
-            (r4-files-write-playlist (r4-track-slug track) (r4-download-channel-tracks job)))
-          (message "Downloaded: %s" (r4-track-title track)))
-      (r4-files-add-failure track (or (r4-download-error job) "Download failed"))
-      (message "Download failed (see %s): %s" r4-download-log-buffer (r4-track-title track)))
-    (r4-download--set-status job (if ok 'done 'failed))))
+          (r4-download--write-playlist job))
+      (r4-files-add-failure track (or (r4-download-error job) "Download failed")))
+    (r4-download--set-status job (if ok 'done 'failed))
+    (unless (cl-some #'r4-download--active-p r4-download--jobs)
+      (r4-download--done))))
+
+(defun r4-download--write-playlist (job)
+  "Write the playlist of the channel of JOB, after its last download."
+  (let ((slug (r4-track-slug (r4-download-track job))))
+    (when (and (r4-download-channel-tracks job)
+               (not (cl-some (lambda (other)
+                               (and (not (eq other job))
+                                    (r4-download--active-p other)
+                                    (equal (r4-track-slug (r4-download-track other)) slug)))
+                             r4-download--jobs)))
+      (r4-files-write-playlist slug (r4-download-channel-tracks job)))))
+
+(defun r4-download--done ()
+  "Say that all the downloads are done, with how many failed."
+  (let ((done (cl-count 'done r4-download--jobs :key #'r4-download-status))
+        (failed (cl-count 'failed r4-download--jobs :key #'r4-download-status)))
+    (message "r4: downloads done, %d downloaded%s" done
+             (if (> failed 0)
+                 (format ", %d failed (see r4-downloads)" failed)
+               ""))))
+
+;;;; Mode line
+
+(defvar r4-download--mode-line '(:eval (r4-download-mode-line-string))
+  "Mode line construct of the downloads.")
+(put 'r4-download--mode-line 'risky-local-variable t)
+
+(defvar-keymap r4-download-mode-line-map
+  :doc "Mouse keys of the downloads in the mode line."
+  "<mode-line> <mouse-1>" #'r4-downloads)
+
+(declare-function r4-downloads "r4-downloads")
+
+(defun r4-download-mode-line-string ()
+  "Return the mode line string of the downloads, while some run."
+  (when (> (hash-table-count r4-download--pending) 0)
+    (propertize (format " r4 ↓%d " (hash-table-count r4-download--pending))
+                'help-echo "r4 downloads to do\nmouse-1: list them"
+                'mouse-face 'mode-line-highlight
+                'local-map r4-download-mode-line-map)))
 
 (defun r4-download--sentinel (process _event)
   "Update the job of the download PROCESS when it ends."
@@ -231,13 +270,13 @@ CHANNEL-TRACKS are all the tracks of the channel, for its playlist."
         (r4-download--start job)
         (cl-incf running)))))
 
-(cl-defun r4-download-tracks (tracks &key kind channel channel-tracks retry)
+(cl-defun r4-download-tracks (tracks &key kind channel channel-tracks retry quiet)
   "Queue the download of TRACKS, skipping those already downloaded.
 KIND is `audio' or `video', by default according to
 `r4-download-video'.  CHANNEL, the `r4-channel' of the tracks, names
 the album, and CHANNEL-TRACKS, all its tracks in order, make its
 playlist.  Tracks whose download failed before are skipped, unless
-RETRY is non-nil."
+RETRY is non-nil.  QUIET says nothing, such as for automatic syncs."
   (unless (executable-find r4-download-program)
     (user-error "Cannot find `%s', please install it" r4-download-program))
   (let ((kind (or kind (if r4-download-video 'video 'audio)))
@@ -262,11 +301,14 @@ RETRY is non-nil."
                    (puthash (r4-track-id track) job r4-download--pending)
                    (push job queued))))))
     (setq r4-download--jobs (nconc r4-download--jobs (nreverse queued)))
-    (message "Queued %d track%s for download%s"
-             (length queued) (if (= (length queued) 1) "" "s")
-             (if (> skipped-failures 0)
-                 (format ", skipped %d that failed before (retry with C-u)" skipped-failures)
-               ""))
+    (unless quiet
+      (message "Queued %d track%s for download%s"
+               (length queued) (if (= (length queued) 1) "" "s")
+               (if (> skipped-failures 0)
+                   (format ", skipped %d that failed before (retry with C-u)" skipped-failures)
+                 "")))
+    (when queued
+      (add-to-list 'global-mode-string 'r4-download--mode-line t))
     (run-hook-with-args 'r4-download-changed-functions (mapcar #'r4-download-track queued))
     (r4-download--start-next)
     (funcall r4-download-refresh-function)))
