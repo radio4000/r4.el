@@ -291,6 +291,7 @@
     (cl-letf (((symbol-function 'r4-player-live-p) #'always)
               ((symbol-function 'r4-auth-require) #'ignore)
               ((symbol-function 'r4-auth-token) (lambda () "token-1"))
+              ((symbol-function 'r4-auth-session) (lambda () '(:access-token "token-1")))
               ((symbol-function 'r4-api-send)
                (lambda (method path &rest args) (push (list method path args) sent)))
               ((symbol-function 'r4-api-request)

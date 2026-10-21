@@ -74,10 +74,20 @@ one of a local channel, comes with its URL and title."
           (track_title . ,(r4-track-title track))
           (track_media_id . ,(or (r4-track-media-id track) :null))))))
 
+(defun r4-broadcasting--token ()
+  "Return the access token of your session, without asking to sign in, or nil."
+  (plist-get (ignore-errors (r4-auth-session)) :access-token))
+
 (defun r4-broadcasting--send-deck (deck)
   "Send DECK to the listeners, and save it in the broadcast table."
+  (if-let* ((token (r4-broadcasting--token)))
+      (r4-broadcasting--send-deck-with deck token)
+    (message "r4: your session ended, sign in with r4-login to broadcast again")
+    (r4-broadcast-stop)))
+
+(defun r4-broadcasting--send-deck-with (deck token)
+  "Send DECK to the listeners, and save it in the broadcast table, with TOKEN."
   (let* ((channel-id (r4-channel-id r4-broadcasting))
-         (token (r4-auth-token))
          (track-id (alist-get 'track_id deck))
          (r4-api-error-function (lambda (error) (message "r4: broadcast: %s" error))))
     (r4-api-send "POST" "/realtime/v1/api/broadcast"
@@ -174,7 +184,7 @@ Another track, a pause, or a seek of more than `r4-broadcast-tolerance'."
     ;; Waiting for it, also when Emacs quits, for listeners to see it ended.
     (condition-case err
         (r4-api-request "DELETE" "/rest/v1/broadcast"
-                        :token (r4-auth-token)
+                        :token (or (r4-broadcasting--token) (error "Not signed in"))
                         :params `(("channel_id" ,(concat "eq." (r4-channel-id channel)))))
       (error (message "r4: broadcast: %s" (error-message-string err))))
     (force-mode-line-update t)
