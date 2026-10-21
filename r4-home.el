@@ -214,7 +214,12 @@ Their key in the home buffer shows before them, like in magit."
   :parent (make-composed-keymap r4-player-map special-mode-map)
   "TAB" #'forward-button
   "<backtab>" #'backward-button
-  "?" #'r4-menu)
+  "?" #'r4-menu
+  ;; The player's own views: share the playing track.
+  "w" #'r4-player-copy-url
+  "W" #'r4-player-copy-web-url
+  "o" #'r4-player-browse-current
+  "O" #'r4-player-browse-media)
 
 (define-derived-mode r4-home-mode special-mode "r4"
   "Major mode of the Radio4000 home buffer.

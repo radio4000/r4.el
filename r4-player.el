@@ -467,6 +467,11 @@ downloaded audio file."
   (interactive)
   (browse-url (r4-track-web-url (r4-player--current-or-error))))
 
+(defun r4-player-browse-media ()
+  "Open the media of the current track, such as its YouTube page."
+  (interactive)
+  (browse-url (r4-track-url (r4-player--current-or-error))))
+
 (defun r4-player--copy (url)
   "Copy URL to the kill ring and say so."
   (kill-new url)

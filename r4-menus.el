@@ -214,7 +214,8 @@
       ("^" r4-player-toggle-video-pop-out :description r4-menus--pop-out :transient t)
       ("Q" "Queue" r4-queue)
       ("v" "Player window" r4-player-window)
-      ("b" r4-broadcast-toggle :description r4-menus--broadcast)]]
+      ("b" r4-broadcast-toggle :description r4-menus--broadcast)
+      (";" "Share the playing track…" r4-player-share-menu :if r4-menus--playing-p)]]
     "The player group of the r4 menus.")
 
   (defconst r4-menus--go-to-group
@@ -267,12 +268,17 @@ groups instead."
    ["Local"
     ("l" "Local channels…" r4-local-menu)]
    ["Account"
-    ("a" "Account…" r4-account-menu)]]
-  ["Share the playing track"
-   :if r4-menus--playing-p
-   ("w" "Copy media URL" r4-player-copy-url)
-   ("W" "Copy radio4000.com URL" r4-player-copy-web-url :if r4-menus--playing-remote-p)
-   ("e" "Open on radio4000.com" r4-player-browse-current :if r4-menus--playing-remote-p)])
+    ("a" "Account…" r4-account-menu)]])
+
+;;;###autoload (autoload 'r4-player-share-menu "r4-menus" nil t)
+(transient-define-prefix r4-player-share-menu ()
+  "Menu sharing the playing track."
+  [:description r4-menus--player
+   ["Share the playing track"
+    ("w" "Copy media URL" r4-player-copy-url)
+    ("W" "Copy radio4000.com URL" r4-player-copy-web-url :if r4-menus--playing-remote-p)
+    ("o" "Open on radio4000.com" r4-player-browse-current :if r4-menus--playing-remote-p)
+    ("O" "Open the media" r4-player-browse-media)]])
 
 ;;;###autoload (autoload 'r4-local-menu "r4-menus" nil t)
 (r4-menus--define r4-local-menu

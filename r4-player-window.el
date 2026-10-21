@@ -252,7 +252,12 @@ wide as its aspect ratio allows."
 (defvar-keymap r4-player-window-mode-map
   :doc "Keymap for `r4-player-window-mode'."
   :parent (make-composed-keymap r4-player-map special-mode-map)
-  "v" #'r4-player-window)
+  "v" #'r4-player-window
+  ;; The player's own views: share the playing track.
+  "w" #'r4-player-copy-url
+  "W" #'r4-player-copy-web-url
+  "o" #'r4-player-browse-current
+  "O" #'r4-player-browse-media)
 
 (define-derived-mode r4-player-window-mode special-mode "r4 player"
   "Major mode of the Radio4000 player window.

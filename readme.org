@@ -129,6 +129,7 @@ The player keys work in every r4 buffer too:
 | =^=           | Pop out the video, and back    |
 | =Q=           | Queue, where =/= =#= filter what plays |
 | =v=           | Player window                  |
+| =;=           | Share the playing track        |
 | =k=           | Stop                           |
 
 In lists of tracks:

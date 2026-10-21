@@ -370,6 +370,16 @@
                       (,r4-player-window-mode-map . r4-player-menu)
                       (,r4-home-mode-map . r4-menu)))
     (should (eq (keymap-lookup (car map-menu) "?") (cdr map-menu))))
+  ;; Sharing the playing track is part of the player, in every menu.
+  (let (commands)
+    (cl-labels ((collect (x)
+                  (cond ((and (consp x) (eq (car x) :command)) (push (cadr x) commands))
+                        ((consp x) (collect (car x)) (collect (cdr x)))
+                        ((vectorp x) (mapc #'collect x)))))
+      (collect (get 'r4-tracks-menu 'transient--layout)))
+    (should (memq 'r4-player-share-menu commands)))
+  (should (eq (keymap-lookup r4-home-mode-map "w") 'r4-player-copy-url))
+  (should (eq (keymap-lookup r4-player-window-mode-map "o") 'r4-player-browse-current))
   (let ((buffer (generate-new-buffer "r4-test")))
     (unwind-protect
         (progn
