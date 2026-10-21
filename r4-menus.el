@@ -50,8 +50,9 @@
   "Return the heading of the player group: the playing track."
   (concat (propertize "Player" 'face 'transient-heading) "  "
           (if-let* ((track (and (r4-player-live-p) (r4-player-current))))
-              (format "%s %s  %s" (if r4-player-paused "⏸" "▶")
+              (format "%s %s  %s  %s" (if r4-player-paused "⏸" "▶")
                       (r4-one-line (r4-track-title track))
+                      (r4-player-time-string)
                       (propertize (or r4-player-label (concat "@" (r4-track-slug track)))
                                   'face 'shadow))
             (propertize "nothing playing" 'face 'shadow))))
@@ -114,7 +115,8 @@
       ("-" "Volume down" r4-player-volume-down :transient t)]
      [("Z" r4-player-toggle-shuffle :description r4-menus--shuffle :transient t)
       ("V" r4-player-toggle-video :description r4-menus--video :transient t)
-      ("Q" "Queue" r4-queue)]]
+      ("Q" "Queue" r4-queue)
+      ("v" "Player window" r4-player-window)]]
     "The player group of the r4 menus."))
 
 (defmacro r4-menus--define (name doc &rest groups)

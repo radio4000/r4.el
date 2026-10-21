@@ -112,6 +112,7 @@ quits.  The player keys work in every list:
 | =Z=           | Toggle shuffle                 |
 | =V=           | Toggle video                   |
 | =Q=           | Queue                          |
+| =v=           | Player window                  |
 | =k=           | Stop                           |
 
 In lists of tracks:
@@ -148,7 +149,9 @@ In lists of channels:
 Bookmark any list with =C-x r m=, such as a search or a filtered
 channel, to open it again with =C-x r b=: the saved views of
 radio4000.com.  Click the player in the mode line to pause it,
-middle-click for the next track, right-click for the queue.  With
+middle-click for the next track, right-click for the queue.  =v= shows
+the player in a window at the top of the frame, with the elapsed time
+and a progress bar to click to seek.  With
 [[https://github.com/oantolin/embark][Embark]], act on the channels of any completion.
 
 The status column of track lists, the history and the feed shows the

@@ -348,6 +348,11 @@ downloaded audio file."
   (unless (r4-player-live-p) (user-error "Nothing is playing"))
   (r4-player--send "seek" seconds "relative"))
 
+(defun r4-player-seek-percent (percent)
+  "Seek to PERCENT of the playing track."
+  (unless (r4-player-live-p) (user-error "Nothing is playing"))
+  (r4-player--send "seek" percent "absolute-percent"))
+
 (defun r4-player-seek-forward ()
   "Seek 10 seconds forward."
   (interactive)

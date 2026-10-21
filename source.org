@@ -44,6 +44,10 @@ Controlling mpv over its JSON IPC socket.
 Playing tracks with mpv, from disk when downloaded.
 #+INCLUDE: "r4-player.el" src emacs-lisp
 
+** r4-player-window.el
+The player in a window, with the elapsed time and a progress bar.
+#+INCLUDE: "r4-player-window.el" src emacs-lisp
+
 ** r4-queue.el
 The play queue.
 #+INCLUDE: "r4-queue.el" src emacs-lisp

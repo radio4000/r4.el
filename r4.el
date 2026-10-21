@@ -41,6 +41,7 @@
 (require 'r4-downloads)
 (require 'r4-player)
 (require 'r4-queue)
+(require 'r4-player-window)
 (require 'r4-history)
 (require 'r4-tracks)
 (require 'r4-channels)

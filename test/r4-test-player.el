@@ -123,6 +123,39 @@
         (setq r4-player--duration 3725.0)
         (should (equal (r4-player-time-string) "1:23/1:02:05"))))))
 
+;; The player window shows the track, its time and a progress bar.
+(ert-deftest r4-test-player-window ()
+  (let ((r4-player-queue (vector (r4-test--track :title "Song" :slug "ko002")))
+        (r4-player-index 0) (r4-player-paused nil) (r4-player-label nil)
+        (r4-player-shuffle t) (r4-player-video nil)
+        (r4-player-time-pos 30.0) (r4-player--duration 120.0)
+        seeked)
+    (cl-letf (((symbol-function 'r4-player-live-p) #'always)
+              ((symbol-function 'r4-player-seek-percent)
+               (lambda (percent) (setq seeked percent))))
+      (unwind-protect
+          (progn
+            (r4-player-window)
+            (let ((window (get-buffer-window r4-player-window-buffer)))
+              (should (eq (window-parameter window 'window-side) 'top))
+              (with-current-buffer r4-player-window-buffer
+                (should (equal (count-lines (point-min) (point-max)) 2))
+                (should (string-match-p "\\`▶ Song\n@ko002 0:30/2:00 ━+─+ shuffle\\'"
+                                        (buffer-string)))
+                ;; A quarter of the bar is played, clicking it seeks.
+                (search-forward "━")
+                (should (eq (get-text-property (point) 'keymap) r4-player-window-bar-map))
+                (r4-player-window-seek-at-mouse `(mouse-1 (,window ,(point) (0 . 0) 0)))
+                (should (< 0 seeked 5))
+                ;; It follows the player.
+                (setq r4-player-paused t r4-player-time-pos 60.0)
+                (r4-player--changed)
+                (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 " (buffer-string)))))
+            ;; v hides it.
+            (r4-player-window)
+            (should-not (get-buffer-window r4-player-window-buffer)))
+        (kill-buffer r4-player-window-buffer)))))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4 r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))
