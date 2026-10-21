@@ -60,9 +60,9 @@ The player: ▶ playing, · played before."
 (defvar r4-tracks-column-specs
   `((status . ,(r4-column-create :name " " :width 2 :key #'r4-tracks--status
                                  :format #'identity))
-    (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-track-created-at
+    (created_at . ,(r4-column-create :name "created at" :width 10 :key #'r4-track-created-at
                                      :format #'r4-format-date :descending t))
-    (updated_at . ,(r4-column-create :name "updated_at" :width 10 :key #'r4-track-updated-at
+    (updated_at . ,(r4-column-create :name "updated at" :width 10 :key #'r4-track-updated-at
                                      :format #'r4-format-date :descending t))
     (slug . ,(r4-column-create :name "slug" :width 16 :key #'r4-track-slug
                                :format (lambda (slug) (concat "@" slug))))
@@ -75,9 +75,9 @@ The player: ▶ playing, · played before."
     (description . ,(r4-column-create :name "description" :width 40
                                       :key #'r4-track-description))
     (provider . ,(r4-column-create :name "provider" :width 10 :key #'r4-track-provider))
-    (media_id . ,(r4-column-create :name "media_id" :width 12 :key #'r4-track-media-id))
+    (media_id . ,(r4-column-create :name "media id" :width 12 :key #'r4-track-media-id))
     (url . ,(r4-column-create :name "url" :width 45 :key #'r4-track-url))
-    (discogs_url . ,(r4-column-create :name "discogs_url" :width 30
+    (discogs_url . ,(r4-column-create :name "discogs url" :width 30
                                       :key #'r4-track-discogs-url)))
   "Columns available in track lists, see `r4-tracks-columns'.
 They are named after the fields of the tracks of radio4000.com, and
@@ -85,7 +85,7 @@ status shows the file and the player state of a track, see
 `r4-tracks--status'.")
 
 (defcustom r4-tracks-columns
-  '(status created_at updated_at slug title duration tags description)
+  '(status title duration tags slug created_at updated_at description)
   "Columns of the track lists, among `r4-tracks-column-specs'."
   :type (r4-columns-custom-type r4-tracks-column-specs)
   :group 'r4)

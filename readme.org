@@ -235,14 +235,15 @@ broadcasting live; =RET= follows one, until you play something else.
 #+end_src
 
 Choose the columns of the lists, named after the fields of the
-channels and tracks of radio4000.com, and sort them with =S= or by
-clicking a column header:
+channels and tracks of radio4000.com, and sort them with =S= on a
+column or by clicking its header; dates and counts sort newest and
+largest first, =S= again reverses:
 
 #+begin_src emacs-lisp
 (setq r4-channels-columns
       '(slug name track_count latest_track_at created_at updated_at description)
       r4-tracks-columns
-      '(status created_at updated_at slug title duration tags description))
+      '(status title duration tags slug created_at updated_at description))
 #+end_src
 
 The other columns are =url= and =image= for channels, and =provider=,

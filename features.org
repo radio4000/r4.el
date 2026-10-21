@@ -10,7 +10,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
   for the tracks of a list, =r4-channels-…= for channel lists,
   =r4-player-…= for the player.
 - Names come from radio4000.com: the columns are the fields of its
-  channels and tracks, such as =created_at= and =track_count=, and the
+  channels and tracks, such as "created at" and "track count", and the
   menus use the words of its interface.
 - Lists are plain =tabulated-list-mode= buffers: =n= =p= move, =S=
   sorts by the column at point, =g= refreshes, =m= =u= mark, =q= quits.

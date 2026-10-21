@@ -61,15 +61,15 @@ It is called with a callback, to call with the list of channels.")
   `((slug . ,(r4-column-create :name "slug" :width 24 :key #'r4-channel-slug
                                :format (lambda (slug) (concat "@" slug))))
     (name . ,(r4-column-create :name "name" :width 30 :key #'r4-channel-name))
-    (track_count . ,(r4-column-create :name "track_count" :width 11
+    (track_count . ,(r4-column-create :name "track count" :width 11
                                       :key #'r4-channel-track-count :right-align t
                                       :descending t))
-    (latest_track_at . ,(r4-column-create :name "latest_track_at" :width 15
+    (latest_track_at . ,(r4-column-create :name "latest track at" :width 15
                                           :key #'r4-channel-latest-track-at
                                           :format #'r4-format-date :descending t))
-    (created_at . ,(r4-column-create :name "created_at" :width 10 :key #'r4-channel-created-at
+    (created_at . ,(r4-column-create :name "created at" :width 10 :key #'r4-channel-created-at
                                      :format #'r4-format-date :descending t))
-    (updated_at . ,(r4-column-create :name "updated_at" :width 10 :key #'r4-channel-updated-at
+    (updated_at . ,(r4-column-create :name "updated at" :width 10 :key #'r4-channel-updated-at
                                      :format #'r4-format-date :descending t))
     (description . ,(r4-column-create :name "description" :width 40
                                       :key #'r4-channel-description))
