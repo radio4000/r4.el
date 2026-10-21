@@ -98,7 +98,14 @@ Fonts often draw its characters wider than a column."
                                  'keymap r4-player-window-bar-map))
                    (number-sequence 0 (1- width))))))
 
-(defconst r4-player-window-controls
+(defcustom r4-player-window-show-controls nil
+  "When non-nil, show the controls of the player and their keys in its window.
+Else the window is compact, and ? shows the keys.  The home buffer
+always shows them."
+  :type 'boolean
+  :group 'r4)
+
+(defconst r4-player-controls
   '(("<" "previous" r4-player-previous)
     ("SPC" "pause" r4-player-toggle-pause r4-player-paused "play")
     (">" "next" r4-player-next)
@@ -117,14 +124,23 @@ A toggle that is on is highlighted, with its last label if any, such as
 `r4-player-map'.")
 
 (defun r4-player-window--insert-controls (controls)
-  "Insert CONTROLS, a list like `r4-player-window-controls'."
+  "Insert CONTROLS, a list like `r4-player-controls'."
   (pcase-dolist (`(,key ,label ,command ,variable ,on-label) controls)
     (let ((on (and variable (boundp variable) (symbol-value variable))))
       (r4-faces-insert-key key (or (and on on-label) label) command on)
       (insert "  "))))
 
-(defun r4-player-window--insert (width)
-  "Insert the player, WIDTH characters wide."
+(defun r4-player-window--states ()
+  "Return the options of the player that are on, such as shuffle."
+  (mapconcat #'identity
+             (delq nil (list (and r4-player-shuffle (propertize "shuffle" 'face 'success))
+                             (and r4-player-video (propertize "video" 'face 'success))
+                             (and (bound-and-true-p r4-broadcasting)
+                                  (propertize "live" 'face 'error))))
+             " "))
+
+(defun r4-player-window--insert (width &optional controls)
+  "Insert the player, WIDTH characters wide, with its CONTROLS if non-nil."
   (if-let* ((track (and (r4-player-live-p) (r4-player-current))))
       (let* ((button (propertize (if r4-player-paused "⏸" "▶")
                                  'mouse-face 'highlight
@@ -133,7 +149,9 @@ A toggle that is on is highlighted, with its last label if any, such as
              (info (concat "@" (r4-track-slug track)
                            (if r4-player-label (format " [%s]" r4-player-label) "")))
              (time (r4-player-time-string))
-             (bar-width (- width (string-width info) (string-width time) 3)))
+             (states (if controls "" (r4-player-window--states)))
+             (bar-width (- width (string-width info) (string-width time)
+                           (string-width states) 4)))
         (insert button " "
                 (propertize (truncate-string-to-width (r4-one-line (r4-track-title track))
                                                       (- width 2) nil nil "…")
@@ -141,14 +159,19 @@ A toggle that is on is highlighted, with its last label if any, such as
                 "\n" info " " time " ")
         (when (> bar-width 4)
           (insert (r4-player-window--bar bar-width)))
-        (insert "\n")
-        (r4-player-window--insert-controls r4-player-window-controls))
-    (insert "Nothing is playing: RET in a list of tracks plays them\n")
-    (r4-player-window--insert-controls
-     (seq-filter (lambda (control) (memq (nth 2 control) '(r4-player-toggle-shuffle
-                                                           r4-player-toggle-video
-                                                           r4-queue)))
-                 r4-player-window-controls))))
+        (unless (string-empty-p states)
+          (insert " " states))
+        (when controls
+          (insert "\n")
+          (r4-player-window--insert-controls r4-player-controls)))
+    (insert "Nothing is playing: RET in a list of tracks plays them")
+    (when controls
+      (insert "\n")
+      (r4-player-window--insert-controls
+       (seq-filter (lambda (control) (memq (nth 2 control) '(r4-player-toggle-shuffle
+                                                             r4-player-toggle-video
+                                                             r4-queue)))
+                   r4-player-controls)))))
 
 (defun r4-player-window--video-p ()
   "Return non-nil if the player window shows a video."
@@ -220,7 +243,7 @@ wide as its aspect ratio allows."
   "Replace the content of the current buffer by the player, WIDTH wide."
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (r4-player-window--insert width)
+    (r4-player-window--insert width r4-player-window-show-controls)
     (goto-char (point-min))))
 
 (add-hook 'r4-player-changed-hook #'r4-player-window--refresh)
@@ -235,7 +258,12 @@ wide as its aspect ratio allows."
   "Major mode of the Radio4000 player window.
 
 \\{r4-player-window-mode-map}"
-  (setq mode-line-format nil
+  ;; A slim mode line, separating it from the windows under it.
+  (setq mode-line-format
+        `(" " (:propertize "r4 player" face bold)
+          "  " (:propertize ,(substitute-command-keys
+                              "\\<r4-player-window-mode-map>\\[r4-player-menu] keys  \\[r4-player-window] hide")
+                            face shadow))
         cursor-type nil
         truncate-lines t)
   (add-hook 'window-size-change-functions

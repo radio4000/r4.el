@@ -187,13 +187,12 @@
             (let ((window (get-buffer-window r4-player-window-buffer)))
               (should (eq (window-parameter window 'window-side) 'top))
               (with-current-buffer r4-player-window-buffer
-                (should (equal (count-lines (point-min) (point-max)) 3))
-                (should (string-match-p "\\`▶ Song\n@ko002 0:30/2:00 ━+─+\n< previous  SPC pause"
+                ;; Compact: the track, then its time and the options that are on.
+                (should (equal (count-lines (point-min) (point-max)) 2))
+                (should (string-match-p "\\`▶ Song\n@ko002 0:30/2:00 ━+─+ shuffle\\'"
                                         (buffer-string)))
-                ;; The controls are buttons, shuffle shows it is on.
-                (save-excursion
-                  (search-forward "shuffle")
-                  (should (eq (button-get (button-at (1- (point))) 'face) 'success)))
+                ;; A slim mode line separates it, and tells the keys.
+                (should (string-match-p "r4 player.*keys" (format "%S" mode-line-format)))
                 ;; A quarter of the bar is played, clicking it seeks.
                 (search-forward "━")
                 (should (eq (get-text-property (point) 'keymap) r4-player-window-bar-map))
@@ -202,13 +201,21 @@
                 ;; It follows the player.
                 (setq r4-player-paused t r4-player-time-pos 60.0)
                 (r4-player--changed)
-                (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 .*\n< previous  SPC play"
-                                        (buffer-string)))
-                ;; While broadcasting, b stops it.
+                (should (string-match-p "\\`⏸ Song\n@ko002 1:00/2:00 " (buffer-string)))
+                ;; While broadcasting, it says live.
                 (let ((r4-broadcasting (r4-channel-create :slug "ko002"))
                       (r4-player-changed-hook '(r4-player-window--refresh)))
                   (r4-player--changed)
-                  (should (string-search "b stop live" (buffer-string))))))
+                  (should (string-search "shuffle live" (buffer-string)))
+                  ;; The controls and their keys, when asked for.
+                  (let ((r4-player-window-show-controls t))
+                    (r4-player--changed)
+                    (should (string-match-p "\n< previous  SPC play" (buffer-string)))
+                    (should (string-search "b stop live" (buffer-string)))
+                    (save-excursion
+                      (goto-char (point-min))
+                      (search-forward "Z shuffle")
+                      (should (eq (button-get (button-at (1- (point))) 'face) 'success)))))))
             ;; v hides it.
             (r4-player-window)
             (should-not (get-buffer-window r4-player-window-buffer)))
@@ -236,7 +243,7 @@
                        (`(,area-window ,_ ,top ,_ ,bottom) (r4-player-window--video-area)))
             (should (eq area-window window))
             (should (= top (+ (nth 1 (window-inside-pixel-edges window))
-                              (* 3 (frame-char-height)))))
+                              (* 2 (frame-char-height)))))
             (should (<= top bottom)))
         (kill-buffer r4-player-window-buffer)))))
 

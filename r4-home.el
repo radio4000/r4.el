@@ -86,7 +86,8 @@ Their key in the home buffer shows before them, like in magit."
    (- (if-let* ((window (get-buffer-window (current-buffer) t)))
           (window-max-chars-per-line window)
         (frame-width))
-      2))
+      2)
+   t)
   (insert "\n"))
 
 (defun r4-home--insert-my-channels ()
