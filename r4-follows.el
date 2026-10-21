@@ -106,7 +106,7 @@ per Emacs session."
     (if following
         (puthash (r4-channel-id channel) t r4-follows--following)
       (remhash (r4-channel-id channel) r4-follows--following))
-    (r4-channels-status-changed)))
+    (r4-channels-status-changed (list (r4-channel-slug channel)))))
 
 ;;;; Remote
 

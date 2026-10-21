@@ -25,10 +25,10 @@
   "Timer refreshing the downloads list buffer.")
 
 (defun r4-downloads--refresh ()
-  "Refresh the downloads list buffer soon, if it exists."
-  (when (and (get-buffer r4-downloads-buffer) (not r4-downloads--refresh-timer))
+  "Refresh the downloads list buffer soon, if it is shown."
+  (when (and (get-buffer-window r4-downloads-buffer t) (not r4-downloads--refresh-timer))
     (setq r4-downloads--refresh-timer
-          (run-with-timer 0.5 nil #'r4-downloads--refresh-now))))
+          (run-with-timer 1 nil #'r4-downloads--refresh-now))))
 
 (setq r4-download-refresh-function #'r4-downloads--refresh)
 

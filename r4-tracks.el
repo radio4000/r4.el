@@ -182,7 +182,9 @@ status shows the file and the player state of a track, see
 
 (defun r4-tracks--update-status (ids)
   "Update the status of the tracks with IDS, see `r4-tracks-update-status'."
-  (dolist (buffer (buffer-list))
+  (let ((changed (make-hash-table :test #'equal)))
+    (dolist (id ids) (puthash id t changed))
+    (dolist (buffer (buffer-list))
       (with-current-buffer buffer
         (when-let* (((derived-mode-p 'r4-tracks-mode))
                     (column (cl-position 'status r4-tracks--columns)))
@@ -190,9 +192,9 @@ status shows the file and the player state of a track, see
             (goto-char (point-min))
             (while (not (eobp))
               (let ((track (tabulated-list-get-id)))
-                (when (and track (member (r4-track-id track) ids))
+                (when (and track (gethash (r4-track-id track) changed))
                   (tabulated-list-set-col column (r4-tracks--status track) t)))
-              (forward-line 1)))))))
+              (forward-line 1))))))))
 
 (defun r4-tracks--track-changed ()
   "Show the new playing track in the track lists."

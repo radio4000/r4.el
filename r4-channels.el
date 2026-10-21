@@ -141,24 +141,59 @@ They are named after the fields of the channels of radio4000.com.")
             channels)))
 
 (defvar r4-channels--status-timer nil
-  "Timer redisplaying the channel lists, after their status changed.")
+  "Timer updating the status column of the channel lists.")
 
-(defun r4-channels-status-changed (&rest _)
-  "Redisplay the channel lists soon, for their status column."
+(defvar r4-channels--status-slugs nil
+  "Slugs of the channels whose status changed, or t for all of them.")
+
+(defun r4-channels-status-changed (&optional slugs)
+  "Update soon the status column of the channel lists, for SLUGS or all.
+Only the rows of SLUGS are updated, so it stays fast in long lists."
+  (setq r4-channels--status-slugs
+        (if (or (null slugs) (eq r4-channels--status-slugs t))
+            t
+          (append slugs r4-channels--status-slugs)))
   (unless (timerp r4-channels--status-timer)
     (setq r4-channels--status-timer
-          (run-with-idle-timer
-           0.5 nil
-           (lambda ()
-             (setq r4-channels--status-timer nil)
-             (dolist (buffer (buffer-list))
-               (with-current-buffer buffer
-                 (when (and (derived-mode-p 'r4-channels-mode)
-                            (memq 'status r4-channels--columns))
-                   (r4-channels-redisplay)))))))))
+          (run-with-idle-timer 0.5 nil #'r4-channels--update-status))))
 
-(add-hook 'r4-player-track-changed-hook #'r4-channels-status-changed)
-(add-hook 'r4-download-changed-functions #'r4-channels-status-changed)
+(defun r4-channels--update-status ()
+  "Update the status column of the channel lists, see `r4-channels-status-changed'."
+  (let ((slugs r4-channels--status-slugs)
+        (r4-channels--downloading (r4-channels--downloading-slugs)))
+    (setq r4-channels--status-timer nil
+          r4-channels--status-slugs nil)
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when-let* (((derived-mode-p 'r4-channels-mode))
+                    (column (cl-position 'status r4-channels--columns)))
+          (if (eq slugs t)
+              (r4-channels-redisplay)
+            (save-excursion
+              (goto-char (point-min))
+              (while (not (eobp))
+                (let ((channel (tabulated-list-get-id)))
+                  (when (and channel (member (r4-channel-slug channel) slugs))
+                    (tabulated-list-set-col column (r4-channels--status channel) t)))
+                (forward-line 1)))))))))
+
+(defvar r4-channels--playing-slug nil
+  "Slug of the channel shown as playing in the channel lists.")
+
+(defun r4-channels--track-changed ()
+  "Show the channel playing in the channel lists."
+  (let ((previous r4-channels--playing-slug)
+        (current (and (r4-player-live-p) (r4-player-current))))
+    (setq r4-channels--playing-slug (and current (r4-track-slug current)))
+    (unless (equal previous r4-channels--playing-slug)
+      (r4-channels-status-changed (delq nil (list previous r4-channels--playing-slug))))))
+
+(defun r4-channels--downloads-changed (tracks)
+  "Show the downloads of the channels of TRACKS in the channel lists."
+  (r4-channels-status-changed (delete-dups (mapcar #'r4-track-slug tracks))))
+
+(add-hook 'r4-player-track-changed-hook #'r4-channels--track-changed)
+(add-hook 'r4-download-changed-functions #'r4-channels--downloads-changed)
 
 (defun r4-channels-revert (&rest _)
   "Fetch the channels of the buffer again."
