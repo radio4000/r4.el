@@ -339,6 +339,19 @@
             (should-not r4-player-mode-line-extra))
         (r4-broadcast-stop)))))
 
+;; The menu of all the commands has the main views in its groups.
+(ert-deftest r4-test-main-menu ()
+  (let (commands)
+    (cl-labels ((collect (x)
+                  (cond ((and (consp x) (eq (car x) :command)) (push (cadr x) commands))
+                        ((consp x) (collect (car x)) (collect (cdr x)))
+                        ((vectorp x) (mapc #'collect x)))))
+      (collect (get 'r4-menu 'transient--layout)))
+    (dolist (command '(r4 r4-channels r4-channel-page r4-explore r4-broadcasts r4-history))
+      (should (memq command commands)))
+    ;; Once each.
+    (should (equal (cl-count 'r4-channel-page commands) 1))))
+
 ;; Like magit, each buffer has its menu, saying what it acts on.
 (ert-deftest r4-test-menus-context ()
   (dolist (map-menu `((,r4-tracks-mode-map . r4-tracks-menu)
