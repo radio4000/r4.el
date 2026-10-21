@@ -124,7 +124,7 @@ In lists of tracks:
 | =a= =N=       | Add to the queue, play next                              |
 | =d= =D=       | Download the marked tracks (or at point), all            |
 | =s=           | Search: =#tag words=, in this channel                     |
-| =/= =#=       | Filter the shown tracks, by text or tags                 |
+| =/= =#=       | Filter the shown tracks, by text or toggling tags        |
 | =i= =@=       | Describe the track, open its channel                     |
 | =A= =e= =x=   | Add, edit, delete tracks (your channel or a local one)   |
 | =c= =C= =Y=   | Copy to a local channel, save locally, sync              |
@@ -153,6 +153,10 @@ middle-click for the next track, right-click for the queue.  =v= shows
 the player in a window at the top of the frame, with the elapsed time
 and a progress bar to click to seek.  With
 [[https://github.com/oantolin/embark][Embark]], act on the channels of any completion.
+
+Click a tag of a track to filter the list by it, like on
+radio4000.com, and click it in the mode line to remove it; =#= toggles
+tags too, with their counts.
 
 The status column of track lists, the history and the feed shows the
 file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the

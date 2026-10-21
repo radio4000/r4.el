@@ -21,6 +21,7 @@
 (require 'r4-download)
 (require 'r4-downloads)
 (require 'r4-columns)
+(require 'r4-filter)
 
 (defvar-local r4-tracks--source nil
   "Plist describing the tracks of the buffer.
@@ -68,7 +69,8 @@ The player: ▶ playing, · played before."
     (duration . ,(r4-column-create :name "duration" :width 8 :key #'r4-track-duration
                                    :format #'r4-format-duration :right-align t))
     (tags . ,(r4-column-create :name "tags" :width 16
-                               :key (lambda (track) (string-join (r4-track-tags track) " "))))
+                               :key (lambda (track) (string-join (r4-track-tags track) " "))
+                               :format #'r4-filter-tags-string))
     (description . ,(r4-column-create :name "description" :width 40
                                       :key #'r4-track-description))
     (provider . ,(r4-column-create :name "provider" :width 10 :key #'r4-track-provider))
@@ -93,6 +95,9 @@ status shows the file and the player state of a track, see
 (defvar-local r4-tracks--filter nil
   "Predicate of the tracks shown, or nil to show all, see `r4-tracks-set-filter'.")
 
+(defvar-local r4-tracks--filter-text nil
+  "Text of the filter of the tracks shown, see `r4-tracks-set-filter'.")
+
 (defun r4-tracks--visible ()
   "Return the tracks of the buffer that pass its filter."
   (if r4-tracks--filter
@@ -111,12 +116,13 @@ status shows the file and the player state of a track, see
   (setq tabulated-list-entries (r4-tracks--entries))
   (tabulated-list-print t)
   (setq mode-line-process
-        (when r4-tracks--filter
-          (format " %d/%d" (length tabulated-list-entries) (length r4-tracks--tracks)))))
+        (r4-filter-mode-line r4-tracks--filter-text
+                             (length tabulated-list-entries) (length r4-tracks--tracks))))
 
-(defun r4-tracks-set-filter (predicate)
-  "Only show the tracks passing PREDICATE, or all tracks if nil."
-  (setq r4-tracks--filter predicate)
+(defun r4-tracks-set-filter (text)
+  "Only show the tracks matching the search TEXT, or all if nil or blank."
+  (setq r4-tracks--filter-text (and text (not (string-blank-p text)) (string-trim text))
+        r4-tracks--filter (r4-filter-matcher r4-tracks--filter-text))
   (r4-tracks-redisplay))
 
 (defun r4-tracks--describe-source (source)

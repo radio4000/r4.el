@@ -81,7 +81,7 @@
           (with-current-buffer (r4-tracks-buffer '(:slug "mine" :local t))
             ;; s filters the local channel, and C cannot replace it.
             (r4-tracks-search "song")
-            (should (equal r4-search--filter-text "song"))
+            (should (equal r4-tracks--filter-text "song"))
             (should-error (r4-tracks-save-local) :type 'user-error)
             (kill-buffer)))
       (delete-directory r4-download-directory t))))

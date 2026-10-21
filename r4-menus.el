@@ -90,8 +90,8 @@
 
 (defun r4-menus--filter ()
   "Return the description of the filter of the track list."
-  (if r4-search--filter-text
-      (format "Filter: %s" (propertize r4-search--filter-text 'face 'transient-value))
+  (if r4-tracks--filter-text
+      (format "Filter: %s" (propertize r4-tracks--filter-text 'face 'transient-value))
     "Filter shown tracks"))
 
 (defun r4-menus--account ()

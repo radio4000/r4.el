@@ -29,7 +29,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Search in a channel                      | /@slug/tracks?q=                       | =r4-tracks-search=        | =s=        |
 | Tracks with tags, of a channel or all    | /@slug/tags, /tags, =--tag=            | =r4-search= with =#tag=   |            |
 | Filter the shown tracks or channels      | queue and tracks filters               | =r4-tracks-filter=, =r4-channels-filter= | =/= |
-| Filter by tags, with their counts        | /@slug/tags, =r4 tags list=            | =r4-tracks-filter-tag=    | =#=        |
+| Toggle tags, with their counts, click tags | /@slug/tracks?tags=, =r4 tags list= | =r4-tracks-filter-tag=    | =#=        |
 | Tracks mentioning a channel              | /@slug/mentions                        | =r4-mentions=             | =M=, menu =@= |
 | Open a channel                           | /@slug, =r4 track list --channel=      | =r4-open-channel=         | =RET=      |
 | Channel details, image, RSS, map         | /@slug, =r4 channel view=              | =r4-describe-channel=     | =i=        |

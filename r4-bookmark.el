@@ -27,7 +27,7 @@
   `(,(r4-bookmark--name)
     (handler . r4-bookmark-jump-tracks)
     (r4-source . ,r4-tracks--source)
-    (r4-filter . ,r4-search--filter-text)
+    (r4-filter . ,r4-tracks--filter-text)
     (position . ,(point))))
 
 (defun r4-bookmark-jump-tracks (bookmark)
@@ -35,8 +35,7 @@
   (let ((filter (bookmark-prop-get bookmark 'r4-filter)))
     (set-buffer (r4-tracks-buffer (bookmark-prop-get bookmark 'r4-source)))
     (when filter
-      (setq r4-search--filter-text filter)
-      (r4-tracks-set-filter (r4-search-matcher filter)))))
+      (r4-tracks-set-filter filter))))
 
 (defun r4-bookmark-make-channels-record ()
   "Return a bookmark record of the current list of channels."

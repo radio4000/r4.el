@@ -89,6 +89,10 @@ Describing a channel, with its image, and a track.
 Exploring channels: featured, with artwork, with many tracks.
 #+INCLUDE: "r4-explore.el" src emacs-lisp
 
+** r4-filter.el
+Filters of tracks, by text and tags that toggle.
+#+INCLUDE: "r4-filter.el" src emacs-lisp
+
 ** r4-search.el
 The search language: =@channel #tag words=, and filters of the lists.
 #+INCLUDE: "r4-search.el" src emacs-lisp

@@ -20,22 +20,10 @@
 (require 'r4-api)
 (require 'r4-tracks)
 (require 'r4-channels)
+(require 'r4-filter)
 
 (defvar r4-search-history nil
   "Minibuffer history of searches.")
-
-(defun r4-search-parse (text)
-  "Parse the search TEXT into a plist of :slugs, :tags and :query."
-  (let (slugs tags words)
-    (dolist (token (split-string (or text "") "[ \t\n]+" t))
-      (cond ((string-match "\\`@\\(.+\\)" token)
-             (push (downcase (match-string 1 token)) slugs))
-            ((string-match "\\`#\\(.+\\)" token)
-             (push (downcase (match-string 1 token)) tags))
-            (t (push token words))))
-    `(,@(when slugs (list :slugs (nreverse slugs)))
-      ,@(when tags (list :tags (nreverse tags)))
-      ,@(when words (list :query (string-join (nreverse words) " "))))))
 
 ;;;###autoload
 (defun r4-search (text)
@@ -50,15 +38,12 @@ titles and descriptions."
 
 (define-obsolete-function-alias 'r4-search-tracks #'r4-search "0.3.0")
 
-(defvar-local r4-search--filter-text nil
-  "Text of the filter of the tracks shown.")
-
 (defun r4-tracks-search (text)
   "Search tracks with TEXT, in the channel of the buffer unless it has @slug.
 In a local channel, filter its tracks instead, see `r4-tracks-filter'."
   (interactive (list (read-string "Search tracks (#tag words): "
                                   (and (plist-get r4-tracks--source :local)
-                                       r4-search--filter-text)
+                                       r4-tracks--filter-text)
                                   'r4-search-history)))
   (if (plist-get r4-tracks--source :local)
       (r4-tracks-filter text)
@@ -83,67 +68,31 @@ In a local channel, filter its tracks instead, see `r4-tracks-filter'."
 
 ;;;; Filter the tracks shown
 
-(defun r4-search-matcher (text)
-  "Return a predicate of the tracks matching the search TEXT, or nil.
-Every @slug, #tag and word must match."
-  (let* ((parsed (r4-search-parse text))
-         (slugs (plist-get parsed :slugs))
-         (tags (plist-get parsed :tags))
-         (words (split-string (downcase (or (plist-get parsed :query) "")) " " t)))
-    (when parsed
-      (lambda (track)
-        (and (or (null slugs) (member (downcase (r4-track-slug track)) slugs))
-             (cl-every (lambda (tag)
-                         (member tag (mapcar #'downcase (r4-track-tags track))))
-                       tags)
-             (let ((haystack (downcase (concat (r4-track-title track) " "
-                                               (r4-track-description track) " @"
-                                               (r4-track-slug track)))))
-               (cl-every (lambda (word) (string-search word haystack)) words)))))))
-
 (defun r4-tracks-filter (text)
   "Only show the tracks matching TEXT, such as \"#jazz miles\".
 An empty TEXT shows all the tracks."
   (interactive (list (read-string "Filter tracks (@channel #tag words): "
-                                  r4-search--filter-text 'r4-search-history)))
-  (setq r4-search--filter-text (if (string-blank-p text) nil (string-trim text)))
-  (r4-tracks-set-filter (and r4-search--filter-text
-                             (r4-search-matcher r4-search--filter-text)))
-  (message (if r4-search--filter-text
+                                  r4-tracks--filter-text 'r4-search-history)))
+  (r4-tracks-set-filter text)
+  (message (if r4-tracks--filter-text
                (format "Showing %d of %d tracks matching \"%s\""
                        (length tabulated-list-entries) (length r4-tracks--tracks)
-                       r4-search--filter-text)
+                       r4-tracks--filter-text)
              "Showing all tracks")))
 
-(defun r4-search-tag-counts (tracks)
-  "Return an alist of the tags of TRACKS and their counts, most used first."
-  (let ((counts (make-hash-table :test #'equal)))
-    (dolist (track tracks)
-      (dolist (tag (r4-track-tags track))
-        (cl-incf (gethash (downcase tag) counts 0))))
-    (sort (let (result)
-            (maphash (lambda (tag count) (push (cons tag count) result)) counts)
-            result)
-          (lambda (a b) (> (cdr a) (cdr b))))))
-
 (defun r4-tracks-filter-tag (tags)
-  "Only show the tracks having all the TAGS, chosen among the shown tracks."
-  (interactive
-   (let* ((counts (r4-search-tag-counts (r4-tracks--visible)))
-          (completion-extra-properties
-           `(:annotation-function
-             ,(lambda (tag) (format "  %d" (alist-get tag counts nil nil #'equal))))))
-     (unless counts (user-error "No tags"))
-     (list (completing-read-multiple
-            "Tags: "
-            (lambda (string predicate action)
-              (if (eq action 'metadata)
-                  '(metadata (display-sort-function . identity) (category . r4-tag))
-                (complete-with-action action (mapcar #'car counts) string predicate)))
-            nil t))))
-  (r4-tracks-filter (string-join (cons (or r4-search--filter-text "")
-                                       (mapcar (lambda (tag) (concat "#" tag)) tags))
-                                 " ")))
+  "Toggle filtering the shown tracks by TAGS, like the tags of radio4000.com.
+Tags are chosen among those of the shown tracks, with their counts,
+and the tags of the filter, to remove them.  Clicking a tag of a track
+toggles it too."
+  (interactive (list (r4-filter-read-tags (r4-tracks--visible) r4-tracks--filter-text)))
+  (r4-tracks-filter (or (r4-filter-toggle-tags r4-tracks--filter-text tags) "")))
+
+(defun r4-search--setup-tracks-filter ()
+  "Make clicking a tag toggle it in the filter of the track list."
+  (setq-local r4-filter-toggle-function #'r4-tracks-filter-tag))
+
+(add-hook 'r4-tracks-mode-hook #'r4-search--setup-tracks-filter)
 
 (defvar-local r4-search--channels-filter-text nil
   "Text of the filter of the channels shown.")
