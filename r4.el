@@ -54,6 +54,7 @@
 (require 'r4-edit)
 (require 'r4-auto-radio)
 (require 'r4-broadcast)
+(require 'r4-broadcasting)
 (require 'r4-describe)
 (require 'r4-channel-page)
 (require 'r4-home)

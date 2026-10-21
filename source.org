@@ -64,6 +64,10 @@ Auto-radio: a live radio without a broadcaster, the same for everyone.
 Listening to live broadcasts.
 #+INCLUDE: "r4-broadcast.el" src emacs-lisp
 
+** r4-broadcasting.el
+Broadcasting your player, like the live button of radio4000.com.
+#+INCLUDE: "r4-broadcasting.el" src emacs-lisp
+
 ** r4-history.el
 The tracks played, kept on this computer.
 #+INCLUDE: "r4-history.el" src emacs-lisp
@@ -84,6 +88,10 @@ The list of channels.
 ** r4-home.el
 The home buffer, opened by =r4=.
 #+INCLUDE: "r4-home.el" src emacs-lisp
+
+** r4-faces.el
+The faces of the r4 buffers.
+#+INCLUDE: "r4-faces.el" src emacs-lisp
 
 ** r4-channel-page.el
 The page of a channel, like /@slug.

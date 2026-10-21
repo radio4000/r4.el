@@ -51,7 +51,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Play a channel, all tracks       | play                        | =r4-tracks-play-all=, =r4-play-channel= | =P= |
 | Shuffle play                     | shuffle                     | =r4-tracks-shuffle=           | =z=           |
 | Auto-radio, the same for everyone | infinity button            | =r4-tracks-auto-radio=, =r4-auto-radio= | =R= |
-| Listen to a live broadcast       | /broadcast                  | =r4-broadcasts=               | menu =b=      |
+| Listen to a live broadcast       | /broadcast                  | =r4-broadcasts=               | =B=           |
+| Broadcast your player, go live   | live button                 | =r4-broadcast-toggle=         | =b=           |
 | Pause, next, previous, stop      | =k=, =N=, =P=               | =r4-player-toggle-pause=, =r4-player-next=… | =SPC= =>= =<= =k= |
 | Seek, volume                     | player                      | =r4-player-seek-forward=…     | =]= =[= =+= =-= |
 | Shuffle, video in the player, pop it out | player              | =r4-player-toggle-shuffle=, =r4-player-toggle-video=, =r4-player-toggle-video-pop-out= | =Z= =V= =^= |
@@ -100,8 +101,6 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 * Not in Emacs
 - The map, the 3D universe, decks and video layouts: visual features of
   the web app.  Channel descriptions link to a map of the channel.
-- Broadcasting your own player: listening works, broadcasting needs a
-  realtime connection.
 - Soulseek downloads (=r4 download --source soulseek=).
 - Track metadata from MusicBrainz and Discogs.
 - Uploading channel images.

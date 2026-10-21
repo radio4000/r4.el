@@ -33,6 +33,7 @@
 (require 'r4-synced)
 (require 'r4-channel-page)
 (require 'r4-home)
+(require 'r4-broadcasting)
 
 ;;;; Descriptions showing the state
 
@@ -51,6 +52,13 @@
 (defun r4-menus--pop-out ()
   "Return the description of the video pop out toggle."
   (concat "Pop out video " (r4-menus--on-off r4-player-video-pop-out)))
+
+(defun r4-menus--broadcast ()
+  "Return the description of the broadcast toggle."
+  (if r4-broadcasting
+      (concat "Broadcasting as " (propertize (concat "@" (r4-channel-slug r4-broadcasting))
+                                             'face 'transient-value))
+    "Go live: broadcast"))
 
 (defun r4-menus--player ()
   "Return the heading of the player group: the playing track."
@@ -129,7 +137,8 @@
       ("V" r4-player-toggle-video :description r4-menus--video :transient t)
       ("^" r4-player-toggle-video-pop-out :description r4-menus--pop-out :transient t)
       ("Q" "Queue" r4-queue)
-      ("v" "Player window" r4-player-window)]]
+      ("v" "Player window" r4-player-window)
+      ("b" r4-broadcast-toggle :description r4-menus--broadcast)]]
     "The player group of the r4 menus.")
 
   (defconst r4-menus--go-to-group
@@ -315,6 +324,7 @@ Their keys work in every r4 buffer, see `r4-player-map'."))
 (keymap-set r4-player-map "j" #'r4-channel-page)
 (keymap-set r4-player-map "E" #'r4-explore)
 (keymap-set r4-player-map "B" #'r4-broadcasts)
+(keymap-set r4-player-map "b" #'r4-broadcast-toggle)
 
 (keymap-set r4-tracks-mode-map "?" #'r4-tracks-menu)
 (keymap-set r4-channels-mode-map "?" #'r4-channels-menu)

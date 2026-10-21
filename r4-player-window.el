@@ -103,6 +103,7 @@ Fonts often draw its characters wider than a column."
     ("Z" "shuffle" r4-player-toggle-shuffle r4-player-shuffle)
     ("V" "video" r4-player-toggle-video r4-player-video)
     ("Q" "queue" r4-queue)
+    ("b" "go live" r4-broadcast-toggle r4-broadcasting)
     ("k" "stop" r4-player-stop))
   "Controls of the player: key, label, command, and the variable of a toggle.
 The keys work in every r4 buffer, see `r4-player-map'.")
@@ -112,7 +113,7 @@ The keys work in every r4 buffer, see `r4-player-map'.")
   (pcase-dolist (`(,key ,label ,command ,variable) controls)
     (r4-faces-insert-key
      key (if (and (eq command 'r4-player-toggle-pause) r4-player-paused) "play" label)
-     command (and variable (symbol-value variable)))
+     command (and variable (boundp variable) (symbol-value variable)))
     (insert "  ")))
 
 (defun r4-player-window--insert (width)

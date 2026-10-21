@@ -274,6 +274,65 @@
     (cl-letf (((symbol-function 'string-pixel-width) (lambda (&rest _) 8)))
       (should (equal (length (r4-player-window--bar 40)) 40)))))
 
+;; Like the live button of radio4000.com: a row of the broadcast table,
+;; and state messages through Supabase Realtime.
+(ert-deftest r4-test-broadcasting ()
+  (let* ((track (r4-test--track :id "11111111-1111-1111-1111-111111111111" :slug "ko002"))
+         (r4-player-queue (vector track)) (r4-player-index 0)
+         (r4-player-paused nil) (r4-player-time-pos 30.0)
+         (r4-follows--my-channel (r4-channel-create :id "c1" :slug "ko002"))
+         (r4-broadcasting nil) (r4-broadcasting--seq 0) (r4-player-mode-line-extra nil)
+         sent deleted)
+    (cl-letf (((symbol-function 'r4-player-live-p) #'always)
+              ((symbol-function 'r4-auth-require) #'ignore)
+              ((symbol-function 'r4-auth-token) (lambda () "token-1"))
+              ((symbol-function 'r4-api-send)
+               (lambda (method path &rest args) (push (list method path args) sent)))
+              ((symbol-function 'r4-api-request)
+               (lambda (method path &rest args) (push (list method path args) deleted))))
+      (unwind-protect
+          (progn
+            (r4-broadcast-start)
+            (should (equal r4-player-mode-line-extra "live"))
+            (pcase-let ((`(,table ,realtime) sent))
+              (should (equal (nth 1 realtime) "/realtime/v1/api/broadcast"))
+              (let* ((message (aref (alist-get 'messages (plist-get (nth 2 realtime) :body)) 0))
+                     (deck (aref (alist-get 'decks (alist-get 'payload message)) 0)))
+                (should (equal (alist-get 'topic message) "broadcast-state:c1"))
+                (should (equal (alist-get 'event message) "state"))
+                (should (equal (alist-get 'track_id deck) (r4-track-id track)))
+                (should (equal (alist-get 'seek_position deck) 30.0))
+                (should (eq (alist-get 'is_playing deck) t)))
+              (should (equal (nth 1 table) "/rest/v1/broadcast"))
+              (should (equal (alist-get 'channel_id (plist-get (nth 2 table) :body)) "c1")))
+            ;; Nothing changed, nothing is sent.
+            (setq sent nil)
+            (r4-player--changed)
+            (should-not sent)
+            ;; A pause is sent.
+            (setq r4-player-paused t)
+            (r4-player--changed)
+            (should (eq (alist-get 'is_playing
+                                   (aref (alist-get 'decks
+                                                    (alist-get 'payload
+                                                               (aref (alist-get 'messages (plist-get (nth 2 (cadr sent)) :body)) 0)))
+                                         0))
+                        :false))
+            ;; A seek is sent.
+            (setq sent nil r4-player-time-pos 100.0)
+            (r4-player--changed)
+            (should sent)
+            ;; Local tracks come with their URL.
+            (let ((local (r4-test--track :id "x" :url "https://youtu.be/abc" :title "Local")))
+              (r4-track-mark-local local)
+              (should (equal (alist-get 'track_url (r4-broadcasting-deck local 0 t))
+                             "https://youtu.be/abc")))
+            (r4-broadcast-stop)
+            (should (equal (nth 1 (car deleted)) "/rest/v1/broadcast"))
+            (should-not r4-broadcasting)
+            (should-not r4-player-mode-line-extra))
+        (r4-broadcast-stop)))))
+
 (ert-deftest r4-test-menus ()
   (dolist (menu '(r4-menu r4-tracks-menu r4-channels-menu r4-queue-menu))
     (should (commandp menu)))

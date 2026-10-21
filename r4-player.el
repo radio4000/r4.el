@@ -96,6 +96,9 @@ seconds, or nil to play nothing.  Playing new tracks resets it.")
 (defvar r4-player--duration nil
   "Duration of the playing track in seconds, given by mpv, or nil.")
 
+(defvar r4-player-mode-line-extra nil
+  "Text shown after r4 in the mode line, such as live while broadcasting.")
+
 (defvar r4-player-track-changed-hook nil
   "Hook run after the current track changed.")
 
@@ -485,8 +488,11 @@ downloaded audio file."
 (defun r4-player-mode-line-string ()
   "Return the mode line string of the player."
   (when-let* ((track (and (r4-player-live-p) (r4-player-current))))
-    (propertize (format " %s %s %s%s %s "
+    (propertize (format " %s%s %s %s%s %s "
                         (propertize "r4" 'face 'bold)
+                        (if r4-player-mode-line-extra
+                            (concat " " (propertize r4-player-mode-line-extra 'face 'error))
+                          "")
                         (if r4-player-paused "⏸" "▶")
                         (if r4-player-label (format "[%s] " r4-player-label) "")
                         (truncate-string-to-width (r4-one-line (r4-track-title track)) 40 nil nil "…")
