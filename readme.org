@@ -129,7 +129,7 @@ In lists of tracks:
 | =d= =D=       | Download the marked tracks (or at point), all            |
 | =s=           | Search: =#tag words=, in this channel                     |
 | =/= =#=       | Filter the shown tracks, by text or toggling tags        |
-| =i= =@=       | Describe the track, open its channel                     |
+| =i= =@=       | Describe the track, visit its channel page               |
 | =A= =e= =x=   | Add, edit, delete tracks (your channel or a local one)   |
 | =c= =C= =Y=   | Copy to a local channel, save locally, sync              |
 | =o= =O=       | Open on radio4000.com, open the media                    |

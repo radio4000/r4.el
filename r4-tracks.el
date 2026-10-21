@@ -355,11 +355,15 @@ With prefix argument RETRY, also retry the tracks that failed before."
                   (user-error "Track not downloaded"))))
     (dired-jump nil file)))
 
+(defvar r4-tracks-visit-channel-function nil
+  "Function showing a radio4000.com channel by slug, or nil to list its tracks.")
+
 (defun r4-tracks--visit-channel (track)
-  "Show the tracks of the channel of TRACK, local or on radio4000.com."
-  (r4-tracks-show (if (r4-track-local-p track)
-                      (list :slug (r4-track-slug track) :local t)
-                    (list :slug (r4-track-slug track)))))
+  "Show the channel of TRACK: its page, or the tracks of a local channel."
+  (let ((slug (r4-track-slug track)))
+    (cond ((r4-track-local-p track) (r4-tracks-show (list :slug slug :local t)))
+          (r4-tracks-visit-channel-function (funcall r4-tracks-visit-channel-function slug))
+          (t (r4-tracks-show (list :slug slug))))))
 
 (defun r4-tracks-open-channel ()
   "Open the channel of the track at point."

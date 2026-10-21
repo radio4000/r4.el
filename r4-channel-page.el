@@ -393,6 +393,8 @@ visit its pages, its tags and its latest tracks."
   (interactive)
   (r4-channel-page (r4-channels--at-point)))
 
+(setq r4-tracks-visit-channel-function #'r4-channel-page)
+
 (keymap-set r4-channels-mode-map "RET" #'r4-channels-visit)
 (keymap-set r4-channels-mode-map "T" #'r4-channels-open)
 
