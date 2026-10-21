@@ -3,12 +3,15 @@ Browse, play and download [[https://radio4000.com][radio4000.com]] channels from
 radio4000.com and the =r4= command line do, with the same words, in
 Emacs lists and menus.
 
+- A home buffer, channel pages, and lists of channels and tracks, with
+  menus like magit: =M-x r4=.
 - Browse, explore and search channels and tracks, with the search
   language of radio4000.com: =@ko002 #jazz miles=.
-- Play with =mpv=: a queue, shuffle, play next, video, history, and
-  the current track in the mode line.
+- Play with =mpv=: a queue, shuffle, play next, history, videos in
+  Emacs, and the current track in the mode line.
 - Auto-radio: the same live radio as radio4000.com, where everyone
-  hears the same track at the same second; and live broadcasts.
+  hears the same track at the same second; and live broadcasts, to
+  listen to or to broadcast your player.
 - Download tracks as the best audio, or videos, with =yt-dlp=, into the
   same folders as the =r4= command line, with metadata.  Downloaded
   tracks play from disk.
@@ -71,6 +74,8 @@ M-x package-vc-install RET https://github.com/radio4000/r4.el RET
 *** Update and remove
 - =M-x package-vc-upgrade RET r4= pulls the latest commits and
   rebuilds the package (=package-vc-upgrade-all= updates all of them).
+  Restart Emacs after an upgrade: the version loaded before may linger
+  in open r4 buffers.
 - =M-x package-delete RET r4= removes it.
 
 *** From a local clone, for development
@@ -84,16 +89,16 @@ package-vc-rebuild=, or by evaluating the edited buffers.
 
 ** Usage
 =M-x r4= opens the home buffer, like the home page of radio4000.com:
-the player, your channels, the synced and local channels, live
-broadcasts and what you played lately.  =?= opens the menu of all the
-commands there (=M-x r4-menu=), and the menu of each list in lists.
-Start with:
+the player and its controls, your channels, the synced and local
+channels, live broadcasts and what you played lately.  Start there, or
+with these commands:
 
 | Command               | Description                                         |
 |-----------------------+-----------------------------------------------------|
+| =r4=                  | The home buffer                                     |
 | =r4-channels=         | List channels, most recently active first           |
 | =r4-explore=          | Featured channels, with artwork, with many tracks…  |
-| =r4-open-channel=     | List the tracks of a channel                        |
+| =r4-channel-page=     | Visit a channel, like /@slug                        |
 | =r4-search=           | Search tracks: =@channel #tag words=                |
 | =r4-play-channel=     | Play a channel                                      |
 | =r4-auto-radio=       | Tune in to the auto-radio of a channel              |
@@ -101,13 +106,15 @@ Start with:
 | =r4-feed=             | Latest tracks of the channels you follow            |
 | =r4-history=          | The tracks you played                               |
 | =r4-download-channel= | Download a channel                                  |
+| =r4-menu=             | The menu of all the commands                        |
 
-Lists are =tabulated-list-mode= buffers: =n= =p= move, =S= sorts by the
-column at point (or click a header), =g= refreshes, =m= =u= mark, =q=
-quits.  Like in magit, =?= opens the menu of the buffer you are in:
-its heading says what it acts on, such as the list and the track at
-point, and its keys work without opening it.  The main views are a key
-away in every r4 buffer, and listed in each menu:
+*** Menus and keys
+Like in magit, =?= opens the menu of the buffer you are in: its heading
+says what it acts on, such as the list and the track at point, and its
+keys work without opening it.  In the home buffer, =?= opens the menu
+of all the commands, =r4-menu=.
+
+The main views are a key away in every r4 buffer, and in each menu:
 
 | Key           | Go to                          |
 |---------------+--------------------------------|
@@ -116,7 +123,9 @@ away in every r4 buffer, and listed in each menu:
 | =E= =B=       | Explore, broadcasts            |
 | =H=           | History                        |
 
-The player keys work in every r4 buffer too:
+*** The player
+Tracks play with mpv, from disk when downloaded.  The player keys work
+in every r4 buffer:
 
 | Key           | Player                         |
 |---------------+--------------------------------|
@@ -130,7 +139,32 @@ The player keys work in every r4 buffer too:
 | =Q=           | Queue, where =/= =#= filter what plays |
 | =v=           | Player window                  |
 | =;=           | Share the playing track        |
+| =b=           | Go live: broadcast, or stop    |
 | =k=           | Stop                           |
+
+While playing, the mode line shows =r4 ▶ Title 1:23/4:56=
+(=r4-player-mode-line-mode=; set =r4-player-mode-line= to nil to hide
+it): click it to pause, middle-click for the next track, right-click
+for the queue.  While downloading, it shows =r4 ↓12=, the downloads to
+do: click it to list them.
+
+=v= shows the player in a compact window at the top of the frame: the
+track, its time, and a progress bar to click to seek.  =V= shows the
+video there too, beside the player in a wide window, under it in a
+narrow one; =^= pops it out in a window of mpv, and back
+(=r4-player-video-pop-out=).  Emacs built for Wayland only (pgtk) and
+macOS show videos in a window of mpv.
+
+=b= broadcasts what you play as your channel, like the live button of
+radio4000.com: listeners hear the same tracks at the same position, on
+radio4000.com or in Emacs with =B=.  The mode line then shows =live=,
+and =b= again stops.
+
+*** Lists
+Lists of channels and tracks are =tabulated-list-mode= buffers: =n= =p=
+move, =g= refreshes, =m= =u= mark, =q= quits.  =S= sorts by the column at
+point, or click its header; dates and counts sort newest and largest
+first, =S= again reverses.
 
 In lists of tracks:
 
@@ -148,6 +182,7 @@ In lists of tracks:
 | =o= =O=       | Open on radio4000.com, open the media                    |
 | =w= =W=       | Copy the media URL, the radio4000.com URL                |
 | =F= =L=       | Visit the downloaded file, list downloads                |
+| =y=           | Sync the channel locally, or stop                        |
 
 In lists of channels:
 
@@ -158,42 +193,35 @@ In lists of channels:
 | =P= =z= =R=   | Play, shuffle, auto-radio                                |
 | =f= =F= =r=   | Follow or unfollow, its following, its followers         |
 | =M=           | Tracks mentioning it                                     |
-| =D= =C=       | Download, save locally                                   |
+| =D= =C= =y=   | Download, save locally, sync locally                     |
 | =s= =/= =t=   | Search channels, filter the shown channels, search tracks |
 | =A= =e= =x=   | Create, edit, delete your channels                       |
 | =o= =w=       | Open on radio4000.com, copy its URL                      |
 
-Bookmark any list with =C-x r m=, such as a search or a filtered
-channel, to open it again with =C-x r b=: the saved views of
-radio4000.com.  =b= broadcasts what you play as your channel, like the live button of
-radio4000.com: listeners hear the same tracks at the same position, on
-radio4000.com or in Emacs with =B=.  The mode line then shows =live=,
-and =b= again stops.
-
-While playing, the mode line shows =r4 ▶ Title 1:23/4:56=
-(=r4-player-mode-line-mode=, set =r4-player-mode-line= to nil to
-hide it).  Click it to pause,
-middle-click for the next track, right-click for the queue.  =v= shows
-the player in a window at the top of the frame, with the elapsed time
-and a progress bar to click to seek.  With
-[[https://github.com/oantolin/embark][Embark]], act on the channels of any completion.
+The status column of track lists, the history and the feed shows the
+file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the
+player, =▶= playing, =·= played before.  The status column of channel
+lists shows =▶= the channel playing, =♥= the channels your channel
+follows, =⟳= the synced channels, and =↓= while downloading or =✓= once
+downloaded.
 
 Click a tag of a track to filter the list by it, like on
 radio4000.com, and click it in the mode line to remove it; =#= toggles
-tags too, with their counts.
+tags too, with their counts.  Searches match whole words, like on
+radio4000.com, and also the beginning of words: =osk= finds =oskar=.
+=@slug= targets a channel and =#tag= a tag; use quotes, =or= and =-= for
+a web search, such as =jazz -blues=.
 
-The status column of channel lists shows =▶= the channel playing, =♥=
-the channels your channel follows, =⟳= the synced channels, and =↓=
-while downloading or =✓= once downloaded.
+Bookmark any list with =C-x r m=, such as a search or a filtered
+channel, to open it again with =C-x r b=: the saved views of
+radio4000.com.  With [[https://github.com/oantolin/embark][Embark]], act on the channels of any completion.
 
-The status column of track lists, the history and the feed shows the
-file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the
-player, =▶= playing, =·= played before.
-
-Searches match whole words, like on radio4000.com, and also the
-beginning of words: =osk= finds =oskar=.  =@slug= targets a channel and
-=#tag= a tag; use quotes, =or= and =-= for a web search, such as =jazz
--blues=.
+*** Channel pages
+=RET= on a channel, =j= anywhere, or =@= on a track visits the page of
+a channel, laid out like =describe-package=: its image, website,
+tracks, location, links and description, where =#tags= and =@mentions=
+are buttons, its most used tags, the actions and their keys, and its
+latest tracks.
 
 ** Downloads
 =d=, =D= and =r4-download-channel= download the best audio available,
@@ -221,11 +249,8 @@ command line: retry them with =C-u d=, or =R= in =r4-downloads=.
 
 Set =r4-download-video= to download videos instead, in
 =r4-download-video-quality= and =r4-download-video-container=; audio and
-video files of a track live side by side.  =V= shows videos while
-playing, in the player window, under the playing track; quitting it
-turns videos off.  =^= pops them out in a window of mpv, and back
-(=r4-player-video-pop-out=).  Emacs built for Wayland only (pgtk) and
-macOS show videos in a window of mpv.
+video files of a track live side by side.  =V= plays videos, see The
+player above.
 
 Downloads of r4.el 0.2 were outside =tracks/=: =M-x r4-files-migrate=
 moves them.
@@ -245,8 +270,9 @@ their slugs, saved with Customize.
 ** Auto-radio and broadcasts
 =R= tunes in to the auto-radio of a channel, like the infinity button
 of radio4000.com: everyone listening hears the same track at the same
-second, without a broadcaster.  =r4-broadcasts= lists the channels
-broadcasting live; =RET= follows one, until you play something else.
+second, without a broadcaster.  =r4-broadcasts= (=B=) lists the
+channels broadcasting live; =RET= follows one, until you play something
+else.  =b= broadcasts your own player, see [[*The player][The player]].
 
 ** Configuration
 =M-x customize-group RET r4=. For example:
@@ -272,6 +298,9 @@ largest first, =S= again reverses:
 
 The other columns are =url= and =image= for channels, and =provider=,
 =media_id=, =url= and =discogs_url= for tracks.
+
+The colors come from the faces of r4, which inherit those of your
+theme: =M-x customize-group RET r4-faces=.
 
 ** Local channels
 A local channel is a file in the radio4000.com backup format

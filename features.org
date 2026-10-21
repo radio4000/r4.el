@@ -21,13 +21,12 @@ the keys are the ones of the r4 lists, where =?= shows them all.
   the command line, Emacs and the radio4000.com import share them.
 
 * Browse
-- =r4= opens the home buffer, like the home page of radio4000.com, and
-  =?= there the menu of all the commands, =r4-menu=.
-
 | Feature                                  | Web, command line                      | Emacs                     | Key        |
 |------------------------------------------+----------------------------------------+---------------------------+------------|
+| Home: player, your channels, broadcasts, history | home page                      | =r4=                      | =h=        |
+| Menu of the buffer, of all commands      | menus                                  | =?=, =r4-menu=            | =?=        |
 | List channels                            | /explore/channels, =r4 channel list=   | =r4-channels=             | menu =c=   |
-| Featured, with artwork, 10/100/1000+ tracks | /explore/channels/FILTER            | =r4-explore=              | menu =x=   |
+| Featured, with artwork, 10/100/1000+ tracks | /explore/channels/FILTER            | =r4-explore=              | =E=        |
 | Search channels                          | /search/channels, =r4 search --channels= | =r4-search-channels=    | =s=        |
 | Search tracks: =@slug #tag words=        | /search, =r4 search --tracks=          | =r4-search=               | menu =s=   |
 | Search in a channel                      | /@slug/tracks?q=                       | =r4-tracks-search=        | =s=        |
@@ -35,7 +34,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Filter the shown tracks or channels      | queue and tracks filters               | =r4-tracks-filter=, =r4-channels-filter= | =/= |
 | Toggle tags, with their counts, click tags | /@slug/tracks?tags=, =r4 tags list= | =r4-tracks-filter-tag=    | =#=        |
 | Tracks mentioning a channel              | /@slug/mentions                        | =r4-mentions=             | =M=, menu =@= |
-| Channel page: image, links, tags, latest tracks | /@slug, =r4 channel view=       | =r4-channel-page=         | =RET=      |
+| Channel page: image, links, tags, latest tracks | /@slug, =r4 channel view=       | =r4-channel-page=         | =RET=, =j= |
 | Tracks of a channel                      | /@slug/tracks, =r4 track list --channel= | =r4-open-channel=       | =T=        |
 | Track details                            | /@slug/tracks/ID, =r4 track view=      | =r4-tracks-describe=      | =i=        |
 | Open the channel of a track              | link                                   | =r4-tracks-open-channel=  | =@=        |
@@ -60,8 +59,9 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Queue: show, remove, clear       | queue panel                 | =r4-queue=, =r4-queue-remove=, =r4-player-clear= | =Q=, =x=, =C= |
 | Filter the queue, what plays     | queue panel filter          | =r4-queue-filter=, =r4-queue-filter-tag= | =/= =#= |
 | Player, elapsed time, seek bar   | player                      | =r4-player-window=            | =v=           |
-| Play history                     | /history                    | =r4-history=                  | menu =h=      |
-| Current track links              | player                      | =r4-player-copy-url=, =r4-player-copy-web-url= | menu =w= =W= |
+| Play history                     | /history                    | =r4-history=                  | =H=           |
+| Share the playing track          | player                      | =r4-player-share-menu=        | =;=           |
+| Player in the mode line          | player                      | =r4-player-mode-line-mode=    |               |
 
 * Download
 | Feature                                | Command line                   | Emacs                        | Key     |
