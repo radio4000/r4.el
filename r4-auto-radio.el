@@ -164,7 +164,7 @@ one from its start."
       (message "r4: %s, %s at %s" label (r4-track-title (nth (car position) schedule))
                (r4-format-duration (cdr position))))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-auto-radio "r4" nil t)
 (defun r4-auto-radio (slug)
   "Tune in to the auto-radio of the channel SLUG, like radio4000.com.
 Everyone listening hears the same track at the same second."

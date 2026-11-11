@@ -382,7 +382,7 @@ Wrap them under the field values."
 \\{r4-channel-page-mode-map}"
   (setq-local revert-buffer-function #'r4-channel-page-revert))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-channel-page "r4" nil t)
 (defun r4-channel-page (channel)
   "Show the page of CHANNEL, an `r4-channel' or a slug.
 Like /@slug on radio4000.com: its description, buttons to play it and
@@ -403,7 +403,7 @@ visit its pages, its tags and its latest tracks."
       (r4-channel-page--fetch-tracks)
       (pop-to-buffer-same-window (current-buffer)))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-describe-channel "r4" nil t)
 (defalias 'r4-describe-channel #'r4-channel-page)
 
 (defun r4-channels-visit ()

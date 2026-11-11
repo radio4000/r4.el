@@ -66,7 +66,7 @@ Followers count most, then the tracks, then the recent activity."
     ("broadcasting"))
   "Filters of `r4-explore', and the functions fetching their channels.")
 
-;;;###autoload
+;;;###autoload (autoload 'r4-explore "r4" nil t)
 (defun r4-explore (filter)
   "Explore the channels of radio4000.com, with FILTER."
   (interactive (list (completing-read "Explore channels: " r4-explore-filters nil t nil nil

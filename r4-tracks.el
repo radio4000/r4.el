@@ -450,7 +450,7 @@ columns with `r4-tracks-columns'.
   "Return the buffer name for the tracks SOURCE."
   (format "*r4 %s*" (r4-tracks--describe-source source)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-tracks-buffer "r4")
 (defun r4-tracks-buffer (source)
   "Return the buffer listing the tracks of SOURCE, fetching them.
 SOURCE is a plist, see `r4-tracks--source'."

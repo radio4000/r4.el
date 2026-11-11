@@ -275,7 +275,7 @@ wide as its aspect ratio allows."
             (lambda (_) (r4-player-window--refresh))
             nil t))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-player-window "r4" nil t)
 (defun r4-player-window ()
   "Show or hide the player window."
   (interactive)

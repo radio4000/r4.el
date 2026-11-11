@@ -25,7 +25,7 @@
 (defvar r4-search-history nil
   "Minibuffer history of searches.")
 
-;;;###autoload
+;;;###autoload (autoload 'r4-search "r4" nil t)
 (defun r4-search (text)
   "Search tracks with TEXT, such as \"@ko002 #jazz miles\".
 @slug targets a channel, #tag a tag, and other words search the
@@ -55,7 +55,7 @@ In a local channel, filter its tracks instead, see `r4-tracks-filter'."
               source (append (list :slugs (list slug)) source)))
       (r4-tracks-show (append (list :name (string-trim text)) source)))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-mentions "r4" nil t)
 (defun r4-mentions (slug)
   "List the tracks mentioning the channel SLUG, as @SLUG."
   (interactive (list (r4-read-channel "Tracks mentioning: @")))

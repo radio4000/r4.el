@@ -47,7 +47,7 @@
       (cl-incf column (+ (length label) 4))))
   (insert "\n"))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-describe-track "r4")
 (defun r4-describe-track (track)
   "Describe TRACK, an `r4-track'."
   (with-help-window (format "*r4 track %s*" (r4-one-line (r4-track-title track)))

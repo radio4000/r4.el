@@ -150,7 +150,7 @@ Another track, a pause, or a seek of more than `r4-broadcast-tolerance'."
 (add-hook 'r4-player-track-changed-hook #'r4-broadcasting--track-changed)
 (add-hook 'r4-player-changed-hook #'r4-broadcasting--player-changed)
 
-;;;###autoload
+;;;###autoload (autoload 'r4-broadcast-start "r4" nil t)
 (defun r4-broadcast-start ()
   "Broadcast what you play as your channel, like the live button of radio4000.com."
   (interactive)

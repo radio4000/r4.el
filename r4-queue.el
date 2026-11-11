@@ -140,7 +140,7 @@ empty TEXT shows and plays all the tracks."
   (add-hook 'tabulated-list-revert-hook #'r4-queue--revert nil t)
   (tabulated-list-init-header))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-queue "r4" nil t)
 (defun r4-queue ()
   "Show the Radio4000 play queue."
   (interactive)

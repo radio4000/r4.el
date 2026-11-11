@@ -65,6 +65,10 @@ Mechanisms that cut across files:
   `M-<down>` volume) and `SPC` pause, and the main views (`^` up, `j`
   visit a channel, `E`, `B`, `H`). A list key must not hide them; the
   tests check it.
+- Autoload cookies load the whole package:
+  `;;;###autoload (autoload 'r4-foo "r4" nil t)`. A plain cookie loads
+  only its file, and `use-package :bind` then runs r4 without its menus
+  or its other files (the tests check it).
 - No global keys by default: never overwrite the user's keys. Users
   bind `r4` and the prefix map `r4-command-map` themselves (readme
   examples: `C-c r` and `C-c 4`).

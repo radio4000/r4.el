@@ -237,7 +237,7 @@ Their key in the home buffer shows before them, like in magit."
       (message "r4: this is the top, home")
     (funcall (or r4-up-function #'r4))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4 "r4" nil t)
 (defun r4 ()
   "Show the Radio4000 home buffer, like the home page of radio4000.com.
 ? in it opens the menu of all the commands, `r4-menu'."

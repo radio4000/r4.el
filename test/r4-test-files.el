@@ -170,6 +170,23 @@
       (r4-toggle-synced-channel "oskar")
       (should-not r4-synced-channels))))
 
+(ert-deftest r4-test-autoloads-load-everything ()
+  ;; `use-package :bind' autoloads `r4': it must load the whole package,
+  ;; else the player window shows the go live button of r4-broadcasting
+  ;; without its command.
+  (let* ((root (file-name-directory (locate-library "r4")))
+         (dir (make-temp-file "r4-autoloads" t))
+         (file (expand-file-name "r4-autoloads.el" dir)))
+    (unwind-protect
+        (progn
+          (let ((inhibit-message t)) (loaddefs-generate root file))
+          (should (zerop (call-process
+                          (expand-file-name invocation-name invocation-directory)
+                          nil nil nil "--batch" "-Q" "-L" root "-l" file
+                          "--eval" "(autoload-do-load (symbol-function 'r4))"
+                          "--eval" "(kill-emacs (if (and (fboundp 'r4-broadcast-toggle) (featurep 'r4-menus)) 0 1))"))))
+      (delete-directory dir t))))
+
 (provide 'r4-test-files)
 
 ;;; r4-test-files.el ends here

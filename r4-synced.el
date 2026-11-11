@@ -59,7 +59,7 @@ and nil none."
 
 (setq r4-channels-synced-function #'r4-synced-p)
 
-;;;###autoload
+;;;###autoload (autoload 'r4-toggle-synced-channel "r4" nil t)
 (defun r4-toggle-synced-channel (slug)
   "Start or stop syncing the channel SLUG locally."
   (interactive (list (r4-read-channel "Sync or unsync channel: @")))
@@ -89,7 +89,7 @@ and nil none."
       (user-error "Not the list of a radio4000.com channel"))
     (r4-toggle-synced-channel slug)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-sync-channels "r4" nil t)
 (defun r4-sync-channels (&optional slugs quiet)
   "Download the new tracks of the synced channels, or of SLUGS.
 Tracks already downloaded, or whose download failed before, are
@@ -121,7 +121,7 @@ skipped.  QUIET says nothing, as when checking in the background."
 (add-hook 'r4-channels-mode-hook #'r4-sync-channels-maybe)
 (add-hook 'r4-tracks-mode-hook #'r4-sync-channels-maybe)
 
-;;;###autoload
+;;;###autoload (autoload 'r4-list-synced-channels "r4" nil t)
 (defun r4-list-synced-channels ()
   "List the synced channels, y stops syncing the channel at point."
   (interactive)

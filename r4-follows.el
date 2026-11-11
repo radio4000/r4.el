@@ -171,7 +171,7 @@ per Emacs session."
       (r4-read-channel prompt)
     (r4-channel-slug (r4-follows-my-channel))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-following "r4" nil t)
 (defun r4-following (slug)
   "List the channels that the channel SLUG follows, your channel by default.
 With a prefix argument, ask for the channel."
@@ -183,7 +183,7 @@ With a prefix argument, ask for the channel."
                        callback))
                     (list 'r4-following slug)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-followers "r4" nil t)
 (defun r4-followers (slug)
   "List the channels following the channel SLUG, your channel by default.
 With a prefix argument, ask for the channel."
@@ -210,7 +210,7 @@ Return non-nil if SOURCE is a feed."
 
 (add-hook 'r4-tracks-fetch-functions #'r4-follows--fetch-feed)
 
-;;;###autoload
+;;;###autoload (autoload 'r4-feed "r4" nil t)
 (defun r4-feed (slug)
   "List the latest tracks of the channels that SLUG follows.
 SLUG is your channel by default; with a prefix argument, ask for it."

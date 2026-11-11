@@ -47,7 +47,7 @@
 
 ;;;; Tracks
 
-;;;###autoload
+;;;###autoload (autoload 'r4-add-track "r4" nil t)
 (defun r4-add-track (slug)
   "Add a track to your radio4000.com channel SLUG."
   (interactive (list (r4-edit--read-my-channel "Add a track to your channel: @")))
@@ -130,7 +130,7 @@ In a local channel, remove them from the local channel."
 
 ;;;; Channels
 
-;;;###autoload
+;;;###autoload (autoload 'r4-create-channel "r4" nil t)
 (defun r4-create-channel (name slug &optional description)
   "Create the radio4000.com channel NAME, at SLUG, with DESCRIPTION."
   (interactive
@@ -186,7 +186,7 @@ In a local channel, remove them from the local channel."
   (interactive)
   (r4-delete-channel (r4-channel-slug (r4-channels--at-point))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-my-channels "r4" nil t)
 (defun r4-my-channels ()
   "List your radio4000.com channels."
   (interactive)

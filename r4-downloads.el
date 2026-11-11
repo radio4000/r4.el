@@ -144,7 +144,7 @@
   (add-hook 'tabulated-list-revert-hook #'r4-downloads--revert nil t)
   (tabulated-list-init-header))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-downloads "r4" nil t)
 (defun r4-downloads ()
   "List Radio4000 downloads."
   (interactive)

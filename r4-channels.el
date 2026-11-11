@@ -382,32 +382,32 @@ COMMAND, a list of a command and its arguments, shows them again."
     (revert-buffer)
     (pop-to-buffer-same-window (current-buffer))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-channels "r4" nil t)
 (defun r4-channels ()
   "List all Radio4000 channels, most recently active first."
   (interactive)
   (r4-channels--show nil))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-search-channels "r4" nil t)
 (defun r4-search-channels (query)
   "List the Radio4000 channels matching QUERY."
   (interactive (list (read-string "Search channels: ")))
   (r4-channels--show (if (string-blank-p query) nil query)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-open-channel "r4" nil t)
 (defun r4-open-channel (slug)
   "Show the tracks of the channel SLUG."
   (interactive (list (r4-read-channel "Channel: @")))
   (r4-tracks-show (list :slug slug)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-play-channel "r4" nil t)
 (defun r4-play-channel (slug)
   "Play all the tracks of the channel SLUG."
   (interactive (list (r4-read-channel "Play channel: @")))
   (message "Fetching @%s…" slug)
   (r4-api-tracks (lambda (tracks) (r4-player-play tracks)) :slug slug))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-download-channel "r4" nil t)
 (defun r4-download-channel (slug)
   "Download all the tracks of the channel SLUG.
 With a prefix argument, also retry the tracks that failed before."

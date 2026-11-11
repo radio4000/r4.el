@@ -241,7 +241,7 @@ groups instead."
 
 ;;;; Menus
 
-;;;###autoload (autoload 'r4-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-menu "r4" nil t)
 (r4-menus--define r4-menu
   "Radio4000 menu, of all the commands."
   [["Channels"
@@ -268,7 +268,7 @@ groups instead."
    ["Account"
     ("a" "Account…" r4-account-menu)]])
 
-;;;###autoload (autoload 'r4-player-share-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-player-share-menu "r4" nil t)
 (transient-define-prefix r4-player-share-menu ()
   "Menu sharing the playing track."
   [:description r4-menus--player
@@ -278,7 +278,7 @@ groups instead."
     ("o" "Open on radio4000.com" r4-player-browse-current :if r4-menus--playing-remote-p)
     ("O" "Open the media" r4-player-browse-media)]])
 
-;;;###autoload (autoload 'r4-local-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-local-menu "r4" nil t)
 (r4-menus--define r4-local-menu
   "Menu of the local channels."
   [["Local channels"
@@ -292,7 +292,7 @@ groups instead."
    ["Downloads"
     ("M" "Migrate r4.el 0.2 downloads" r4-files-migrate)]])
 
-;;;###autoload (autoload 'r4-account-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-account-menu "r4" nil t)
 (r4-menus--define r4-account-menu
   "Menu of your account."
   [:description r4-menus--account
@@ -310,7 +310,7 @@ groups instead."
     ("e" "Edit channel" r4-edit-channel)
     ("X" "Delete channel" r4-delete-channel)]])
 
-;;;###autoload (autoload 'r4-tracks-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-tracks-menu "r4" nil t)
 (r4-menus--define r4-tracks-menu
   "Menu of a list of tracks."
   [:description r4-menus--tracks-heading
@@ -356,7 +356,7 @@ groups instead."
     ("w" "Copy media URL" r4-tracks-copy-url)
     ("W" "Copy radio4000.com URL" r4-tracks-copy-web-url :if r4-menus--remote-list-p)]])
 
-;;;###autoload (autoload 'r4-channels-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-channels-menu "r4" nil t)
 (r4-menus--define r4-channels-menu
   "Menu of a list of channels."
   [:description r4-menus--channels-heading
@@ -389,7 +389,7 @@ groups instead."
     ("o" "Open on radio4000.com" r4-channels-browse)
     ("w" "Copy radio4000.com URL" r4-channels-copy-url)]])
 
-;;;###autoload (autoload 'r4-queue-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-queue-menu "r4" nil t)
 (r4-menus--define r4-queue-menu
   "Menu of the play queue."
   [:description r4-menus--queue-heading
@@ -405,7 +405,7 @@ groups instead."
     ("w" "Copy media URL" r4-queue-copy-url)
     ("W" "Copy radio4000.com URL" r4-queue-copy-web-url)]])
 
-;;;###autoload (autoload 'r4-channel-page-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-channel-page-menu "r4" nil t)
 (r4-menus--define r4-channel-page-menu
   "Menu of a channel page."
   [:description r4-menus--channel-page-heading
@@ -429,7 +429,7 @@ groups instead."
     ("w" "Copy radio4000.com URL" r4-channel-page-copy-url)
     ("g" "Refresh" revert-buffer)]])
 
-;;;###autoload (autoload 'r4-downloads-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-downloads-menu "r4" nil t)
 (r4-menus--define r4-downloads-menu
   "Menu of the downloads."
   [:description r4-menus--downloads-heading
@@ -446,7 +446,7 @@ groups instead."
     ("o" "Downloads folder" r4-files-open-directory)
     ("g" "Refresh" revert-buffer)]])
 
-;;;###autoload (autoload 'r4-broadcasts-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-broadcasts-menu "r4" nil t)
 (r4-menus--define r4-broadcasts-menu
   "Menu of the live broadcasts."
   [:description r4-menus--broadcasts-heading
@@ -455,7 +455,7 @@ groups instead."
     ("l" "Leave the broadcast" r4-broadcast-leave)
     ("g" "Refresh" revert-buffer)]])
 
-;;;###autoload (autoload 'r4-player-menu "r4-menus" nil t)
+;;;###autoload (autoload 'r4-player-menu "r4" nil t)
 (r4-menus--define r4-player-menu
   "Menu of the player.")
 

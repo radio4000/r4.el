@@ -103,7 +103,7 @@ TIME is an ISO 8601 timestamp.")
 
 (add-hook 'r4-tracks-fetch-functions #'r4-history--fetch)
 
-;;;###autoload
+;;;###autoload (autoload 'r4-history "r4" nil t)
 (defun r4-history ()
   "List the played tracks, newest first."
   (interactive)

@@ -143,7 +143,7 @@ Without PASSWORD, read it from `auth-source' (see
      (r4-auth--request "verify" `((type . "email") (email . ,email) (token . ,code))))
     (message "Signed in to Radio4000 as %s" email)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-login "r4" nil t)
 (defun r4-login (email)
   "Sign in to radio4000.com as EMAIL.
 Use the password from `auth-source' if there is one, or else ask
@@ -157,7 +157,7 @@ for a code sent by email or for the password."
       ("code" (r4-login-with-email-code email))
       (_ (r4-login-with-password email)))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-logout "r4" nil t)
 (defun r4-logout ()
   "Sign out of radio4000.com."
   (interactive)
@@ -169,7 +169,7 @@ for a code sent by email or for the password."
   (r4-auth--save)
   (message "Signed out of Radio4000"))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-whoami "r4" nil t)
 (defun r4-whoami ()
   "Show the signed in radio4000.com user."
   (interactive)

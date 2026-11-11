@@ -121,7 +121,7 @@ same slug, offer to link them."
           (user-error "Cancelled"))
         taken))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-sync-channel "r4" nil t)
 (defun r4-sync-channel (slug)
   "Sync the local channel SLUG with radio4000.com.
 Publish the channel if needed, upload the tracks only in the local
@@ -165,7 +165,7 @@ channel and download the tracks only in the remote channel."
         (message "Synced @%s: uploaded %d, downloaded %d tracks — %s"
                  slug (length to-push) (length to-pull) (r4-channel-web-url channel))))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-sync-pull-channel "r4" nil t)
 (defun r4-sync-pull-channel (slug)
   "Save a local copy of your radio4000.com channel SLUG, to sync it later."
   (interactive

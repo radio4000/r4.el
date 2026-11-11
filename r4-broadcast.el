@@ -207,7 +207,7 @@ calculateSeekTime of radio4000.com."
   (setq-local revert-buffer-function #'r4-broadcasts-revert)
   (tabulated-list-init-header))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-broadcasts "r4" nil t)
 (defun r4-broadcasts ()
   "List the live broadcasts of radio4000.com, RET listens to one."
   (interactive)

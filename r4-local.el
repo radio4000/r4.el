@@ -170,7 +170,7 @@ If ALLOW-NEW is non-nil, a new name creates the channel."
            (r4-channel-slug (r4-local-create-channel slug)))
           (t (user-error "Cancelled")))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-local-create-channel "r4" nil t)
 (defun r4-local-create-channel (name &optional description)
   "Create a local channel named NAME, with an optional DESCRIPTION.
 Return the new `r4-channel'."
@@ -187,7 +187,7 @@ Return the new `r4-channel'."
       (message "Created the local channel @%s in %s" slug (r4-local-file slug))
       channel)))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-local-open-channel "r4" nil t)
 (defun r4-local-open-channel (slug)
   "Show the tracks of the local channel SLUG."
   (interactive (list (r4-read-local-channel "Local channel: @")))
@@ -222,7 +222,7 @@ Return the new `r4-channel'."
                  (equal (plist-get r4-tracks--source :slug) slug))
         (revert-buffer)))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-local-add-track "r4" nil t)
 (defun r4-local-add-track (slug url title &optional description)
   "Add the track URL with TITLE and DESCRIPTION to the local channel SLUG.
 Interactively, SLUG is the local channel of the list, or else asked,
@@ -266,7 +266,7 @@ and the title is fetched from the URL, if possible."
                                       (cdr local)))
         (r4-local--refresh slug)))))
 
-;;;###autoload
+;;;###autoload (autoload 'r4-local-save-channel "r4" nil t)
 (defun r4-local-save-channel (slug)
   "Save a local copy of the remote channel SLUG, to browse it offline.
 An existing local channel SLUG is replaced."
