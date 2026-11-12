@@ -10,10 +10,14 @@
 ;; code sent by email (like the web app), or with a password read from
 ;; `auth-source'.  The session is refreshed automatically and saved in
 ;; `r4-auth-session-file', readable only by the user.
+;;
+;; Admins also verify codes from an authenticator app (2FA) to
+;; moderate: `r4-auth-setup-code' once, then `r4-auth-verify-code'.
 
 ;;; Code:
 
 (require 'auth-source)
+(require 'seq)
 (require 'r4-api)
 
 (defcustom r4-auth-source-host "radio4000.com"
@@ -177,6 +181,93 @@ for a code sent by email or for the password."
   (setq r4-auth--session nil)
   (r4-auth--save)
   (message "Signed out of Radio4000"))
+
+;;;; Codes from an authenticator app (2FA)
+
+;; radio4000.com admins need a code verified in the last minutes to
+;; moderate, so that their everyday session can't.  Other accounts
+;; never set one up.
+
+(defun r4-auth--factors ()
+  "Return the authenticator apps (TOTP factors) of the signed in account."
+  (seq-filter (lambda (factor) (equal (alist-get 'factor_type factor) "totp"))
+              (alist-get 'factors (r4-api-request "GET" "/auth/v1/user"
+                                                  :token (r4-auth-token)))))
+
+(defun r4-auth--verify-factor (id)
+  "Ask for a code of the authenticator app ID, verify it, and update the session."
+  (let* ((token (r4-auth-token))
+         (challenge (r4-api-request "POST" (format "/auth/v1/factors/%s/challenge" id)
+                                    :body (make-hash-table) :token token))
+         (code (string-trim (read-string "Code from your authenticator app: "))))
+    (r4-auth--set-session
+     (r4-api-request "POST" (format "/auth/v1/factors/%s/verify" id)
+                     :body `((challenge_id . ,(alist-get 'id challenge)) (code . ,code))
+                     :token token))))
+
+;;;###autoload (autoload 'r4-auth-verify-code "r4" nil t)
+(defun r4-auth-verify-code ()
+  "Ask for a code from your authenticator app, and verify it.
+For a few minutes, the session can then do what needs a code,
+such as quarantine (see `r4-quarantine')."
+  (interactive)
+  (r4-auth-require)
+  (let ((factor (seq-find (lambda (factor) (equal (alist-get 'status factor) "verified"))
+                          (r4-auth--factors))))
+    (unless factor
+      (user-error "No authenticator app on this account, set one up with `r4-auth-setup-code'"))
+    (r4-auth--verify-factor (alist-get 'id factor))
+    (message "r4: code verified")))
+
+(defun r4-auth--show-qr-code (factor)
+  "Show the QR code and the secret of the new authenticator app FACTOR."
+  (let-alist factor
+    (with-current-buffer (get-buffer-create "*r4 authenticator*")
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert "Scan this QR code with your authenticator app, then type its code.\n\n")
+        (when (and (display-images-p) (image-type-available-p 'svg))
+          (insert-image (create-image .totp.qr_code 'svg t :background "white" :scale 1.5))
+          (insert "\n\n"))
+        (insert "Or add this key in the app:\n\n  " .totp.secret "\n\n" .totp.uri "\n"))
+      (special-mode)
+      (pop-to-buffer (current-buffer)))))
+
+;;;###autoload (autoload 'r4-auth-setup-code "r4" nil t)
+(defun r4-auth-setup-code ()
+  "Set up an authenticator app (2FA) for the signed in account.
+Show a QR code to scan with the app, then verify its first code.
+radio4000.com admins need a code to moderate."
+  (interactive)
+  (r4-auth-require)
+  (let ((factors (r4-auth--factors))
+        (token (r4-auth-token)))
+    (when (and (seq-find (lambda (factor) (equal (alist-get 'status factor) "verified")) factors)
+               (not (yes-or-no-p "This account has an authenticator app already.  Add another? ")))
+      (user-error "Use the app you have, with `r4-auth-verify-code'"))
+    ;; A setup left unfinished blocks a new one.
+    (dolist (factor factors)
+      (unless (equal (alist-get 'status factor) "verified")
+        (ignore-errors
+          (r4-api-request "DELETE" (format "/auth/v1/factors/%s" (alist-get 'id factor))
+                          :token token))))
+    (let ((factor (r4-api-request "POST" "/auth/v1/factors" :token token
+                                  :body `((factor_type . "totp")
+                                          (friendly_name . ,(format-time-string "r4.el %F %T")))))
+          (done nil))
+      (unwind-protect
+          (progn
+            (r4-auth--show-qr-code factor)
+            (r4-auth--verify-factor (alist-get 'id factor))
+            (setq done t)
+            (message "r4: authenticator app set up"))
+        ;; The secret doesn't stay on screen, nor an unfinished setup.
+        (when-let* ((buffer (get-buffer "*r4 authenticator*")))
+          (kill-buffer buffer))
+        (unless done
+          (ignore-errors
+            (r4-api-request "DELETE" (format "/auth/v1/factors/%s" (alist-get 'id factor))
+                            :token token)))))))
 
 ;;;###autoload (autoload 'r4-whoami "r4" nil t)
 (defun r4-whoami ()

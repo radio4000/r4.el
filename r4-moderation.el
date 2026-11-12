@@ -16,7 +16,10 @@
 ;; or releases it if quarantined.  `r4-quarantine' lists the
 ;; quarantined accounts, with the day each will be deleted; K releases
 ;; the one at point.  Only admins can: accounts with "admin" in their
-;; app_metadata, which the database owners set.
+;; app_metadata, which the database owners set.  Quarantine and release
+;; also need a recent code from the admin's authenticator app (2FA), so
+;; that their everyday session can't: set the app up once with
+;; `r4-auth-setup-code', then r4 asks for a code when needed.
 
 ;;; Code:
 
@@ -43,6 +46,17 @@
                   :body (or args (make-hash-table))
                   :token (r4-auth-token)))
 
+(defun r4-moderation--act (function slug)
+  "Call the database FUNCTION on the channel SLUG, which needs a 2FA code.
+Without a recent code, the database refuses: ask for one and try again."
+  (condition-case err
+      (r4-moderation--rpc function `((channel_slug . ,slug)))
+    (r4-api-error
+     (unless (string-search "admin code needed" (error-message-string err))
+       (signal (car err) (cdr err)))
+     (r4-auth-verify-code)
+     (r4-moderation--rpc function `((channel_slug . ,slug))))))
+
 (defun r4-quarantine-accounts ()
   "Return the quarantined accounts, the oldest first.
 Each is an alist with user_id, channel_slugs, quarantined_at,
@@ -66,12 +80,12 @@ Look in ACCOUNTS, else ask the database."
   (if-let* ((account (r4-quarantine--account slug)))
       (let ((slugs (mapconcat (lambda (s) (concat "@" s)) (alist-get 'channel_slugs account) " ")))
         (when (yes-or-no-p (format "Release the account of %s? " slugs))
-          (r4-moderation--rpc "release_user_by_channel_slug" `((channel_slug . ,slug)))
+          (r4-moderation--act "release_user_by_channel_slug" slug)
           (message "r4: released the account of %s" slugs)))
     (when (yes-or-no-p
            (format "Hide all the channels of @%s's account, block its sign in, and delete it in 30 days unless released.  Quarantine it? "
                    slug))
-      (r4-moderation--rpc "quarantine_user_by_channel_slug" `((channel_slug . ,slug)))
+      (r4-moderation--act "quarantine_user_by_channel_slug" slug)
       (message "r4: quarantined the account of @%s, deleted on %s unless released"
                slug (r4-quarantine--day
                      (alist-get 'purge_at (r4-quarantine--account slug))))))

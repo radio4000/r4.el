@@ -16,7 +16,7 @@ The Radio4000 Supabase REST API client.
 #+INCLUDE: "r4-api.el" src emacs-lisp
 
 ** r4-auth.el
-Signing in to radio4000.com.
+Signing in to radio4000.com, and the 2FA codes of admins.
 #+INCLUDE: "r4-auth.el" src emacs-lisp
 
 * Media

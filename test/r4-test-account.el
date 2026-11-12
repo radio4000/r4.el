@@ -168,10 +168,34 @@
     (should-not (seq-find (lambda (request) (string-search "/rpc/" (nth 1 request)))
                           r4-test--requests))))
 
+(ert-deftest r4-test-quarantine-needs-a-code ()
+  (let ((r4-test--admin t))
+    (r4-test--with-backend
+      ;; The everyday session of an admin, without an authenticator app.
+      (should-error (r4-quarantine-toggle "spam") :type 'user-error)
+      (should-not (alist-get 'quarantined r4-test--db))
+      ;; A wrong code leaves no app half set up.
+      (r4-test--with-answers (list "000000")
+        (should-error (r4-auth-setup-code) :type 'r4-api-error))
+      (should-not (alist-get 'factors r4-test--db))
+      (should-not (get-buffer "*r4 authenticator*"))
+      (r4-test--with-answers (list "123456")
+        (r4-auth-setup-code))
+      (should (equal (alist-get 'status (car (alist-get 'factors r4-test--db))) "verified"))
+      (should (r4-auth-admin-p))
+      ;; Later, the session has no recent code: quarantine asks for one.
+      (setf (plist-get r4-auth--session :access-token) "token-1")
+      (r4-test--with-answers (list "123456")
+        (r4-quarantine-toggle "spam"))
+      (should (alist-get 'quarantined r4-test--db))
+      (should (equal (plist-get r4-auth--session :access-token) "token-2fa")))))
+
 (ert-deftest r4-test-quarantine ()
   (let ((r4-test--admin t))
     (r4-test--with-backend
       (should (r4-auth-admin-p))
+      ;; A session with a recent code.
+      (setf (plist-get r4-auth--session :access-token) "token-2fa")
       ;; K in a channel list quarantines the account of the channel at point.
       (with-temp-buffer
         (r4-channels-mode)

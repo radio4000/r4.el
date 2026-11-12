@@ -311,7 +311,9 @@ groups instead."
     ("e" "Edit channel" r4-edit-channel)
     ("X" "Delete channel" r4-delete-channel)]
    ["Admin" :if r4-auth-admin-p
-    ("K" "Quarantined accounts" r4-quarantine)]])
+    ("K" "Quarantined accounts" r4-quarantine)
+    ("2" "Set up 2FA" r4-auth-setup-code)
+    ("c" "Verify a 2FA code" r4-auth-verify-code)]])
 
 ;;;###autoload (autoload 'r4-tracks-menu "r4" nil t)
 (r4-menus--define r4-tracks-menu
