@@ -210,7 +210,7 @@
                   ;; The controls and their keys, when asked for.
                   (let ((r4-player-window-show-controls t))
                     (r4-player--changed)
-                    (should (string-match-p "\nM-p previous  SPC play" (buffer-string)))
+                    (should (string-match-p "\n\\[ previous  SPC play" (buffer-string)))
                     (should (string-search "b stop live" (buffer-string)))
                     (save-excursion
                       (goto-char (point-min))
@@ -442,11 +442,13 @@
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map
                      r4-downloads-mode-map r4-broadcasts-mode-map r4-home-mode-map
                      r4-channel-page-mode-map r4-player-window-mode-map))
-    ;; The player is on Meta, the Emacs keys of lists stay.
-    (should (eq (keymap-lookup map "M-n") 'r4-player-next))
-    (should (eq (keymap-lookup map "M-f") 'r4-player-seek-forward))
-    (should-not (memq (keymap-lookup map ">") '(r4-player-next)))
-    (should-not (memq (keymap-lookup map "-") '(r4-player-volume-down)))
+    ;; The player keys leave the keys and movements of Emacs alone.
+    (should (eq (keymap-lookup map "]") 'r4-player-next))
+    (should (eq (keymap-lookup map ".") 'r4-player-seek-forward))
+    (dolist (key '("M-n" "M-p" "M-f" "M-b" "<" ">" "-"))
+      (should-not (memq (keymap-lookup map key)
+                        '(r4-player-next r4-player-previous r4-player-volume-down
+                          r4-player-seek-forward r4-player-seek-backward))))
     ;; Like magit, the main views are a key away in every r4 buffer.
     (should (eq (keymap-lookup map "^") 'r4-up))
     (should (eq (keymap-lookup map "j") 'r4-channel-page)))

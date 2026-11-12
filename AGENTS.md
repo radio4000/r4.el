@@ -61,8 +61,8 @@ Mechanisms that cut across files:
   the state of a list inside `r4-menus--in-buffer`. Each r4 buffer binds
   `?` to its own menu, whose heading says what it acts on.
 - Shared keys (`r4-player-map`, the parent of every r4 keymap): the
-  player keys, on Meta (`M-n` `M-p` tracks, `M-f` `M-b` seek, `M-<up>`
-  `M-<down>` volume) and `SPC` pause, and the main views (`^` up, `j`
+  player keys (`]` `[` tracks, `.` `,` seek, `M-<up>` `M-<down>`
+  volume, the media keys) and `SPC` pause, and the main views (`^` up, `j`
   visit a channel, `E`, `B`, `H`). A list key must not hide them; the
   tests check it.
 - Autoload cookies load the whole package:
@@ -74,7 +74,8 @@ Mechanisms that cut across files:
   examples: `C-c r` and `C-c 4`).
 - Keys stay close to Emacs: never take a key Emacs gives a meaning in
   `special-mode`, `tabulated-list-mode` or Dired (`n` `p` `<` `>` `-`
-  digits `g` `q` `h`), except `SPC` for pause. Lists follow Dired
+  digits `g` `q` `h`), nor a movement or a Meta convention (`M-f`
+  `M-b` words, `M-n` `M-p` next and previous), except `SPC` for pause. Lists follow Dired
   (`m` `u` `U` `t` `% m` marks, actions on the marked items else the one
   at point, `^` up, `j` jump, `w` copy, `v` view); uppercase acts on
   the whole list or is bigger; a prefix argument varies a command

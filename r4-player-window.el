@@ -106,11 +106,11 @@ always shows them."
   :group 'r4)
 
 (defconst r4-player-controls
-  '(("M-p" "previous" r4-player-previous)
+  '(("[" "previous" r4-player-previous)
     ("SPC" "pause" r4-player-toggle-pause r4-player-paused "play")
-    ("M-n" "next" r4-player-next)
-    ("M-b" "-10s" r4-player-seek-backward)
-    ("M-f" "+10s" r4-player-seek-forward)
+    ("]" "next" r4-player-next)
+    ("," "-10s" r4-player-seek-backward)
+    ("." "+10s" r4-player-seek-forward)
     ("M-<down>" "quieter" r4-player-volume-down)
     ("M-<up>" "louder" r4-player-volume-up)
     ("Z" "shuffle" r4-player-toggle-shuffle r4-player-shuffle)

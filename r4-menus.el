@@ -202,11 +202,11 @@
   (defconst r4-menus--player-group
     [:description r4-menus--player
      [("SPC" "Pause/resume" r4-player-toggle-pause :transient t)
-      ("M-n" "Next track" r4-player-next :transient t)
-      ("M-p" "Previous track" r4-player-previous :transient t)
+      ("]" "Next track" r4-player-next :transient t)
+      ("[" "Previous track" r4-player-previous :transient t)
       ("k" "Stop" r4-player-stop)]
-     [("M-f" "Seek forward" r4-player-seek-forward :transient t)
-      ("M-b" "Seek backward" r4-player-seek-backward :transient t)
+     [("." "Seek forward" r4-player-seek-forward :transient t)
+      ("," "Seek backward" r4-player-seek-backward :transient t)
       ("M-<up>" "Volume up" r4-player-volume-up :transient t)
       ("M-<down>" "Volume down" r4-player-volume-down :transient t)]
      [("Z" r4-player-toggle-shuffle :description r4-menus--shuffle :transient t)
@@ -224,7 +224,7 @@
      [("E" "Explore" r4-explore)
       ("B" "Broadcasts" r4-broadcasts)]
      [("H" "History" r4-history)
-      ("." "All commands" r4-menu)]]
+      (":" "All commands" r4-menu)]]
     "The group of the r4 menus going to the main views.
 Their keys work in every r4 buffer, see `r4-player-map'."))
 

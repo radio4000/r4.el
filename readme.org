@@ -155,14 +155,16 @@ to the channels, to home.
 
 *** The player
 Tracks play with mpv, from disk when downloaded.  The player keys work
-in every r4 buffer.  They are on Meta, and leave the keys of Emacs
-alone: =n= and =p= move between lines, =M-n= and =M-p= between tracks.
+in every r4 buffer, and leave the keys and movements of Emacs alone:
+=n= and =p= move between lines, =]= and =[= between tracks.  The media
+keys of the keyboard work too.  To use them from anywhere, bind them,
+for example =(keymap-global-set "<XF86AudioNext>" #'r4-player-next)=.
 
 | Key             | Player                         |
 |-----------------+--------------------------------|
 | =SPC=           | Pause, resume                  |
-| =M-n= =M-p=     | Next, previous track           |
-| =M-f= =M-b=     | Seek forward, backward         |
+| =]= =[=         | Next, previous track           |
+| =.= =,=         | Seek forward, backward         |
 | =M-<up>= =M-<down>= | Volume                     |
 | =Z=             | Toggle shuffle                 |
 | =V=             | Toggle video, =C-u V= pops it out |

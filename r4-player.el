@@ -540,15 +540,19 @@ the queue."
 
 (defvar-keymap r4-player-map
   :doc "Keys of the player, shared by the r4 buffers.
-They stay clear of the Emacs keys of lists: the player is on Meta,
-M-n and M-p for the next and previous track, M-f and M-b to seek, as
-forward and backward.  The r4 menus add the keys going to the main
-views, such as j to visit a channel."
+They stay clear of the keys and movements of Emacs: ] and [ for the
+next and previous track, . and , to seek forward and backward, and the
+media keys of the keyboard.  The r4 menus add the keys going to the
+main views, such as j to visit a channel."
   "SPC" #'r4-player-toggle-pause
-  "M-n" #'r4-player-next
-  "M-p" #'r4-player-previous
-  "M-f" #'r4-player-seek-forward
-  "M-b" #'r4-player-seek-backward
+  "]" #'r4-player-next
+  "[" #'r4-player-previous
+  "." #'r4-player-seek-forward
+  "," #'r4-player-seek-backward
+  "<XF86AudioPlay>" #'r4-player-toggle-pause
+  "<XF86AudioPause>" #'r4-player-toggle-pause
+  "<XF86AudioNext>" #'r4-player-next
+  "<XF86AudioPrev>" #'r4-player-previous
   "M-<up>" #'r4-player-volume-up
   "M-<down>" #'r4-player-volume-down
   "Z" #'r4-player-toggle-shuffle
