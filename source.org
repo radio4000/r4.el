@@ -16,7 +16,7 @@ The Radio4000 Supabase REST API client.
 #+INCLUDE: "r4-api.el" src emacs-lisp
 
 ** r4-auth.el
-Signing in to radio4000.com.
+Signing in to radio4000.com, and the 2FA codes of admins.
 #+INCLUDE: "r4-auth.el" src emacs-lisp
 
 * Media
@@ -67,6 +67,10 @@ Listening to live broadcasts.
 ** r4-broadcasting.el
 Broadcasting your player, like the live button of radio4000.com.
 #+INCLUDE: "r4-broadcasting.el" src emacs-lisp
+
+** r4-moderation.el
+Quarantining spam accounts, for admins.
+#+INCLUDE: "r4-moderation.el" src emacs-lisp
 
 ** r4-history.el
 The tracks played, kept on this computer.

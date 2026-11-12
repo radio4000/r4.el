@@ -378,6 +378,25 @@ it. Local and remote channels and tracks share the same ids, so
 syncing again is safe. To work on an existing channel of yours, start
 with =r4-sync-pull-channel=.
 
+*** Moderation, for admins
+Admins of radio4000.com quarantine the accounts that fill channels
+with spam. =K= in a channel list quarantines the account of the
+channel at point, all its channels: they are hidden from everyone but
+admins, the account can't sign in, and it is deleted after 30 days
+unless released. =K= again releases it. =r4-quarantine= (menu =a K=)
+lists the quarantined accounts with the day each will be deleted;
+=K= releases the one at point.
+
+Admins are accounts that the radio4000.com database owners mark as
+such. Sign in again after becoming one.
+
+Quarantine and release also need a code from your authenticator app
+(2FA), verified in the last 15 minutes, so that a radio left signed in
+can't moderate. Set the app up once with =r4-auth-setup-code= (menu
+=a 2=): scan the QR code, type the first code. Then r4 asks for a code
+when an action needs one, or verify one ahead with
+=r4-auth-verify-code= (menu =a c=).
+
 ** Source code
 Read the source code, file by file, on the website:
 [[https://radio4000.github.io/r4.el/source.html][radio4000.github.io/r4.el/source.html]] (or [[file:source.org][source.org]]).

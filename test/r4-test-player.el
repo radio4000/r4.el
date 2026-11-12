@@ -441,7 +441,7 @@
   ;; The player keys work in every list.
   (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map
                      r4-downloads-mode-map r4-broadcasts-mode-map r4-home-mode-map
-                     r4-channel-page-mode-map r4-player-window-mode-map))
+                     r4-channel-page-mode-map r4-player-window-mode-map r4-quarantine-mode-map))
     ;; The player keys leave the keys and movements of Emacs alone.
     (should (eq (keymap-lookup map "]") 'r4-player-next))
     (should (eq (keymap-lookup map ".") 'r4-player-seek-forward))
@@ -456,14 +456,16 @@
     (should (eq (keymap-lookup map "S") 'tabulated-list-sort))
     (should (eq (keymap-lookup map "n") 'next-line)))
   ;; No list key hides a player key, and no menu has the same key twice.
-  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map))
+  (dolist (map (list r4-tracks-mode-map r4-channels-mode-map r4-queue-mode-map
+                     r4-quarantine-mode-map))
     (map-keymap (lambda (key _)
                   (when-let* ((player (lookup-key r4-player-map (vector key)))
                               ((commandp player)))
                     (should (eq player (lookup-key map (vector key))))))
                 map))
   (dolist (menu '(r4-menu r4-local-menu r4-account-menu r4-tracks-menu r4-channels-menu r4-queue-menu
-                  r4-channel-page-menu r4-downloads-menu r4-broadcasts-menu r4-player-menu))
+                  r4-channel-page-menu r4-downloads-menu r4-broadcasts-menu r4-player-menu
+                  r4-quarantine-menu))
     (let (keys)
       ;; Find the :key of the suffixes, in any version of transient.
       (cl-labels ((collect (x)

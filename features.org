@@ -94,6 +94,8 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Follow, unfollow a channel       | follow button                   | =r4-channels-follow=           | =f=            |
 | Feed of followed channels        | home feed                       | =r4-feed=                      | menu =f=       |
 | Following, followers             | /@slug/following, /followers    | =r4-following=, =r4-followers= | =F= =r=        |
+| Quarantine, release a spam account (admins) | /docs/spam-angel     | =r4-channels-quarantine=, =r4-quarantine= | =K=, menu =K= |
+| Set up 2FA, verify a code (admins)          | /docs/spam-angel     | =r4-auth-setup-code=, =r4-auth-verify-code= | menu =2=, =c= |
 
 * Local first
 | Feature                                 | Web             | Emacs                        | Key        |
