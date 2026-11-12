@@ -31,8 +31,8 @@ nil keeps the session in memory only."
 
 (defvar r4-auth--session nil
   "Plist of the current session, or nil when signed out.
-Its keys are :access-token, :refresh-token, :expires-at, :user-id
-and :email.")
+Its keys are :access-token, :refresh-token, :expires-at, :user-id,
+:email and :admin.")
 
 ;;;; Session
 
@@ -66,7 +66,9 @@ and :email.")
                 :refresh-token .refresh_token
                 :expires-at (or .expires_at (+ (floor (float-time)) .expires_in))
                 :user-id .user.id
-                :email .user.email)))
+                :email .user.email
+                ;; Set by the radio4000.com database owners only.
+                :admin (eq .user.app_metadata.admin t))))
   (r4-auth--save)
   r4-auth--session)
 
@@ -104,6 +106,13 @@ and :email.")
   (or (r4-auth-session)
       (progn (call-interactively #'r4-login)
              (or (r4-auth-session) (user-error "Not signed in")))))
+
+(defun r4-auth-admin-p ()
+  "Return non-nil if the signed in user is a radio4000.com admin.
+Admins moderate, see `r4-quarantine'.  Read from the saved session,
+without checking it online: the database checks it again."
+  (r4-auth--load)
+  (plist-get r4-auth--session :admin))
 
 (defun r4-auth-token ()
   "Return a valid access token, signing in first if needed."

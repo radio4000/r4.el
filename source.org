@@ -68,6 +68,10 @@ Listening to live broadcasts.
 Broadcasting your player, like the live button of radio4000.com.
 #+INCLUDE: "r4-broadcasting.el" src emacs-lisp
 
+** r4-moderation.el
+Quarantining spam accounts, for admins.
+#+INCLUDE: "r4-moderation.el" src emacs-lisp
+
 ** r4-history.el
 The tracks played, kept on this computer.
 #+INCLUDE: "r4-history.el" src emacs-lisp

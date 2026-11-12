@@ -159,6 +159,48 @@
     (should (equal (alist-get 'channel_id (car (alist-get 'channel_track r4-test--db)))
                    "remote-id"))))
 
+(ert-deftest r4-test-quarantine-refused-to-users ()
+  (r4-test--with-backend
+    (should-not (r4-auth-admin-p))
+    (should-error (r4-quarantine) :type 'user-error)
+    (should-error (r4-quarantine-toggle "spam") :type 'user-error)
+    ;; Nothing reached the database.
+    (should-not (seq-find (lambda (request) (string-search "/rpc/" (nth 1 request)))
+                          r4-test--requests))))
+
+(ert-deftest r4-test-quarantine ()
+  (let ((r4-test--admin t))
+    (r4-test--with-backend
+      (should (r4-auth-admin-p))
+      ;; K in a channel list quarantines the account of the channel at point.
+      (with-temp-buffer
+        (r4-channels-mode)
+        (setq tabulated-list-entries
+              (list (list (r4-channel-create :slug "spam")
+                          (make-vector (length tabulated-list-format) ""))))
+        (tabulated-list-print)
+        (goto-char (point-min))
+        (should (eq (keymap-lookup r4-channels-mode-map "K") 'r4-channels-quarantine))
+        (r4-channels-quarantine))
+      (should (equal (assoc-default 'channel_slug (nth 3 (car (seq-filter
+                                                             (lambda (r) (string-suffix-p "/rpc/quarantine_user_by_channel_slug" (nth 1 r)))
+                                                             r4-test--requests))))
+                     "spam"))
+      ;; The list of quarantined accounts shows it, with its purge day.
+      (r4-quarantine)
+      (unwind-protect
+          (with-current-buffer r4-quarantine-buffer
+            (should (eq major-mode 'r4-quarantine-mode))
+            (should (equal (mapcar (lambda (entry) (append (cadr entry) nil)) tabulated-list-entries)
+                           '(("@spam" "2026-11-12" "2026-12-12" "you"))))
+            (should (eq (keymap-lookup r4-quarantine-mode-map "?") 'r4-quarantine-menu))
+            ;; K releases it, and the list follows.
+            (goto-char (point-min))
+            (r4-quarantine-release)
+            (should-not tabulated-list-entries)
+            (should-not (alist-get 'quarantined r4-test--db)))
+        (kill-buffer r4-quarantine-buffer)))))
+
 (provide 'r4-test-account)
 
 ;;; r4-test-account.el ends here

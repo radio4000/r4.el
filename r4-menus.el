@@ -34,6 +34,7 @@
 (require 'r4-channel-page)
 (require 'r4-home)
 (require 'r4-broadcasting)
+(require 'r4-moderation)
 
 ;;;; Descriptions showing the state
 
@@ -308,7 +309,9 @@ groups instead."
     ("A" "Add track" r4-add-track)
     ("C" "Create channel" r4-create-channel)
     ("e" "Edit channel" r4-edit-channel)
-    ("X" "Delete channel" r4-delete-channel)]])
+    ("X" "Delete channel" r4-delete-channel)]
+   ["Admin" :if r4-auth-admin-p
+    ("K" "Quarantined accounts" r4-quarantine)]])
 
 ;;;###autoload (autoload 'r4-tracks-menu "r4" nil t)
 (r4-menus--define r4-tracks-menu
@@ -384,7 +387,8 @@ groups instead."
    ["Edit"
     ("A" "Create channel" r4-create-channel)
     ("e" "Edit channel" r4-channels-edit)
-    ("x" "Delete channel" r4-channels-delete)]
+    ("x" "Delete channel" r4-channels-delete)
+    ("K" "Quarantine/release account" r4-channels-quarantine :if r4-auth-admin-p)]
    ["Share"
     ("o" "Open on radio4000.com" r4-channels-browse)
     ("w" "Copy radio4000.com URL" r4-channels-copy-url)]])
@@ -446,6 +450,15 @@ groups instead."
     ("o" "Downloads folder" r4-files-open-directory)
     ("g" "Refresh" revert-buffer)]])
 
+;;;###autoload (autoload 'r4-quarantine-menu "r4" nil t)
+(r4-menus--define r4-quarantine-menu
+  "Menu of the quarantined accounts, for admins."
+  ["Quarantined accounts, deleted on their purge day unless released"
+   ["Account"
+    ("RET" "Visit its channel" r4-quarantine-visit)
+    ("K" "Release" r4-quarantine-release)
+    ("g" "Refresh" revert-buffer)]])
+
 ;;;###autoload (autoload 'r4-broadcasts-menu "r4" nil t)
 (r4-menus--define r4-broadcasts-menu
   "Menu of the live broadcasts."
@@ -473,6 +486,7 @@ groups instead."
 (keymap-set r4-channel-page-mode-map "?" #'r4-channel-page-menu)
 (keymap-set r4-downloads-mode-map "?" #'r4-downloads-menu)
 (keymap-set r4-broadcasts-mode-map "?" #'r4-broadcasts-menu)
+(keymap-set r4-quarantine-mode-map "?" #'r4-quarantine-menu)
 (keymap-set r4-player-window-mode-map "?" #'r4-player-menu)
 
 (provide 'r4-menus)

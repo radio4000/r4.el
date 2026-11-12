@@ -27,6 +27,31 @@
 
 (defvar r4-test--requests nil "Requests received by the fake backend.")
 
+(defvar r4-test--admin nil "Non-nil when the fake user is an admin.")
+
+(defun r4-test--rpc (function body)
+  "Answer the database FUNCTION called with BODY, as Supabase does for an admin.
+Quarantined accounts are the rows of `quarantined' in `r4-test--db'."
+  (let ((slug (and (consp body) (alist-get 'channel_slug body)))
+        (accounts (alist-get 'quarantined r4-test--db)))
+    (pcase function
+      ("quarantined_accounts" accounts)
+      ("quarantine_user_by_channel_slug"
+       (when (seq-find (lambda (a) (member slug (alist-get 'channel_slugs a))) accounts)
+         (signal 'r4-api-error (list (format "the account of %s is already quarantined" slug))))
+       (setf (alist-get 'quarantined r4-test--db)
+             (append accounts
+                     `(((user_id . ,(concat "user-" slug)) (channel_slugs ,slug)
+                        (quarantined_at . "2026-11-12T10:00:00+00:00") (quarantined_by . "user-1")
+                        (purge_at . "2026-12-12T10:00:00+00:00")))))
+       nil)
+      ("release_user_by_channel_slug"
+       (unless (seq-find (lambda (a) (member slug (alist-get 'channel_slugs a))) accounts)
+         (signal 'r4-api-error (list (format "the account of %s is not quarantined" slug))))
+       (setf (alist-get 'quarantined r4-test--db)
+             (seq-remove (lambda (a) (member slug (alist-get 'channel_slugs a))) accounts))
+       nil))))
+
 (defun r4-test--param (params key)
   "Return the value of KEY in PARAMS, without its eq. prefix."
   (when-let* ((value (cadr (assoc key params))))
@@ -48,8 +73,9 @@
   (pcase (list method path)
     (`("POST" "/auth/v1/token?grant_type=password")
      (if (equal (alist-get 'password body) "secret")
-         '((access_token . "token-1") (refresh_token . "refresh-1") (expires_in . 3600)
-           (user (id . "user-1") (email . "me@example.org")))
+         `((access_token . "token-1") (refresh_token . "refresh-1") (expires_in . 3600)
+           (user (id . "user-1") (email . "me@example.org")
+                 (app_metadata (admin . ,r4-test--admin))))
        (signal 'r4-api-error '("Invalid login credentials"))))
     (`("POST" "/auth/v1/token?grant_type=refresh_token")
      (if (equal (alist-get 'refresh_token body) "refresh-1")
@@ -81,6 +107,11 @@
          (pcase-dolist (`(,field . ,value) body)
            (setf (alist-get field row) value))))
      nil)
+    (`("POST" ,(rx "/rest/v1/rpc/" (let function (+ anychar))))
+     ;; The database refuses anyone but admins.
+     (unless (and (equal token "token-1") r4-test--admin)
+       (signal 'r4-api-error '("not authorized")))
+     (r4-test--rpc function body))
     (`("POST" ,(rx "/rest/v1/" (let table (+ anychar))))
      (unless (equal token "token-1") (signal 'r4-api-error '("unauthorized")))
      (let ((key (intern table)))
