@@ -338,7 +338,7 @@ groups instead."
   [["Download"
     ("d" "Marked or at point" r4-tracks-download)
     ("D" "All" r4-tracks-download-all)
-    ("F" "Visit file" r4-tracks-open-file)
+    ("F" "Visit file or folder" r4-tracks-open-file)
     ("L" "Downloads" r4-downloads)
     ("y" r4-tracks-toggle-sync :description r4-menus--list-sync
      :if r4-menus--remote-list-p)]
@@ -379,6 +379,7 @@ groups instead."
     ("r" "Followers" r4-channels-followers)]]
   [["Download"
     ("D" "Download channel" r4-channels-download)
+    ("C-x C-j" "Downloads folder" r4-channels-open-directory)
     ("y" r4-channels-toggle-sync :description r4-menus--channel-sync)
     ("C" "Backup channel" r4-channels-save-local)]
    ["Edit"
@@ -423,7 +424,8 @@ groups instead."
     ("f" "Follow/unfollow" r4-channel-page-follow)
     ("y" r4-channel-page-toggle-sync :description r4-menus--page-sync)
     ("D" "Download" r4-channel-page-download)
-    ("C" "Save locally" r4-channel-page-save-locally)]
+    ("C" "Save locally" r4-channel-page-save-locally)
+    ("C-x C-j" "Downloads folder" r4-channel-page-open-directory)]
    ["Share"
     ("o" "Open on radio4000.com" r4-channel-page-browse)
     ("w" "Copy radio4000.com URL" r4-channel-page-copy-url)

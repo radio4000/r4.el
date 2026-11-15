@@ -123,6 +123,11 @@
   (interactive)
   (r4-download-channel (r4-channel-page--slug)))
 
+(defun r4-channel-page-open-directory ()
+  "Open the download folder of the channel in Dired."
+  (interactive)
+  (r4-files-open-directory (r4-channel-page--slug)))
+
 (defun r4-channel-page-save-locally ()
   "Save the channel locally, as a backup."
   (interactive)
@@ -372,6 +377,7 @@ Wrap them under the field values."
   "M" #'r4-channel-page-mentions
   "y" #'r4-channel-page-toggle-sync
   "D" #'r4-channel-page-download
+  "<remap> <dired-jump>" #'r4-channel-page-open-directory
   "C" #'r4-channel-page-save-locally
   "o" #'r4-channel-page-browse
   "w" #'r4-channel-page-copy-url)

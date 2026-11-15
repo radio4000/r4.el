@@ -216,7 +216,7 @@ In lists of tracks:
 | =c= =C= =Y=   | Copy to a local channel, save locally, sync              |
 | =o= =O=       | Open on radio4000.com, open the media                    |
 | =w= =W=       | Copy the media URL, the radio4000.com URL                |
-| =F= =L=       | Visit the downloaded file, list downloads                |
+| =F= =L=       | Visit the downloaded file (or its folder), list downloads |
 | =y=           | Sync the channel locally, or stop                        |
 
 In lists of channels:
@@ -232,6 +232,7 @@ In lists of channels:
 | =s= =/= =t=   | Search channels, filter the shown channels, search tracks |
 | =A= =e= =x=   | Create, edit, delete your channels                       |
 | =o= =w=       | Open on radio4000.com, copy its URL                      |
+| =C-x C-j=     | Open its downloads folder in Dired                       |
 
 The status column of track lists, the history and the feed shows the
 file of each track, =✓= downloaded, =↓= downloading, =✗= failed, and the
@@ -286,6 +287,12 @@ Set =r4-download-video= to download videos instead, in
 =r4-download-video-quality= and =r4-download-video-container=; audio and
 video files of a track live side by side.  =V= plays videos, see The
 player above.
+
+Downloaded tracks play from their files instead of streaming
+(=r4-player-prefer-downloads=): the echo area says "Playing" rather
+than "Streaming".  =C-x C-j= (=dired-jump=) in a list or on a channel
+page opens the folder of the channel at point; =F= on a track shows its
+file.  Other players can open =SLUG.m3u=.
 
 Downloads of r4.el 0.2 were outside =tracks/=: =M-x r4-files-migrate=
 moves them.

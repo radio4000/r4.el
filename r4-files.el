@@ -402,11 +402,14 @@ hash table of the ids.")
 (defun r4-files-open-directory (&optional slug)
   "Open the download directory, or the one of the channel SLUG, in Dired."
   (interactive)
-  (let ((directory (if slug
-                       (r4-files-channel-directory slug)
-                     (file-name-as-directory (expand-file-name r4-download-directory)))))
-    (make-directory directory t)
-    (dired directory)))
+  (if slug
+      (let ((directory (r4-files-channel-directory slug)))
+        (unless (file-directory-p directory)
+          (user-error "Nothing downloaded for %s" slug))
+        (dired directory))
+    (let ((directory (file-name-as-directory (expand-file-name r4-download-directory))))
+      (make-directory directory t)
+      (dired directory))))
 
 (provide 'r4-files)
 

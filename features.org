@@ -79,6 +79,7 @@ the keys are the ones of the r4 lists, where =?= shows them all.
 | Channel and track text files, playlists | =SLUG.txt=, =.txt=, =tracks.m3u= | written with downloads     |         |
 | Artist, title and channel metadata     | ffmetadata                     | yt-dlp                       |         |
 | Skip failed tracks, retry them         | =failures.jsonl=, =--retry-failed= | =C-u d=, =r4-downloads-retry-failed= | =R= |
+| Open the folder of a channel           | =~/Music/radio4000/SLUG/=      | =r4-channels-open-directory= | =C-x C-j= |
 | Downloads and their log                |                                | =r4-downloads=               | =L=     |
 | Keep chosen channels synced            |                                | =r4-synced-channels=, =r4-sync-channels= | =y= |
 | Download tracks while playing them     |                                | =r4-player-download=         |         |

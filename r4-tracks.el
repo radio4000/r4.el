@@ -381,11 +381,16 @@ With prefix argument RETRY, also retry the tracks that failed before."
     (message "Copied %s" url)))
 
 (defun r4-tracks-open-file ()
-  "Visit the downloaded file of the track at point in Dired."
+  "Visit the downloaded file of the track at point in Dired.
+If the track is not downloaded, or there is no track at point, open
+the folder of its channel, or of the channel of the list."
   (interactive)
-  (let ((file (or (r4-files-track-file (r4-tracks--at-point))
-                  (user-error "Track not downloaded"))))
-    (dired-jump nil file)))
+  (let* ((track (tabulated-list-get-id))
+         (file (and track (r4-files-track-file track)))
+         (slug (if track (r4-track-slug track) (plist-get r4-tracks--source :slug))))
+    (cond (file (dired-jump nil file))
+          (slug (r4-files-open-directory slug))
+          (t (user-error "No track at point")))))
 
 (defvar r4-tracks-visit-channel-function nil
   "Function showing a radio4000.com channel by slug, or nil to list its tracks.")
@@ -419,6 +424,7 @@ With prefix argument RETRY, also retry the tracks that failed before."
   "D" #'r4-tracks-download-all
   "L" #'r4-downloads
   "F" #'r4-tracks-open-file
+  "<remap> <dired-jump>" #'r4-tracks-open-file
   "o" #'r4-tracks-browse
   "O" #'r4-tracks-browse-media
   "w" #'r4-tracks-copy-url

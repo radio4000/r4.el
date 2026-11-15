@@ -84,6 +84,42 @@
                                 (date-to-time "2020-01-02T03:04:05Z"))))
       (delete-directory r4-download-directory t))))
 
+;; C-x C-j in a list opens the folder of what is at point, F of a track
+;; too when it is not downloaded.
+(ert-deftest r4-test-files-open-directory ()
+  (let* ((r4-download-directory (make-temp-file "r4-test" t))
+         (buffer (generate-new-buffer "r4-test"))
+         (track (r4-test--track :provider "youtube" :media-id "m"))
+         opened)
+    (unwind-protect
+        (cl-letf (((symbol-function 'dired) (lambda (dir) (push (list 'dired dir) opened)))
+                  ((symbol-function 'dired-jump) (lambda (_ file) (push (list 'jump file) opened))))
+          (should (eq (keymap-lookup r4-tracks-mode-map "<remap> <dired-jump>") 'r4-tracks-open-file))
+          (should (eq (keymap-lookup r4-channels-mode-map "<remap> <dired-jump>") 'r4-channels-open-directory))
+          (should (eq (keymap-lookup r4-channel-page-mode-map "<remap> <dired-jump>")
+                      'r4-channel-page-open-directory))
+          ;; No empty folders for channels never downloaded.
+          (should-error (r4-files-open-directory "test") :type 'user-error)
+          (make-directory (r4-files-tracks-directory "test") t)
+          (with-current-buffer buffer
+            (r4-tracks-mode)
+            (setq r4-tracks--source '(:slug "test"))
+            (r4-tracks--set buffer nil)
+            ;; An empty list opens the folder of its channel.
+            (r4-tracks-open-file)
+            (should (equal (pop opened) (list 'dired (r4-files-channel-directory "test"))))
+            (r4-tracks--set buffer (list track))
+            (goto-char (point-min))
+            (r4-tracks-open-file)
+            (should (equal (pop opened) (list 'dired (r4-files-channel-directory "test"))))
+            (let ((file (expand-file-name "A track [m].opus" (r4-files-tracks-directory "test"))))
+              (write-region "" nil file)
+              (clrhash r4-files--indexes)
+              (r4-tracks-open-file)
+              (should (equal (pop opened) (list 'jump file))))))
+      (kill-buffer buffer)
+      (delete-directory r4-download-directory t))))
+
 (ert-deftest r4-test-files-migrate ()
   (let* ((r4-download-directory (make-temp-file "r4-test" t))
          (channel (expand-file-name "test" r4-download-directory)))

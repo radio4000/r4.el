@@ -323,6 +323,11 @@ Only the rows of SLUGS are updated, so it stays fast in long lists."
   (interactive)
   (browse-url (r4-channel-web-url (r4-channels--at-point))))
 
+(defun r4-channels-open-directory ()
+  "Open the download folder of the channel at point in Dired."
+  (interactive)
+  (r4-files-open-directory (r4-channel-slug (r4-channels--at-point))))
+
 (declare-function r4-describe-channel "r4-channel-page")
 
 (defun r4-channels-describe ()
@@ -338,6 +343,7 @@ Only the rows of SLUGS are updated, so it stays fast in long lists."
   "z" #'r4-channels-shuffle
   "D" #'r4-channels-download
   "L" #'r4-downloads
+  "<remap> <dired-jump>" #'r4-channels-open-directory
   "i" #'r4-channels-describe
   "o" #'r4-channels-browse
   "w" #'r4-channels-copy-url
